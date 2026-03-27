@@ -1,0 +1,324 @@
+---
+import type { PortfolioItem, PortfolioCategory } from "../lib/store-data";
+import { slugify } from "../utils/slugs";
+import { urlFor } from "../lib/sanity-image";
+
+interface Props {
+    items: PortfolioItem[];
+    baseUrl?: string;
+    preserveCategory?: string | null;
+    categoryMode?: boolean;
+    categories?: PortfolioCategory[];
+}
+
+const {
+    items,
+    baseUrl = "/portfolio",
+    preserveCategory,
+    categoryMode = false,
+    categories = [],
+} = Astro.props;
+
+// Helper to generate placeholder image
+const getPlaceholderImage = (text: string) => {
+    const encodedText = encodeURIComponent(text);
+    return `https://placehold.co/600x600/1A1635/CBFF62?text=${encodedText}&font=roboto`;
+};
+
+// Generate portfolio item link
+const getItemLink = (item: PortfolioItem) => {
+    // Sanity items have a slug field. Legacy items might need slugify(title).
+    // However, our new interface ensures 'slug' is present.
+    // If slug is missing (very old legacy?), fallback to slugify title/name.
+    const itemSlug = item.slug || slugify(item.title || item.name || "");
+
+    if (preserveCategory && categoryMode) {
+        return `${baseUrl}/category/${preserveCategory}/${itemSlug}`;
+    } else if (preserveCategory) {
+        return `${baseUrl}/${itemSlug}?category=${preserveCategory}`;
+    }
+    return `${baseUrl}/${itemSlug}`;
+};
+
+// Helper to determine portfolio groups
+const getPortfolioGroups = (items: PortfolioItem[]) => {
+    if (items.length === 0) return [];
+
+    // If we are in specific category mode (preserveCategory is set), don't group
+    if (preserveCategory && !categoryMode) {
+        return [{ title: "", items }];
+    }
+
+    const groups: { title: string; items: PortfolioItem[] }[] = [];
+    const usedItemIds = new Set<string>();
+
+    // Use passed categories for ordering if available, otherwise fallback
+    if (categories && categories.length > 0) {
+        categories.forEach((cat) => {
+            // Find items that match this category title or slug
+            // Note: our items.category field stores the Title properly
+            const catItems = items.filter(
+                (item) =>
+                    item.category === cat.title ||
+                    item.categorySlug === cat.slug,
+            );
+
+            if (catItems.length > 0) {
+                groups.push({ title: cat.title, items: catItems });
+                catItems.forEach((i) =>
+                    usedItemIds.add(i.slug || slugify(i.title || i.name || "")),
+                );
+            }
+        });
+    } else {
+        // Fallback to hardcoded order if no categories passed (legacy behavior)
+        const categoryOrder = [
+            "3D Design",
+            "Brand Identity Design",
+            "Fashion Design",
+            "Graphic Design",
+            "Web Design",
+        ];
+        categoryOrder.forEach((catTitle) => {
+            const catItems = items.filter((item) => item.category === catTitle);
+            if (catItems.length > 0) {
+                groups.push({ title: catTitle, items: catItems });
+                catItems.forEach((i) =>
+                    usedItemIds.add(i.slug || slugify(i.title || i.name || "")),
+                );
+            }
+        });
+    }
+
+    // Find items that didn't fit into the predefined categories
+    const others = items.filter(
+        (item) =>
+            !usedItemIds.has(
+                item.slug || slugify(item.title || item.name || ""),
+            ),
+    );
+    if (others.length > 0) {
+        groups.push({ title: "Other Projects", items: others });
+    }
+
+    return groups.length > 0 ? groups : [{ title: "", items }];
+};
+
+const groups = getPortfolioGroups(items);
+---
+
+<div class="portfolio-grid-container">
+    {
+        items.length === 0 ? (
+            <div class="empty-state">
+                <p>No portfolio items found.</p>
+            </div>
+        ) : (
+            <>
+                {groups.map((group) => (
+                    <div class="portfolio-group">
+                        {group.title && (
+                            <div class="section-header">
+                                <span class="section-title">{group.title}</span>
+                            </div>
+                        )}
+                        <div class="portfolio-grid">
+                            {group.items.map((item, index) => (
+                                <a
+                                    href={getItemLink(item)}
+                                    class="portfolio-card"
+                                    data-item-id={item.slug}
+                                    style={`--animation-delay: ${index * 50}ms`}
+                                    transition:name={`portfolio-${item.slug}`}
+                                >
+                                    <div class="portfolio-image">
+                                        <img
+                                            src={
+                                                item.mainImage
+                                                    ? urlFor(item.mainImage)
+                                                          .width(600)
+                                                          .height(600)
+                                                          .url()
+                                                    : getPlaceholderImage(
+                                                          item.name ||
+                                                              item.title ||
+                                                              "Project",
+                                                      )
+                                            }
+                                            alt={
+                                                item.name ||
+                                                item.title ||
+                                                "Project"
+                                            }
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                    <div class="portfolio-info">
+                                        <h3 class="portfolio-title">
+                                            {item.name || item.title}
+                                        </h3>
+                                        {item.year && (
+                                            <p class="portfolio-meta">
+                                                {item.year}
+                                            </p>
+                                        )}
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </>
+        )
+    }
+</div>
+
+<style>
+    .portfolio-grid-container {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        opacity: 0.5;
+        text-align: center;
+    }
+
+    .portfolio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 24px;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin: 0 0 16px 0;
+        gap: 16px;
+    }
+
+    .section-header::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-subtle);
+    }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--foreground);
+        opacity: 0.7;
+        white-space: nowrap;
+    }
+
+    .portfolio-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .portfolio-group + .portfolio-group {
+        margin-top: 48px;
+    }
+
+    .portfolio-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s,
+            border-color 0.2s;
+        cursor: pointer;
+        opacity: 0;
+        animation: fadeInUp 0.6s ease-out forwards;
+        animation-delay: var(--animation-delay, 0ms);
+        text-decoration: none;
+    }
+
+    .portfolio-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--brand-violet);
+        box-shadow: 0 12px 24px rgba(132, 128, 255, 0.15);
+    }
+
+    .portfolio-image {
+        width: 100%;
+        aspect-ratio: 1;
+        overflow: hidden;
+        background: var(--surface-muted);
+        position: relative;
+    }
+
+    .portfolio-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .portfolio-card:hover .portfolio-image img {
+        transform: scale(1.05);
+    }
+
+    .portfolio-info {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .portfolio-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--foreground);
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .portfolio-meta {
+        font-size: 12px;
+        color: var(--brand-violet);
+        opacity: 0.7;
+        margin: 4px 0 0 0;
+        font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .portfolio-grid-container {
+            padding: 16px;
+        }
+
+        .portfolio-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+    }
+</style>

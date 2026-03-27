@@ -1,0 +1,99 @@
+---
+const { searchParams } = Astro.url;
+const orderId = searchParams.get("order");
+---
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>Payment Successful</title>
+        <style>
+            :root {
+                --background: #0f172a; /* Should match site theme */
+                --text: #f8fafc;
+                --success: #10b981;
+            }
+            body {
+                background: var(--background);
+                color: var(--text);
+                margin: 0;
+                display: flex;
+                height: 100vh;
+                align-items: center;
+                justify-content: center;
+                font-family:
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+            }
+            .success-container {
+                text-align: center;
+                animation: fadeIn 0.5s ease-out;
+            }
+            h2 {
+                margin: 16px 0 8px;
+                font-weight: 600;
+            }
+            p {
+                margin: 0;
+                color: #94a3b8;
+                font-size: 0.875rem;
+            }
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="success-container">
+            <svg
+                width="64"
+                height="64"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10b981"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <h2>Payment Successful!</h2>
+            <p>Finalizing your order...</p>
+        </div>
+
+        <script define:vars={{ orderId }}>
+            try {
+                // If we are in an iframe (which we should be), message the parent
+                if (window.parent && window.parent !== window) {
+                    // Slight delay to show success animation
+                    setTimeout(() => {
+                        window.parent.postMessage(
+                            {
+                                type: "CHECKOUT_SUCCESS",
+                                orderId: orderId,
+                            },
+                            "*", // Allow origin flexibility for now, or use window.location.origin
+                        );
+                    }, 1000);
+                } else {
+                    // Fallback if not in iframe: Redirect to Orders
+                    window.location.href = `/account/orders?success=true&order=${orderId}`;
+                }
+            } catch (error) {
+                console.error("Redirect error:", error);
+                window.location.href = `/account/orders?success=true&order=${orderId}`;
+            }
+        </script>
+    </body>
+</html>

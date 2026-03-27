@@ -1,0 +1,290 @@
+---
+import type { Course } from "../lib/store-data";
+import type { Currency } from "../lib/server-currency";
+
+interface Props {
+    courses: Course[];
+    serverCurrency?: Currency;
+}
+
+const { courses, serverCurrency } = Astro.props;
+
+// Helper to generate placeholder image
+const getPlaceholderImage = (text: string, seed: number = 0) => {
+    const encodedText = encodeURIComponent(text);
+    const bg = seed === 0 ? "151128" : seed === 1 ? "1a1635" : "221d3a";
+    return `https://placehold.co/1200x675/${bg}/CBFF62?text=${encodedText}&font=roboto`;
+};
+
+// Helper to get instructor initials
+const getInitials = (name: string) => {
+    return name
+        .split(" ")
+        .map((word) => word[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+};
+---
+
+<div class="course-grid">
+    {
+        courses.map((course) => {
+            const details = course.details || {};
+            const instructor = course.instructor || {
+                name: "Instructor",
+                title: "Expert",
+            };
+            const courseSlug = course.slug || course.id || "";
+            const courseImage =
+                course.mainImage ||
+                course.image ||
+                getPlaceholderImage(course.name);
+
+            return (
+                <a href={`/courses/${courseSlug}`} class="course-card">
+                    <div class="course-image-wrapper">
+                        <img
+                            src={courseImage}
+                            alt={course.name}
+                            loading="lazy"
+                        />
+                    </div>
+
+                    <div class="course-content">
+                        <div class="course-meta-tags">
+                            <span class="course-tag">
+                                {details.level ||
+                                    (details as any)["Level"] ||
+                                    "All Levels"}
+                            </span>
+                            <span class="course-tag">
+                                {details.duration ||
+                                    (details as any)["Duration"] ||
+                                    "Self-Paced"}
+                            </span>
+                        </div>
+
+                        <h3 class="course-title">{course.name}</h3>
+                        <p class="course-desc">{course.description}</p>
+
+                        <div class="course-footer">
+                            <div class="instructor-mini">
+                                {instructor.avatar ? (
+                                    <img
+                                        src={instructor.avatar}
+                                        alt={instructor.name}
+                                        class="instructor-mini-avatar-img"
+                                    />
+                                ) : (
+                                    <div class="instructor-mini-avatar">
+                                        {getInitials(instructor.name || "IN")}
+                                    </div>
+                                )}
+                                <span>
+                                    {instructor.name || "Instructor Name"}
+                                </span>
+                            </div>
+                            <span
+                                class="course-price"
+                                style={{
+                                    fontWeight: "700",
+                                    color: "var(--brand-violet)",
+                                }}
+                                data-price-eur={course.price}
+                                data-price-pln={course.pricePLN || Math.round(course.price * 4.3)}
+                                data-server-currency={serverCurrency || ''}
+                            >
+                                €{course.price}
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            );
+        })
+    }
+</div>
+
+<style>
+    .course-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        width: 100%;
+    }
+
+    .course-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s,
+            border-color 0.2s;
+        cursor: pointer;
+        height: 100%;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .course-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--brand-violet);
+        box-shadow: 0 12px 24px rgba(132, 128, 255, 0.15);
+    }
+
+    .course-image-wrapper {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: var(--surface-muted);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .course-image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .course-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .course-meta-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .course-tag {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--brand-violet);
+        background: rgba(132, 128, 255, 0.1);
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+    }
+
+    .course-title {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--foreground);
+    }
+
+    .course-desc {
+        font-size: 14px;
+        opacity: 0.7;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+    }
+
+    .course-footer {
+        margin-top: auto;
+        padding-top: 16px;
+        border-top: 1px dashed var(--border-subtle);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .instructor-mini {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .instructor-mini-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--surface-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        border: 1px solid var(--border-subtle);
+    }
+
+    .instructor-mini-avatar-img {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border-subtle);
+    }
+
+    @media (max-width: 900px) {
+        .course-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+    }
+</style>
+
+<script>
+    // Client-side currency detection for course grid
+    type Currency = 'EUR' | 'PLN';
+
+    function detectUserCurrency(): Currency {
+        // PRIORITY 1: Server-detected currency (Cloudflare)
+        const priceElement = document.querySelector('[data-server-currency]');
+        const serverCurrency = priceElement?.getAttribute('data-server-currency');
+        
+        if (serverCurrency && (serverCurrency === 'EUR' || serverCurrency === 'PLN')) {
+            return serverCurrency as Currency;
+        }
+
+        // FALLBACK 1: Check timezone
+        try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (timezone && (timezone.includes('Warsaw') || timezone === 'Europe/Warsaw' || timezone === 'Poland')) {
+                return 'PLN';
+            }
+        } catch (e) {}
+
+        // FALLBACK 2: Check browser language
+        const locale = navigator.language || (navigator as any).userLanguage;
+        if (locale && locale.toLowerCase().startsWith('pl')) {
+            return 'PLN';
+        }
+
+        return 'EUR';
+    }
+
+    function updateCoursePrices() {
+        const currency = detectUserCurrency();
+        const priceElements = document.querySelectorAll('.course-price[data-price-eur][data-price-pln]');
+        
+        priceElements.forEach((element) => {
+            const priceEUR = element.getAttribute('data-price-eur');
+            const pricePLN = element.getAttribute('data-price-pln');
+            
+            if (!priceEUR || !pricePLN) return;
+            
+            if (currency === 'PLN') {
+                element.textContent = `${pricePLN}zł`;
+            } else {
+                element.textContent = `€${priceEUR}`;
+            }
+        });
+    }
+
+    // Run on page load
+    updateCoursePrices();
+</script>

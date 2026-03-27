@@ -1,0 +1,191 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Payment Cancelled – Visupair">
+  <div class="payment-layout">
+    <div class="payment-card">
+
+      <!-- Icon -->
+      <div class="state-icon state-icon--cancel">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+
+      <!-- Text -->
+      <h1>Payment Cancelled</h1>
+      <p class="subtitle">
+        Your payment was not completed and nothing has been charged.
+        You can try again whenever you're ready.
+      </p>
+
+      <!-- Actions -->
+      <div class="actions">
+        <a href="javascript:history.back()" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+          Go Back
+        </a>
+        <a href="/store" class="btn-secondary">Browse Store</a>
+      </div>
+
+      <!-- Hint -->
+      <p class="hint">
+        Need help?
+        <a href="/contact" class="hint-link">Contact us</a>
+        and we'll be happy to assist.
+      </p>
+
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .payment-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 120px);
+    padding: 48px 24px;
+  }
+
+  .payment-card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-island);
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+    animation: cardIn 0.5s cubic-bezier(.4,0,.2,1);
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+  }
+
+  /* State Icon */
+  .state-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .state-icon--cancel {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    margin: 0 0 12px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--foreground);
+    opacity: 0.6;
+    margin: 0 0 36px;
+    max-width: 340px;
+  }
+
+  /* Buttons */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 28px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    padding: 13px 20px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--foreground);
+    color: var(--page-bg);
+    border: none;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: var(--surface-muted);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-hover);
+    transform: translateY(-1px);
+  }
+
+  /* Hint */
+  .hint {
+    font-size: 13px;
+    color: var(--foreground);
+    opacity: 0.5;
+    margin: 0;
+  }
+
+  .hint-link {
+    color: var(--brand-violet);
+    text-decoration: none;
+    font-weight: 500;
+    opacity: 1;
+  }
+
+  .hint-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Mobile */
+  @media (max-width: 480px) {
+    .payment-card {
+      padding: 36px 24px;
+    }
+
+    h1 {
+      font-size: 22px;
+    }
+  }
+</style>

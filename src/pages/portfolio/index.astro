@@ -1,0 +1,64 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PortfolioSidebar from "../../components/PortfolioSidebar.astro";
+import PortfolioGrid from "../../components/PortfolioGrid.astro";
+import {
+    getPortfolioCategories,
+    getPortfolioProjects,
+} from "../../lib/portfolio";
+
+const sectionId = "portfolio";
+const categories = await getPortfolioCategories();
+const allItems = await getPortfolioProjects();
+
+// Transform tools to string array if needed, although frontend currently just renders them.
+// The frontend uses tools.map, so if it's an object array {value: 'Tool'}, we need to handle that in the grid/detail.
+// However, index.astro passes items to PortfolioGrid, which might not use tools.
+// Let's check PortfolioGrid. It uses title, year, image. Tools are in Detail.
+---
+
+<Layout title="Portfolio | Visupair">
+    <div class="portfolio-layout">
+        <PortfolioSidebar
+            categories={categories}
+            selectedCategoryId={null}
+            sectionId={sectionId}
+        />
+        <div class="portfolio-wrapper">
+            <PortfolioGrid items={allItems} categories={categories} />
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .portfolio-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    .portfolio-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .portfolio-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .portfolio-wrapper {
+            border-radius: var(--radius-md);
+        }
+    }
+</style>

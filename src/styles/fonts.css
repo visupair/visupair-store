@@ -1,0 +1,57 @@
+/* ===============================
+   Font Faces - Space Grotesk
+   =============================== */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/Space_Grotesk/SpaceGrotesk-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/Space_Grotesk/SpaceGrotesk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/Space_Grotesk/SpaceGrotesk-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/Space_Grotesk/SpaceGrotesk-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/Space_Grotesk/SpaceGrotesk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ===============================
+   Font Faces - Visupair Brand
+   =============================== */
+
+@font-face {
+  font-family: 'Visupair';
+  src: url('/fonts/Visu_pair/VISUPAIR-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  /* block = hide text briefly until font loads (no fallback flash).
+     Safe because we preload this font in <head>, so wait is near-zero. */
+  font-display: block;
+}

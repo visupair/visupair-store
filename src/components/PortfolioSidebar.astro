@@ -1,0 +1,194 @@
+---
+import type { PortfolioCategory } from "../lib/store-data";
+
+interface Props {
+    categories: PortfolioCategory[];
+    selectedCategoryId: string | null;
+    sectionId: string;
+}
+
+const { categories, selectedCategoryId, sectionId } = Astro.props;
+---
+
+<aside class="portfolio-sidebar">
+    <div class="sidebar-header">
+        <h2 class="sidebar-title">Filter by Category</h2>
+    </div>
+
+    <div class="category-tree">
+        {/* "All" Option */}
+        <div
+            class={`category-item ${selectedCategoryId === null ? "active" : ""}`}
+            data-category-id="all"
+            data-is-parent="false"
+        >
+            <span class="category-text">All Works</span>
+        </div>
+
+        {/* Categories */}
+        {
+            categories.map((category) => (
+                <div
+                    class={`category-item ${selectedCategoryId === category.slug ? "active" : ""}`}
+                    data-category-id={category.slug}
+                    data-is-parent="false"
+                >
+                    <span class="category-text">{category.title}</span>
+                </div>
+            ))
+        }
+    </div>
+</aside>
+
+<script>
+    const initPortfolioSidebar = () => {
+        // Handle category item clicks - only from portfolio sidebar
+        const portfolioSidebar = document.querySelector(".portfolio-sidebar");
+        if (portfolioSidebar) {
+            // Remove existing listeners to avoid duplicates if any
+            const newSidebar = portfolioSidebar.cloneNode(true);
+            if (portfolioSidebar.parentNode) {
+                portfolioSidebar.parentNode.replaceChild(
+                    newSidebar,
+                    portfolioSidebar,
+                );
+            }
+
+            // Re-select after replacement
+            const activeSidebar = document.querySelector(".portfolio-sidebar");
+            if (!activeSidebar) return;
+
+            activeSidebar.addEventListener("click", function (e) {
+                const target = e.target;
+                if (!target || !(target instanceof Element)) return;
+
+                const categoryItem = target.closest("[data-category-id]");
+                if (categoryItem) {
+                    const categoryId =
+                        categoryItem.getAttribute("data-category-id");
+
+                    let newUrl = "";
+                    if (categoryId === "all") {
+                        newUrl = `/portfolio`;
+                    } else {
+                        newUrl = `/portfolio/category/${categoryId}`;
+                    }
+
+                    window.location.href = newUrl;
+                }
+            });
+        }
+    };
+
+    // Initialize on page load and after view transitions
+    document.addEventListener("astro:page-load", initPortfolioSidebar);
+</script>
+
+<style>
+    .portfolio-sidebar {
+        width: 280px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        height: 100%;
+    }
+
+    .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .sidebar-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--foreground);
+        margin: 0;
+    }
+
+    .category-tree {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        padding: 14px 20px;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        color: var(--foreground);
+        font-family: var(--font-family);
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+        gap: 12px;
+    }
+
+    .category-text {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .category-item:hover {
+        background: var(--surface-muted);
+        color: var(--brand-violet);
+        padding-left: 24px;
+    }
+
+    .category-item.active {
+        background: var(--surface-muted);
+        color: var(--brand-violet);
+        border-left: 3px solid var(--brand-violet);
+        padding-left: 17px;
+    }
+
+    @media (max-width: 768px) {
+        .portfolio-sidebar {
+            width: 100%;
+            height: auto;
+        }
+
+        .sidebar-header {
+            text-align: center;
+        }
+
+        .category-tree {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .category-item {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            justify-content: center;
+            text-align: center;
+        }
+
+        .category-item:first-child {
+            grid-column: 1 / -1;
+        }
+
+        .category-item:hover,
+        .category-item.active {
+            padding-left: 16px;
+        }
+
+        .category-item.active {
+            border-left: none;
+            border-bottom: 3px solid var(--brand-violet);
+        }
+    }
+</style>

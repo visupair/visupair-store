@@ -1,0 +1,509 @@
+---
+// Global Fullscreen Gallery Component
+// Persists across page transitions and receives images via custom events
+---
+
+<div class="fullscreen-overlay" id="fullscreen-overlay" style="display: none;">
+    <div class="fullscreen-image-container" id="fullscreen-container">
+        <img
+            id="fullscreen-img"
+            src=""
+            alt="Fullscreen view"
+            class="fullscreen-img"
+        />
+    </div>
+
+    <!-- Fullscreen Toolbar (Bottom Center) -->
+    <div class="fs-toolbar">
+        <button class="fs-btn fs-nav-btn" id="fs-prev-btn" aria-label="Previous image">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+
+        <button class="fs-btn close fs-close-btn" id="fs-close-btn" aria-label="Close fullscreen">
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <button class="fs-btn fs-nav-btn" id="fs-next-btn" aria-label="Next image">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<style>
+    /* ===============================
+       FULLSCREEN IMAGE OVERLAY
+       =============================== */
+    .fullscreen-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .fullscreen-image-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        cursor: grab;
+    }
+
+    .fullscreen-image-container.grabbing {
+        cursor: grabbing;
+    }
+
+    .fullscreen-img {
+        object-fit: contain;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        transition: none;
+        transform-origin: center center;
+        user-select: none;
+        -webkit-user-drag: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+    }
+
+    /* Unified Fullscreen Toolbar (Bottom Center) */
+    .fs-toolbar {
+        position: absolute;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+
+        background: rgba(20, 20, 20, 0.9);
+        backdrop-filter: blur(12px);
+        padding: 10px;
+        border-radius: var(--radius-pill);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        z-index: 10001;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        pointer-events: auto;
+    }
+
+    .fs-btn {
+        background: transparent;
+        border: none;
+        color: #ffffff;
+        font-family: var(--font-family);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .fs-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .fs-btn.close {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: var(--brand-lime);
+    }
+
+    .fs-btn.close:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: #EF4444;
+        transform: rotate(90deg);
+        color: #EF4444;
+    }
+
+    .fs-nav-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .fs-close-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .fs-toolbar {
+            bottom: 20px;
+            gap: 12px;
+            padding: 8px;
+        }
+
+        .fs-btn {
+            min-width: 40px;
+            min-height: 40px;
+            padding: 8px;
+        }
+
+        .fs-nav-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .fs-close-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .fs-toolbar {
+            bottom: 16px;
+            gap: 10px;
+            padding: 6px;
+        }
+
+        .fs-btn {
+            min-width: 36px;
+            min-height: 36px;
+            padding: 6px;
+        }
+
+        .fs-nav-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .fs-close-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+    }
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+    // ==========================================
+    // FULLSCREEN GALLERY GLOBAL HANDLER
+    // ==========================================
+
+    interface FullscreenEventDetail {
+        images: string[];
+        startIndex?: number;
+        productName?: string;
+    }
+
+    const fullscreenOverlay = document.getElementById("fullscreen-overlay");
+    const fullscreenContainer = document.getElementById(
+        "fullscreen-container",
+    );
+    const fullscreenImg = document.getElementById("fullscreen-img") as HTMLImageElement;
+    
+    const fsCloseBtn = document.getElementById("fs-close-btn");
+    const fsPrevBtn = document.getElementById("fs-prev-btn");
+    const fsNextBtn = document.getElementById("fs-next-btn");
+
+    let galleryImageUrls: string[] = [];
+    let currentFullscreenIndex = 0;
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    // Touch gesture tracking
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartDistance = 0;
+    let isGesture = false;
+    const BASE_PAN_OFFSET = 300; // Базовое ограничение
+
+    function updateImageTransform() {
+        if (!fullscreenImg) return;
+        fullscreenImg.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${scale})`;
+    }
+
+    function clampPan() {
+        // Динамический лимит в зависимости от масштаба
+        // scale = 1: 300px | scale = 2: 600px | scale = 3: 900px
+        const dynamicLimit = BASE_PAN_OFFSET * scale;
+        
+        translateX = Math.max(-dynamicLimit, Math.min(dynamicLimit, translateX));
+        translateY = Math.max(-dynamicLimit, Math.min(dynamicLimit, translateY));
+    }
+
+    function resetZoomPan() {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        clampPan();
+        updateImageTransform();
+    }
+
+    function openFullscreen(index: number) {
+        if (!fullscreenOverlay || !fullscreenImg || galleryImageUrls.length === 0)
+            return;
+        currentFullscreenIndex = index;
+        fullscreenImg.src = galleryImageUrls[index];
+        fullscreenImg.alt = `Fullscreen view ${index + 1}`;
+        fullscreenOverlay.style.display = "flex";
+        document.body.style.overflow = "hidden";
+        resetZoomPan();
+
+        fullscreenImg.onload = () => {
+            resetZoomPan();
+        };
+    }
+
+    function closeFullscreen() {
+        if (!fullscreenOverlay) return;
+        fullscreenOverlay.style.display = "none";
+        document.body.style.overflow = "";
+        resetZoomPan();
+    }
+
+    function changeImage(index: number) {
+        if (galleryImageUrls.length === 0) return;
+        currentFullscreenIndex = Math.max(0, Math.min(index, galleryImageUrls.length - 1));
+        fullscreenImg.src = galleryImageUrls[currentFullscreenIndex];
+        resetZoomPan();
+    }
+
+    // Listen for custom event from ProductDetail
+    window.addEventListener(
+        "open-fullscreen-gallery",
+        (event: any) => {
+            const detail: FullscreenEventDetail = event.detail;
+            galleryImageUrls = detail.images || [];
+            openFullscreen(detail.startIndex || 0);
+        },
+    );
+
+    // Navigation buttons
+    fsPrevBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        changeImage(currentFullscreenIndex - 1);
+    });
+
+    fsNextBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        changeImage(currentFullscreenIndex + 1);
+    });
+
+    // Close button
+    fsCloseBtn?.addEventListener("click", closeFullscreen);
+
+    // Click on overlay or outside image to close
+    fullscreenOverlay?.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        // Закрываем если кликнули на сам оверлей или на контейнер (пустое место)
+        if (target === fullscreenOverlay || target === fullscreenContainer) {
+            closeFullscreen();
+        }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+        if (fullscreenOverlay?.style.display !== "flex") return;
+
+        if (e.key === "Escape") closeFullscreen();
+        else if (e.key === "ArrowLeft") fsPrevBtn?.click();
+        else if (e.key === "ArrowRight") fsNextBtn?.click();
+    });
+
+    // Mouse wheel zoom
+    document.addEventListener(
+        "wheel",
+        (e) => {
+            if (fullscreenOverlay?.style.display !== "flex") return;
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                scale = Math.min(scale + 0.1, 3);
+            } else {
+                scale = Math.max(scale - 0.1, 1);
+                if (scale === 1) {
+                    resetZoomPan();
+                }
+            }
+            updateImageTransform();
+        },
+        { passive: false },
+    );
+
+    // ========== MOUSE DRAG & PAN ==========
+    fullscreenImg?.addEventListener("mousedown", (e) => {
+        if (e.button !== 0 || scale === 1) return;
+
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        fullscreenContainer?.classList.add("grabbing");
+        e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        clampPan();
+        updateImageTransform();
+    });
+
+    document.addEventListener("mouseup", () => {
+        if (isDragging) {
+            isDragging = false;
+            fullscreenContainer?.classList.remove("grabbing");
+        }
+    });
+
+    // ========== TOUCH GESTURES ==========
+    fullscreenContainer?.addEventListener(
+        "touchstart",
+        (e) => {
+            if (fullscreenOverlay?.style.display !== "flex") return;
+
+            if (e.touches.length === 1) {
+                // Single touch - swipe or drag
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isGesture = false;
+            } else if (e.touches.length === 2) {
+                // Two fingers - pinch zoom
+                isGesture = true;
+                const dx =
+                    e.touches[0].clientX - e.touches[1].clientX;
+                const dy =
+                    e.touches[0].clientY - e.touches[1].clientY;
+                touchStartDistance = Math.sqrt(dx * dx + dy * dy);
+            }
+        },
+        { passive: true },
+    );
+
+    fullscreenContainer?.addEventListener(
+        "touchmove",
+        (e) => {
+            if (fullscreenOverlay?.style.display !== "flex") return;
+
+            if (e.touches.length === 1 && !isGesture) {
+                // Single touch - allow drag if zoomed
+                if (scale > 1) {
+                    const deltaX = e.touches[0].clientX - touchStartX;
+                    const deltaY = e.touches[0].clientY - touchStartY;
+                    // Добавляем дельту к текущему положению, а не заменяем его
+                    translateX += deltaX;
+                    translateY += deltaY;
+                    clampPan();
+                    // Обновляем стартовую позицию для следующего движения
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    updateImageTransform();
+                }
+            } else if (e.touches.length === 2) {
+                // Two finger - pinch zoom
+                isGesture = true;
+                const dx =
+                    e.touches[0].clientX - e.touches[1].clientX;
+                const dy =
+                    e.touches[0].clientY - e.touches[1].clientY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const ratio = distance / (touchStartDistance || 1);
+
+                scale = Math.max(
+                    1,
+                    Math.min(3, scale * ratio),
+                );
+                touchStartDistance = distance;
+                updateImageTransform();
+                e.preventDefault();
+            }
+        },
+        { passive: false },
+    );
+
+    fullscreenContainer?.addEventListener(
+        "touchend",
+        (e) => {
+            if (fullscreenOverlay?.style.display !== "flex") return;
+
+            if (e.touches.length === 0 && !isGesture) {
+                // Single touch ended - check for swipe
+                const touchEndX =
+                    e.changedTouches[0]?.clientX || touchStartX;
+                const touchEndY =
+                    e.changedTouches[0]?.clientY || touchStartY;
+
+                const deltaX = touchEndX - touchStartX;
+                const deltaY = touchEndY - touchStartY;
+                const absDeltaX = Math.abs(deltaX);
+                const absDeltaY = Math.abs(deltaY);
+
+                // Swipe detection (horizontal movement > 50px)
+                if (absDeltaX > 50 && absDeltaX > absDeltaY) {
+                    if (deltaX > 0) {
+                        // Swipe right - previous image
+                        changeImage(currentFullscreenIndex - 1);
+                    } else {
+                        // Swipe left - next image
+                        changeImage(currentFullscreenIndex + 1);
+                    }
+                }
+            }
+
+            // Reset gesture
+            if (scale === 1) {
+                resetZoomPan();
+            }
+            isGesture = false;
+        },
+        { passive: true },
+    );
+</script>

@@ -1,0 +1,96 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import PortfolioSidebar from "../../../components/PortfolioSidebar.astro";
+import PortfolioGrid from "../../../components/PortfolioGrid.astro";
+import {
+    getPortfolioCategories,
+    getPortfolioProjects,
+} from "../../../lib/portfolio";
+import { slugify } from "../../../utils/slugs";
+
+export const prerender = false;
+
+const { categoryId } = Astro.params;
+const searchQuery = Astro.url.searchParams.get("search") || "";
+
+if (!categoryId) {
+    return Astro.redirect("/portfolio");
+}
+
+const sectionId = "portfolio";
+const categories = await getPortfolioCategories();
+const allItems = await getPortfolioProjects();
+
+// Filter items by category
+const filteredItems = allItems.filter((item: any) => {
+    // Must have the category in its path (which in our new data is categorySlug)
+    // Or check if item.categorySlug matches categoryId
+    if (item.categorySlug !== categoryId) {
+        return false;
+    }
+
+    // Search filter (future implementation)
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+            !item.name.toLowerCase().includes(q) &&
+            !item.description?.toLowerCase().includes(q)
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+});
+---
+
+<Layout title={`Portfolio | Visupair`}>
+    <div class="portfolio-layout">
+        <PortfolioSidebar
+            categories={categories}
+            selectedCategoryId={categoryId === "all" ? null : categoryId}
+            sectionId={sectionId}
+        />
+        <div class="portfolio-wrapper">
+            <PortfolioGrid
+                items={filteredItems}
+                baseUrl="/portfolio"
+                preserveCategory={categoryId === "all" ? null : categoryId}
+                categoryMode={true}
+            />
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .portfolio-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    .portfolio-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .portfolio-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 16px;
+            gap: 16px;
+        }
+
+        .portfolio-wrapper {
+            border-radius: var(--radius-md);
+        }
+    }
+</style>

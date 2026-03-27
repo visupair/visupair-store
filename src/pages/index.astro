@@ -1,0 +1,1289 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+import CategoryCarousel from "../components/CategoryCarousel.astro";
+import ServicePromoCard from "../components/ServicePromoCard.astro";
+export const prerender = true;
+---
+
+<Layout
+  title="Visupair - Design & Digital Creation"
+  description="Creative portfolio and digital showcase. Explore unique designs, fashion, 3D models and artworks from Visupair studio."
+>
+  <Fragment slot="head">
+    <script is:inline>
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme") || "dark";
+          var link = document.createElement("link");
+          link.rel = "preload";
+          link.as = "image";
+          link.type = "image/webp";
+          link.href =
+            "/images/hero/bg-" +
+            (theme === "light" ? "light" : "dark") +
+            ".webp";
+          document.head.appendChild(link);
+        } catch (e) {}
+      })();
+    </script>
+  </Fragment>
+
+  <div class="hero-wrapper">
+    <div class="hero-island">
+      <div class="hero-content">
+        <div class="hero-badge">Creative Platform</div>
+
+        <h1 class="hero-title animate-text" style="--anim-delay: 0s;">
+          Welcome to<br />
+          <span class="hero-accent">Visupair</span>
+        </h1>
+
+        <p class="hero-subtitle animate-text" style="--anim-delay: 0.1s;">
+          Your creative portfolio and digital showcase. Explore unique designs,
+          fashion, 3D models, and artworks from our studio.
+        </p>
+
+        <div class="hero-actions animate-text" style="--anim-delay: 0.2s;">
+          <Button href="/store" variant="primary" label="Visit Store" />
+          <Button
+            href="/portfolio"
+            variant="secondary"
+            label="Explore Portfolio"
+          />
+        </div>
+      </div>
+
+      <div class="hero-visual loading" id="hero-visual-wrapper">
+        <img
+          id="hero-bg-image"
+          class="hero-bg"
+          alt=""
+          loading="eager"
+          fetchpriority="high"
+          draggable="false"
+          onload="this.parentElement?.classList.remove('loading')"
+        />
+        <img
+          id="hero-static-mobile"
+          class="hero-static-mobile"
+          alt="Visupair"
+          loading="eager"
+          fetchpriority="high"
+          draggable="false"
+          onload="this.parentElement?.classList.remove('loading')"
+        />
+        <div id="hero-lottie-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Services Promo Section -->
+  <div class="services-wrapper">
+    <div class="services-island">
+      <div class="services-header">
+        <h2 class="services-title animate-text">Our Creative Services</h2>
+        <p class="services-subtitle animate-text" style="--anim-delay: 0.1s;">
+          From initial concept to final execution, we provide end-to-end design
+          solutions tailored to your unique business needs.
+        </p>
+      </div>
+
+      <div class="services-grid">
+        <div style="--anim-delay: 0.2s;">
+          <ServicePromoCard
+            title="Logo Design"
+            description="Crafting unique visual marks that represent your brand essence. We focus on scalability and timelessness."
+            href="/services/logo-design"
+            processSteps={[
+              "Discovery & Research",
+              "Conceptual Sketching",
+              "Vector Refinement",
+            ]}
+          />
+        </div>
+        <div style="--anim-delay: 0.3s;">
+          <ServicePromoCard
+            title="Web Design"
+            description="Creating high-performance, responsive websites with a focus on conversion and user engagement."
+            href="/services/web-design"
+            processSteps={[
+              "UX Wireframing",
+              "UI Visual Design",
+              "Interactive Prototyping",
+            ]}
+          />
+        </div>
+        <div style="--anim-delay: 0.4s;">
+          <ServicePromoCard
+            title="Brand Identity"
+            description="Building a cohesive visual language across all touchpoints to ensure brand recognition."
+            href="/services/brand-identity"
+            processSteps={[
+              "Brand Strategy",
+              "Visual System Design",
+              "Brand Guidelines",
+            ]}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories Section - Carousel -->
+  <CategoryCarousel
+    categories={[
+      {
+        title: "Fashion Design",
+        description:
+          "Exclusive digital garments and futuristic apparel concepts.",
+        image: "/images/hero/fashion_runway_scene.webp",
+        href: "/store/fashion-design",
+      },
+      {
+        title: "3D Models",
+        description:
+          "High-quality 3D assets ready for integration and rendering.",
+        image: "/images/hero/cube_rube_blender.webp",
+        href: "/store/3d-models",
+      },
+      {
+        title: "Art Works",
+        description: "Unique digital paintings and creative artistic projects.",
+        image: "/images/hero/scream_painting.webp",
+        href: "/store/artworks",
+      },
+    ]}
+  />
+  <!-- Courses CTA Section -->
+  <div class="courses-wrapper">
+    <div class="courses-island">
+      <!-- Left: Copy -->
+      <div class="courses-content">
+        <div class="courses-badge animate-text" style="--anim-delay: 0s;">
+          Courses
+        </div>
+
+        <h2 class="courses-title animate-text" style="--anim-delay: 0.08s;">
+          Learn. Create.<br />
+          <span class="courses-accent">Master Your Craft.</span>
+        </h2>
+
+        <p class="courses-subtitle animate-text" style="--anim-delay: 0.16s;">
+          Dive into hands-on creative courses crafted for designers, artists,
+          and 3D enthusiasts. Go from zero to portfolio-ready with expert-led
+          lessons that fit your pace.
+        </p>
+
+        <ul
+          class="courses-features animate-text"
+          style="--anim-delay: 0.24s;"
+          aria-label="Course highlights"
+        >
+          <li>
+            <span class="courses-feature-icon" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="20 6 9 17 4 12"></polyline></svg
+              >
+            </span>
+            Fashion Design &amp; Illustration
+          </li>
+          <li>
+            <span class="courses-feature-icon" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="20 6 9 17 4 12"></polyline></svg
+              >
+            </span>
+            3D Modelling in Blender
+          </li>
+          <li>
+            <span class="courses-feature-icon" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="20 6 9 17 4 12"></polyline></svg
+              >
+            </span>
+            Digital Painting &amp; Artworks
+          </li>
+          <li>
+            <span class="courses-feature-icon" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="20 6 9 17 4 12"></polyline></svg
+              >
+            </span>
+            Brand Identity &amp; Visual Systems
+          </li>
+        </ul>
+
+        <div class="courses-actions animate-text" style="--anim-delay: 0.32s;">
+          <Button
+            href="/courses"
+            variant="primary"
+            label="Browse Courses"
+            icon={true}
+          />
+          <Button
+            href="/services"
+            variant="secondary"
+            label="Explore Services"
+          />
+        </div>
+      </div>
+
+      <!-- Right: Theme-aware image -->
+      <div class="courses-visual" aria-hidden="true">
+        <img
+          id="courses-img"
+          class="courses-img"
+          alt="Courses — creative tools, painting palette and 3D modelling"
+          loading="lazy"
+          draggable="false"
+          width="1080"
+          height="1080"
+        />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import lottieLight from "lottie-web/build/player/lottie_light";
+
+    let lottie: typeof lottieLight | null = null;
+    let anim: ReturnType<typeof lottieLight.loadAnimation> | null = null;
+    let currentTheme: string | null = null;
+    let themeObserver: MutationObserver | null = null;
+    let intersectionObserver: IntersectionObserver | null = null;
+    let prefersColorSchemeMedia: MediaQueryList | null = null;
+
+    const getTheme = () => {
+      const saved = localStorage.getItem("theme");
+      return saved === "dark" || saved === "light"
+        ? saved
+        : document.documentElement.hasAttribute("data-theme")
+          ? "dark"
+          : "light";
+    };
+
+    const isMobile = () => window.innerWidth < 400;
+
+    const setImageSources = (theme: string) => {
+      const bgImage = document.getElementById(
+        "hero-bg-image",
+      ) as HTMLImageElement | null;
+      const mobileImage = document.getElementById(
+        "hero-static-mobile",
+      ) as HTMLImageElement | null;
+      if (bgImage) bgImage.src = `/images/hero/bg-${theme}.webp`;
+      if (mobileImage)
+        mobileImage.src = `/images/hero/preloader-${theme}-forslowdivaces.webp`;
+
+      // Courses CTA: swap dark/light image based on theme
+      const coursesImg = document.getElementById(
+        "courses-img",
+      ) as HTMLImageElement | null;
+      if (coursesImg) {
+        const newSrc = `/images/hero/courses-${theme}.webp`;
+        if (coursesImg.src !== newSrc) coursesImg.src = newSrc;
+      }
+    };
+
+    const loadAnimation = async (theme: string) => {
+      if (isMobile()) return;
+
+      const container = document.getElementById("hero-lottie-container");
+      const wrapper = document.getElementById("hero-visual-wrapper");
+      if (!container || !wrapper) return;
+
+      if (anim && theme !== currentTheme) {
+        anim.destroy();
+        anim = null;
+        container.innerHTML = "";
+        wrapper.classList.remove("lottie-loaded");
+      }
+
+      const hasAnimationInDOM = container.querySelector("svg") !== null;
+      if (currentTheme === theme && anim && hasAnimationInDOM) {
+        wrapper.classList.add("lottie-loaded");
+        return;
+      }
+
+      try {
+        if (!lottie) {
+          lottie = lottieLight;
+        }
+
+        container.innerHTML = "";
+        anim = lottie.loadAnimation({
+          container,
+          renderer: "svg",
+          autoplay: true,
+          loop: true,
+          path: `/images/hero/visupairillustration-${theme}.json`,
+        });
+
+        anim.addEventListener("DOMLoaded", () =>
+          wrapper.classList.add("lottie-loaded"),
+        );
+        currentTheme = theme;
+      } catch (error) {
+        console.error("Failed to load Lottie:", error);
+      }
+    };
+
+    const onThemeChange = () => {
+      const theme = getTheme();
+      setImageSources(theme);
+      if (!isMobile() && theme !== currentTheme) loadAnimation(theme);
+    };
+
+    const cleanup = () => {
+      themeObserver?.disconnect();
+      intersectionObserver?.disconnect();
+      prefersColorSchemeMedia?.removeEventListener("change", onThemeChange);
+      themeObserver = intersectionObserver = prefersColorSchemeMedia = null;
+    };
+
+    const init = () => {
+      cleanup();
+      const theme = getTheme();
+      setImageSources(theme);
+
+      if (!isMobile()) {
+        const container = document.getElementById("hero-lottie-container");
+        if (container) {
+          // After Astro page swap the DOM is fresh — the old anim instance
+          // is attached to the removed element and its SVG is gone.
+          // Detect this and reset so loadAnimation() runs cleanly.
+          const hasAnimationInDOM = container.querySelector("svg") !== null;
+          if (anim && !hasAnimationInDOM) {
+            anim.destroy();
+            anim = null;
+            currentTheme = null;
+          }
+
+          if (currentTheme === theme && hasAnimationInDOM) {
+            document
+              .getElementById("hero-visual-wrapper")
+              ?.classList.add("lottie-loaded");
+          }
+
+          intersectionObserver = new IntersectionObserver(
+            (entries) => {
+              if (entries[0].isIntersecting) {
+                const svgPresent = container.querySelector("svg") !== null;
+                if (!anim || !svgPresent) {
+                  loadAnimation(getTheme());
+                } else {
+                  anim.play();
+                }
+              } else {
+                anim?.pause();
+              }
+            },
+            { threshold: 0.35 },
+          );
+          intersectionObserver.observe(container);
+        }
+      }
+
+      themeObserver = new MutationObserver(onThemeChange);
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+      prefersColorSchemeMedia = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      );
+      prefersColorSchemeMedia.addEventListener("change", onThemeChange);
+
+      // Text animation observer
+      const textObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              textObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { rootMargin: "0px 0px -50px 0px", threshold: 0.1 },
+      );
+
+      document.querySelectorAll(".animate-text").forEach((el) => {
+        textObserver.observe(el);
+      });
+    };
+
+    document.addEventListener("astro:page-load", init);
+    document.addEventListener("astro:before-preparation", cleanup);
+  </script>
+
+  <style>
+    /* ═══════════════════════════════════════
+       GLOW BLOB KEYFRAMES — 2 shared animations,
+       both X and Y movement for organic feel
+       ═══════════════════════════════════════ */
+    @keyframes blobDrift1 {
+      0% {
+        transform: translate(0%, 0%) scale(1);
+      }
+      20% {
+        transform: translate(-12%, 18%) scale(1.08);
+      }
+      45% {
+        transform: translate(8%, -20%) scale(1.04);
+      }
+      70% {
+        transform: translate(-18%, -8%) scale(1.12);
+      }
+      100% {
+        transform: translate(0%, 0%) scale(1);
+      }
+    }
+
+    @keyframes blobDrift2 {
+      0% {
+        transform: translate(0%, 0%) scale(1);
+      }
+      25% {
+        transform: translate(15%, -15%) scale(1.06);
+      }
+      55% {
+        transform: translate(-10%, 20%) scale(1.1);
+      }
+      80% {
+        transform: translate(12%, 10%) scale(1.04);
+      }
+      100% {
+        transform: translate(0%, 0%) scale(1);
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       TEXT ANIMATIONS (Slide Up & Fade In)
+       ═══════════════════════════════════════ */
+    .animate-text {
+      opacity: 0;
+      transform: translateY(20px);
+      transition:
+        opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transition-delay: var(--anim-delay, 0s);
+      will-change: opacity, transform;
+    }
+
+    .animate-text.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes heroFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       HERO ISLAND - Main Container
+       ═══════════════════════════════════════ */
+    .hero-wrapper {
+      width: 100%;
+      padding: 0 12px;
+      box-sizing: border-box;
+    }
+
+    .hero-island {
+      width: 100%;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      display: flex;
+      align-items: flex-start;
+      position: relative;
+      animation: heroFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
+
+      /* Light theme: clean neutral surface, no blue */
+      background: var(--surface);
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.02),
+        var(--shadow-island);
+      transition: box-shadow 0.4s ease;
+    }
+
+    /* Dark theme gradient */
+    :global([data-theme="dark"]) .hero-island {
+      /* background: linear-gradient(135deg, #1a1635, #2a2442); */
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.2),
+        var(--shadow-island);
+    }
+
+    /* Glow effects - shared styles */
+    .hero-island::before,
+    .hero-island::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      will-change: transform;
+    }
+
+    /* ── Blob base ── */
+    .hero-island::before {
+      top: -60%;
+      right: -40%;
+      width: clamp(800px, 150vw, 2400px);
+      aspect-ratio: 1;
+      background: transparent;
+    }
+
+    /* Light: soft pink-lilac second blob */
+    .hero-island::after {
+      bottom: -50%;
+      left: -35%;
+      width: clamp(700px, 130vw, 2000px);
+      aspect-ratio: 1;
+      background: transparent;
+    }
+
+    /* Dark: toned-down opacity so glows don't overwhelm */
+    :global([data-theme="dark"]) .hero-island::before {
+      background: radial-gradient(
+        closest-side,
+        rgba(163, 142, 255, 0.4) 0%,
+        rgba(163, 142, 255, 0.15) 35%,
+        rgba(163, 142, 255, 0.02) 70%,
+        rgba(163, 142, 255, 0) 100%
+      );
+      opacity: 0.5;
+      animation: blobDrift1 22s infinite alternate ease-in-out;
+    }
+
+    :global([data-theme="dark"]) .hero-island::after {
+      background: radial-gradient(
+        closest-side,
+        rgba(132, 128, 255, 0.35) 0%,
+        rgba(132, 128, 255, 0.12) 35%,
+        rgba(132, 128, 255, 0.02) 70%,
+        rgba(132, 128, 255, 0) 100%
+      );
+      opacity: 0.5;
+      animation: blobDrift2 28s infinite alternate ease-in-out;
+    }
+
+    /* ═══════════════════════════════════════
+       HERO CONTENT - Left Side
+       ═══════════════════════════════════════ */
+    .hero-content {
+      flex: 0 0 45%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: clamp(24px, 4vw, 40px);
+      padding: clamp(150px, 6vw, 72px) clamp(32px, 5vw, 56px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 6px 16px;
+      background: rgba(132, 128, 255, 0.1);
+      border: 1px solid rgba(132, 128, 255, 0.25);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-violet);
+    }
+
+    .hero-title {
+      font-size: clamp(36px, 5.5vw, 92px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--foreground);
+      margin: 0;
+    }
+
+    .hero-accent {
+      background: linear-gradient(135deg, var(--brand-violet) 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(15px, 2vw, 20px);
+      line-height: 1.6;
+      color: var(--foreground);
+      opacity: 0.6;
+      margin: 0;
+      max-width: min(480px, 100%);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: clamp(10px, 1.5vw, 14px);
+      flex-wrap: wrap;
+    }
+
+    /* ═══════════════════════════════════════
+       DARK THEME - Text & Elements
+       ═══════════════════════════════════════ */
+    :global([data-theme="dark"]) .hero-title,
+    :global([data-theme="dark"]) .hero-subtitle {
+      color: #ffffff;
+    }
+
+    :global([data-theme="dark"]) .hero-subtitle {
+      opacity: 0.7;
+    }
+
+    /* ═══════════════════════════════════════
+       HERO VISUAL - Right Side
+       ═══════════════════════════════════════ */
+    .hero-visual {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 1252 / 1080;
+      min-height: 0;
+      background: transparent;
+      z-index: 1;
+    }
+
+    .hero-visual.loading {
+      opacity: 0;
+    }
+
+    .hero-bg,
+    .hero-static-mobile {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      object-fit: contain;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      /* Prevent selecting, dragging and saving */
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
+      -draggable: false;
+    }
+
+    .hero-bg {
+      z-index: 1;
+    }
+
+    .hero-bg[src]:not([src=""]) {
+      opacity: 1;
+    }
+
+    .hero-static-mobile {
+      z-index: 3;
+      display: none;
+    }
+
+    .hero-static-mobile[src]:not([src=""]) {
+      opacity: 1;
+    }
+
+    #hero-lottie-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      z-index: 2;
+      transition: opacity 0.5s ease;
+    }
+
+    #hero-visual-wrapper.lottie-loaded #hero-lottie-container {
+      opacity: 1;
+    }
+
+    #hero-lottie-container svg {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    /* ═══════════════════════════════════════
+       RESPONSIVE
+       ═══════════════════════════════════════ */
+    @media (max-width: 400px) {
+      .hero-wrapper {
+        padding: 0 12px;
+      }
+      .hero-island {
+        border-radius: var(--radius-lg);
+      }
+      .hero-content {
+        padding: 32px 20px;
+        gap: 20px;
+        align-items: center;
+        text-align: center;
+      }
+      .hero-title {
+        font-size: 32px !important;
+        line-height: 1.15;
+      }
+      .hero-subtitle {
+        font-size: 14px;
+      }
+      .hero-actions {
+        justify-content: center;
+      }
+      /* Make buttons full-width on tiny screens */
+      :global(.vp-btn) {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .hero-bg {
+        display: none !important;
+      }
+      #hero-lottie-container {
+        display: none !important;
+      }
+      .hero-static-mobile {
+        display: block;
+        opacity: 1;
+      }
+    }
+
+    @media (min-width: 401px) and (max-width: 600px) {
+      .hero-content {
+        padding: 36px 24px;
+        gap: 24px;
+        align-items: center;
+        text-align: center;
+      }
+      .hero-title {
+        font-size: 38px;
+        line-height: 1.12;
+      }
+      .hero-subtitle {
+        font-size: 15px;
+      }
+      .hero-actions {
+        justify-content: center;
+      }
+    }
+
+    @media (min-width: 601px) and (max-width: 768px) {
+      .hero-content {
+        padding: 40px 28px;
+        gap: 28px;
+      }
+      .hero-title {
+        font-size: 44px;
+      }
+      .hero-subtitle {
+        font-size: 16px;
+      }
+    }
+
+    @media (min-width: 750px) and (max-width: 1024px) {
+      /* Tablets: stay side-by-side, shrink proportions */
+      .hero-island {
+        flex-direction: row;
+      }
+      .hero-content {
+        flex: 0 0 50%;
+        padding: 36px 28px;
+        gap: 20px;
+      }
+      .hero-title {
+        font-size: clamp(28px, 5vw, 48px);
+      }
+      .hero-subtitle {
+        font-size: 14px;
+      }
+      .hero-visual {
+        flex: 1;
+        width: auto;
+        height: auto;
+        min-height: 0;
+        order: 0; /* right side */
+      }
+    }
+
+    @media (max-width: 749px) {
+      /* Phones: stack vertically */
+      .hero-island {
+        flex-direction: column;
+      }
+      .hero-visual {
+        order: -1;
+        width: 100%;
+        height: auto;
+        min-height: 220px;
+      }
+      .hero-content {
+        flex: none;
+        border-top: none;
+      }
+    }
+
+    @media (max-width: 1480px) {
+      .hero-content {
+        flex: 1;
+        padding: clamp(80px, 6vw, 72px) clamp(32px, 5vw, 56px);
+      }
+    }
+
+    /* Desktop breakpoints for fine-tuning */
+    @media (min-width: 1025px) and (max-width: 1280px) {
+      .hero-title {
+        font-size: clamp(40px, 4.5vw, 56px);
+      }
+      .hero-subtitle {
+        font-size: 15px;
+      }
+      :global(.vp-btn) {
+        font-size: 14px;
+      }
+    }
+
+    @media (min-width: 1281px) and (max-width: 1536px) {
+      .hero-title {
+        font-size: clamp(64px, 5.8vw, 82px);
+      }
+      .hero-subtitle {
+        font-size: 19px;
+      }
+    }
+
+    @media (min-width: 1537px) {
+      .hero-title {
+        font-size: 92px;
+      }
+      .hero-subtitle {
+        font-size: 20px;
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       SERVICES PROMO SECTION
+       ═══════════════════════════════════════ */
+    .services-wrapper {
+      width: 100%;
+      padding: 0 12px;
+      box-sizing: border-box;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+
+    .services-island {
+      width: 100%;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      padding: clamp(40px, 5vw, 64px) clamp(24px, 4vw, 56px);
+      background: var(--surface);
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.02),
+        var(--shadow-island);
+      animation: heroFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
+      animation-delay: 0.15s;
+      position: relative;
+    }
+
+    :global([data-theme="dark"]) .services-island {
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.2),
+        var(--shadow-island);
+    }
+
+    .services-header {
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .services-title {
+      font-size: clamp(32px, 5vw, 64px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      margin: 0 0 12px 0;
+    }
+
+    .services-subtitle {
+      font-size: clamp(16px, 1.5vw, 18px);
+      color: var(--foreground);
+      opacity: 0.7;
+      margin: 0;
+      max-width: 700px;
+      margin-inline: auto;
+      line-height: 1.6;
+    }
+
+    :global([data-theme="dark"]) .services-title,
+    :global([data-theme="dark"]) .services-subtitle {
+      color: #ffffff;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 1200px) {
+      .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       COURSES CTA SECTION
+       ═══════════════════════════════════════ */
+    .courses-wrapper {
+      width: 100%;
+      padding: 0 12px;
+      box-sizing: border-box;
+    }
+
+    .courses-island {
+      width: 100%;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      animation: heroFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) 0.2s both;
+      background: var(--surface);
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.02),
+        var(--shadow-island);
+    }
+
+    :global([data-theme="dark"]) .courses-island {
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.2),
+        var(--shadow-island);
+    }
+
+    /* Dark glow blobs — reuse the same keyframes from hero */
+    .courses-island::before,
+    .courses-island::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      will-change: transform;
+    }
+
+    :global([data-theme="dark"]) .courses-island::before {
+      top: -60%;
+      left: -30%;
+      width: clamp(600px, 120vw, 1800px);
+      aspect-ratio: 1;
+      background: radial-gradient(
+        closest-side,
+        rgba(163, 142, 255, 0.35) 0%,
+        rgba(163, 142, 255, 0.12) 35%,
+        rgba(163, 142, 255, 0.02) 70%,
+        rgba(163, 142, 255, 0) 100%
+      );
+      opacity: 0.5;
+      animation: blobDrift2 26s infinite alternate ease-in-out;
+    }
+
+    :global([data-theme="dark"]) .courses-island::after {
+      bottom: -50%;
+      right: -25%;
+      width: clamp(500px, 100vw, 1600px);
+      aspect-ratio: 1;
+      background: radial-gradient(
+        closest-side,
+        rgba(132, 128, 255, 0.3) 0%,
+        rgba(132, 128, 255, 0.1) 35%,
+        rgba(132, 128, 255, 0.02) 70%,
+        rgba(132, 128, 255, 0) 100%
+      );
+      opacity: 0.45;
+      animation: blobDrift1 32s infinite alternate ease-in-out;
+    }
+
+    /* ── Left content pane ── */
+    .courses-content {
+      flex: 0 0 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      gap: clamp(20px, 3vw, 32px);
+      padding: clamp(68px, 6vw, 100px) clamp(32px, 5vw, 64px);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Badge ── */
+    .courses-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 6px 16px;
+      background: rgba(132, 128, 255, 0.1);
+      border: 1px solid rgba(132, 128, 255, 0.25);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-violet);
+    }
+
+    /* ── Title ── */
+    .courses-title {
+      font-size: clamp(28px, 4.5vw, 64px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--foreground);
+      margin: 0;
+    }
+
+    :global([data-theme="dark"]) .courses-title {
+      color: #ffffff;
+    }
+
+    .courses-accent {
+      background: linear-gradient(135deg, var(--brand-violet) 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Subtitle ── */
+    .courses-subtitle {
+      font-size: clamp(14px, 1.5vw, 17px);
+      line-height: 1.65;
+      color: var(--foreground);
+      opacity: 0.65;
+      margin: 0;
+      max-width: 520px;
+    }
+
+    :global([data-theme="dark"]) .courses-subtitle {
+      color: #ffffff;
+      opacity: 0.7;
+    }
+
+    /* ── Feature List ── */
+    .courses-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .courses-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: clamp(13px, 1.2vw, 15px);
+      font-weight: 500;
+      color: var(--foreground);
+      opacity: 0.85;
+    }
+
+    :global([data-theme="dark"]) .courses-features li {
+      color: #ffffff;
+    }
+
+    .courses-feature-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(132, 128, 255, 0.12);
+      border: 1px solid rgba(132, 128, 255, 0.2);
+      color: var(--brand-violet);
+    }
+
+    /* ── Action Buttons ── */
+    .courses-actions {
+      display: flex;
+      gap: clamp(10px, 1.5vw, 14px);
+      flex-wrap: wrap;
+    }
+
+    /* ── Right visual pane — flex-start removed so island stays stretch ── */
+    .courses-visual {
+      flex: 1;
+      min-width: 0;
+      z-index: 1;
+      overflow: hidden;
+      /* Center the square image within the full-height pane */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Image — natural block flow, full width, 1:1 ratio preserved */
+    .courses-img {
+      display: block;
+      width: 100%;
+      height: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════════
+       RESPONSIVE — Courses CTA
+       ═══════════════════════════════════════ */
+
+    /* Large desktop */
+    @media (min-width: 1281px) {
+      .courses-content {
+        flex: 0 0 48%;
+      }
+    }
+
+    /* Medium desktop */
+    @media (min-width: 1025px) and (max-width: 1280px) {
+      .courses-title {
+        font-size: clamp(28px, 3.8vw, 48px);
+      }
+      .courses-content {
+        padding: clamp(40px, 5vw, 64px) clamp(28px, 4vw, 48px);
+      }
+    }
+
+    /* Tablet landscape */
+    @media (min-width: 750px) and (max-width: 1024px) {
+      .courses-island {
+        flex-direction: row;
+      }
+      .courses-content {
+        flex: 0 0 52%;
+        padding: 36px 28px;
+        gap: 20px;
+      }
+      .courses-title {
+        font-size: clamp(24px, 3.5vw, 40px);
+      }
+      .courses-subtitle {
+        font-size: 14px;
+      }
+    }
+
+    /* Mobile: stack vertically, image on top — natural flow, no rotation */
+    @media (max-width: 749px) {
+      .courses-island {
+        flex-direction: column;
+        align-items: stretch; /* restore full-width stacking */
+      }
+
+      .courses-visual {
+        order: -1;
+        /* natural height: sized by the image (1:1 square = full width) */
+        width: 100%;
+        overflow: hidden;
+      }
+
+      /* Reset to simple natural flow — the full square image shows with zero cropping */
+      .courses-img {
+        display: block;
+        width: 100%;
+        height: auto;
+        /* undo any inherited positioning / transforms */
+        position: static;
+        inset: auto;
+        transform: none;
+        object-fit: initial;
+        object-position: initial;
+      }
+
+      .courses-content {
+        flex: none;
+        padding: 28px 24px 36px;
+        align-items: center;
+        text-align: center;
+      }
+      .courses-subtitle {
+        max-width: 100%;
+        text-align: center;
+      }
+      .courses-features {
+        align-items: flex-start;
+        width: 100%;
+      }
+      .courses-actions {
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .courses-title {
+        font-size: clamp(24px, 7vw, 34px);
+      }
+      .courses-content {
+        padding: 24px 20px 32px;
+        gap: 18px;
+      }
+    }
+  </style>
+</Layout>

@@ -1,0 +1,752 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+// Check if user is logged in
+let userSession = null;
+
+try {
+  const sessionResponse = await fetch(
+    `${Astro.url.origin}/api/auth/get-session`,
+    {
+      headers: {
+        cookie: Astro.request.headers.get("cookie") || "",
+      },
+    },
+  );
+
+  if (sessionResponse.ok) {
+    const sessionData = await sessionResponse.json();
+    if (sessionData && sessionData.user) {
+      userSession = sessionData;
+    }
+  }
+} catch (error) {
+  console.error("Failed to fetch session:", error);
+}
+
+// Redirect to login if not authenticated
+if (!userSession) {
+  return Astro.redirect("/login");
+}
+
+// Parse name into firstName and lastName for the form
+const nameParts = userSession.user.name?.split(" ") || ["", ""];
+const firstName = nameParts[0] || "";
+const lastName = nameParts.slice(1).join(" ") || "";
+---
+
+<Layout title="Profile — Visupair">
+  <div class="settings-layout">
+    <!-- SECTION 1: PROFILE -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>Profile</h2>
+        <p>Update your personal information.</p>
+      </div>
+
+      <div class="profile-row">
+        <!-- Visual: Initials from Session -->
+        <div class="avatar-xl" id="avatar-display">
+          {firstName.charAt(0)}{lastName.charAt(0)}
+        </div>
+
+        <form id="profile-form" style="flex: 1; width: 100%;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="firstName">First Name</label>
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                class="form-input"
+                value={firstName}
+                autocomplete="given-name"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lastName">Last Name</label>
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                class="form-input"
+                value={lastName}
+                autocomplete="family-name"
+                required
+              />
+            </div>
+          </div>
+          <button type="submit" class="btn-settings" id="profile-submit">
+            Save Changes
+          </button>
+        </form>
+      </div>
+
+      <!-- CREATIVE PURCHASES WIDGET -->
+      <div style="margin-top: auto; padding-top: 40px;">
+        <div class="purchase-widget">
+          <!-- Decorative background glow -->
+          <div class="widget-glow"></div>
+
+          <div class="widget-icon">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
+              ></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+          </div>
+          <div class="widget-content">
+            <h4>Looking for your loot?</h4>
+            <p>
+              Don't dig through emails. Your entire order history and digital
+              assets are safe in your vault.
+            </p>
+            <button class="btn-settings widget-btn" id="purchases-btn">
+              Open Purchase History
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: SECURITY -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>Security</h2>
+        <p>Manage your login credentials.</p>
+      </div>
+
+      <!-- Email Update Sub-Form -->
+      <form id="email-form" class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <div style="display: flex; gap: 12px; align-items: stretch;">
+          <input
+            id="email"
+            name="email"
+            type="email"
+            class="form-input"
+            value={userSession.user.email}
+            autocomplete="email"
+            required
+          />
+          <button
+            type="submit"
+            class="btn-settings"
+            style="margin-top: 0;"
+            id="email-submit"
+          >
+            Update
+          </button>
+        </div>
+      </form>
+
+      <div class="settings-divider"></div>
+
+      <!-- Password Change Sub-Form -->
+      <form id="password-form">
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">
+          Change Password
+        </h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="currentPassword"
+              >Current Password</label
+            >
+            <input
+              id="currentPassword"
+              name="currentPassword"
+              type="password"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newPassword">New Password</label>
+            <input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+        </div>
+        <!-- Confirm Password Field -->
+        <div class="form-group" style="margin-top: 16px;">
+          <label class="form-label" for="confirmPassword"
+            >Confirm New Password</label
+          >
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            class="form-input"
+            placeholder="••••••••"
+            autocomplete="new-password"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="btn-settings"
+          style="margin-top: 16px;"
+          id="password-submit"
+        >
+          Change Password
+        </button>
+      </form>
+    </div>
+
+    <!-- SECTION 3: ACCOUNT INFO -->
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <h2>Account Information</h2>
+        <p>Details about your account creation and activity.</p>
+      </div>
+
+      <div>
+        <div class="info-row">
+          <span class="info-label">Sign-in Method</span>
+          <span
+            class="info-value"
+            style="display: flex; align-items: center; gap: 6px;"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"></path>
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"></path>
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"></path>
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"></path>
+            </svg>
+            Google
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Account Created</span>
+          <span class="info-value"
+            >{
+              new Date(userSession.user.createdAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            }</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: DANGER ZONE -->
+    <div class="settings-section danger-zone">
+      <div class="settings-section-header">
+        <h2 style="color: #EA4335;">Danger Zone</h2>
+        <p>Permanently delete your account and all of your data.</p>
+        <p
+          style="font-size: 14px; line-height: 1.5; margin-bottom: 16px; opacity: 0.8;"
+        >
+          Once you delete your account, there is no going back. Please be
+          certain.
+        </p>
+      </div>
+      <button class="btn-danger" id="delete-account-btn">
+        Delete Account
+      </button>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .settings-layout {
+    width: calc(100% - 24px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    min-height: calc(100vh - 520px);
+  }
+
+  .settings-header {
+    grid-column: 1 / -1;
+    margin-bottom: 16px;
+  }
+
+  .settings-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .settings-header p {
+    font-size: 16px;
+    opacity: 0.6;
+  }
+
+  .settings-section {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-island);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
+  }
+
+  .settings-section-header {
+    margin-bottom: 8px;
+  }
+
+  .settings-section-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .settings-section-header p {
+    font-size: 14px;
+    opacity: 0.6;
+  }
+
+  .settings-divider {
+    height: 1px;
+    width: 100%;
+    background: var(--border-subtle);
+    margin: 8px 0;
+    opacity: 0.5;
+  }
+
+  /* Profile Specifics */
+  .profile-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .avatar-xl {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #8480ff;
+    color: white;
+    font-size: 36px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(132, 128, 255, 0.4);
+    margin-bottom: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 14px;
+  }
+
+  .info-row:last-child {
+    border-bottom: none;
+  }
+
+  .info-label {
+    opacity: 0.6;
+  }
+
+  .info-value {
+    font-weight: 600;
+  }
+
+  /* Purchase Widget */
+  .purchase-widget {
+    background: linear-gradient(
+      135deg,
+      rgba(132, 128, 255, 0.08) 0%,
+      rgba(132, 128, 255, 0.02) 100%
+    );
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    border: 1px dashed rgba(132, 128, 255, 0.3);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  .widget-glow {
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 100px;
+    height: 100px;
+    background: var(--brand-violet);
+    filter: blur(60px);
+    opacity: 0.15;
+    border-radius: 50%;
+  }
+
+  .widget-icon {
+    background: var(--brand-violet);
+    color: white;
+    border-radius: var(--radius-xl);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+  }
+
+  .widget-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .widget-content h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--foreground);
+  }
+
+  .widget-content p {
+    font-size: 14px;
+    opacity: 0.7;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  .widget-btn {
+    margin-top: 0;
+    padding: 8px 16px;
+    font-size: 13px;
+    background: var(--surface);
+    border-color: var(--border-subtle);
+    color: var(--foreground);
+  }
+
+  /* Danger Zone */
+  .danger-zone {
+    border-color: rgba(234, 67, 53, 0.2);
+    background: linear-gradient(
+      180deg,
+      rgba(234, 67, 53, 0.03) 0%,
+      rgba(234, 67, 53, 0) 100%
+    );
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: #ea4335;
+    border: 1px solid rgba(234, 67, 53, 0.3);
+    padding: 14px 24px;
+    border-radius: var(--radius-xl);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: fit-content;
+    font-family: var(--font-family);
+    font-size: 14px;
+  }
+
+  .btn-danger:hover {
+    background: rgba(234, 67, 53, 0.1);
+    border-color: #ea4335;
+  }
+
+  /* Refined Button Style */
+  .btn-settings {
+    background: rgba(132, 128, 255, 0.05);
+    color: var(--brand-violet);
+    border: 1px solid var(--brand-violet);
+    padding: 12px 24px;
+    border-radius: var(--radius-xl);
+    font-weight: 600;
+    cursor: pointer;
+    width: fit-content;
+    margin-top: 8px;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    font-family: var(--font-family);
+    font-size: 14px;
+  }
+
+  .btn-settings:hover {
+    background: var(--brand-violet);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(132, 128, 255, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .btn-settings:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Form Elements */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 14px 16px;
+    font-family: var(--font-family);
+    font-size: 15px;
+    color: var(--foreground);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--brand-violet);
+    box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
+  }
+
+  .form-input::placeholder {
+    opacity: 0.4;
+  }
+
+  /* Desktop: Profile row side by side */
+  @media (min-width: 900px) {
+    .profile-row {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+  }
+
+  /* Tablet: Stack grid */
+  @media (max-width: 1024px) {
+    .settings-layout {
+      grid-template-columns: 1fr;
+      max-width: 600px;
+    }
+  }
+
+  /* Mobile Responsive */
+  @media (max-width: 900px) {
+    .settings-layout {
+      padding: 12px;
+    }
+
+    .profile-row {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .avatar-xl {
+      margin-bottom: 24px;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // Form submission handlers (client-side)
+
+  // --- 1. Profile Form ---
+  const profileForm = document.getElementById(
+    "profile-form",
+  ) as HTMLFormElement;
+  const profileSubmit = document.getElementById(
+    "profile-submit",
+  ) as HTMLButtonElement;
+  const avatarDisplay = document.getElementById(
+    "avatar-display",
+  ) as HTMLDivElement;
+
+  if (profileForm && profileSubmit) {
+    profileForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(profileForm);
+      const firstName = formData.get("firstName") as string;
+      const lastName = formData.get("lastName") as string;
+
+      profileSubmit.disabled = true;
+      profileSubmit.textContent = "Saving...";
+
+      // Better Auth Integration:
+      // await authClient.updateUser({
+      //   name: `${firstName} ${lastName}`
+      // });
+
+      // Simulate API call
+      await new Promise((r) => setTimeout(r, 800));
+
+      // Update avatar display
+      if (avatarDisplay) {
+        avatarDisplay.textContent = `${firstName.charAt(0)}${lastName.charAt(0)}`;
+      }
+
+      profileSubmit.disabled = false;
+      profileSubmit.textContent = "Save Changes";
+      alert("Profile updated successfully.");
+    });
+  }
+
+  // --- 2. Email Form ---
+  const emailForm = document.getElementById("email-form") as HTMLFormElement;
+  const emailSubmit = document.getElementById(
+    "email-submit",
+  ) as HTMLButtonElement;
+
+  if (emailForm && emailSubmit) {
+    emailForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(emailForm);
+      const email = formData.get("email") as string;
+
+      emailSubmit.disabled = true;
+      emailSubmit.textContent = "Updating...";
+
+      // Better Auth Integration:
+      // await authClient.changeEmail({
+      //   newEmail: email,
+      //   callbackURL: '/account/profile'
+      // });
+
+      // Simulate API call
+      await new Promise((r) => setTimeout(r, 800));
+
+      emailSubmit.disabled = false;
+      emailSubmit.textContent = "Update";
+      alert(`Verification email sent to ${email}.`);
+    });
+  }
+
+  // --- 3. Password Form ---
+  const passwordForm = document.getElementById(
+    "password-form",
+  ) as HTMLFormElement;
+  const passwordSubmit = document.getElementById(
+    "password-submit",
+  ) as HTMLButtonElement;
+
+  if (passwordForm && passwordSubmit) {
+    passwordForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(passwordForm);
+      const currentPassword = formData.get("currentPassword") as string;
+      const newPassword = formData.get("newPassword") as string;
+      const confirmPassword = formData.get("confirmPassword") as string;
+
+      if (newPassword !== confirmPassword) {
+        alert("New passwords do not match.");
+        return;
+      }
+
+      passwordSubmit.disabled = true;
+      passwordSubmit.textContent = "Updating...";
+
+      // Better Auth Integration:
+      // await authClient.changePassword({
+      //   currentPassword: currentPassword,
+      //   newPassword: newPassword
+      // });
+
+      // Simulate API call
+      await new Promise((r) => setTimeout(r, 1000));
+
+      passwordSubmit.disabled = false;
+      passwordSubmit.textContent = "Change Password";
+      passwordForm.reset();
+      alert("Password changed successfully.");
+    });
+  }
+
+  // --- 4. Delete Account ---
+  const deleteBtn = document.getElementById(
+    "delete-account-btn",
+  ) as HTMLButtonElement;
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      if (
+        confirm(
+          "Are you sure you want to delete your account? This action cannot be undone.",
+        )
+      ) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "Deleting...";
+
+        // Better Auth Integration:
+        // await authClient.deleteUser();
+
+        // Simulate API call
+        await new Promise((r) => setTimeout(r, 1500));
+
+        alert("Account deleted.");
+        // Redirect to home page after deletion
+        window.location.href = "/";
+      }
+    });
+  }
+
+  // --- 5. Purchase History Button ---
+  const purchasesBtn = document.getElementById(
+    "purchases-btn",
+  ) as HTMLButtonElement;
+
+  if (purchasesBtn) {
+    purchasesBtn.addEventListener("click", () => {
+      window.location.href = "/account/purchases";
+    });
+  }
+</script>

@@ -1,0 +1,408 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Forgot Password - Visupair">
+  <div class="centered-auth-layout">
+    <div class="centered-auth-card">
+      <!-- STEP 1: REQUEST RESET LINK (Forgot Password Mode) -->
+      <div id="request-step" class="auth-step active">
+        <!-- Animated Logo -->
+        <div class="logo-anim-container">
+          <svg
+            width="67"
+            height="33"
+            viewBox="0 0 67 33"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M32.489 29.283L54.0977 29.8267C54.7934 29.8442 55.3418 29.2398 55.2556 28.5503L54.2167 20.2401C54.1338 19.5775 53.4991 19.1288 52.8454 19.2707L31.9362 23.8126C31.3691 23.9358 30.9857 24.4652 31.0463 25.0415L31.3858 28.266C31.4456 28.8335 31.9176 29.2686 32.489 29.283Z"
+              fill="currentColor"></path>
+            <path
+              d="M34.511 2.74744L12.9023 2.20366C12.2065 2.18616 11.6582 2.79065 11.7444 3.48008L12.7833 11.7903C12.8662 12.4529 13.5009 12.9016 14.1546 12.7597L35.0638 8.21779C35.6309 8.0946 36.0143 7.56513 35.9537 6.98893L35.6142 3.7644C35.5544 3.19699 35.0824 2.76181 34.511 2.74744Z"
+              fill="currentColor"></path>
+            <path
+              d="M56.3459 0.998994L59.0673 0.0588497C59.6838 -0.154124 60.3374 0.230814 60.4839 0.89311L66.9703 30.2179C67.1615 31.0822 66.398 31.8521 65.586 31.6138L60.4075 30.0943C59.9935 29.9729 59.6859 29.6092 59.6188 29.1621L55.5896 2.29705C55.5045 1.72985 55.8256 1.17874 56.3459 0.998994Z"
+              fill="currentColor"></path>
+            <path
+              d="M10.6541 31.0315L7.93272 31.9716C7.31624 32.1846 6.66259 31.7996 6.5161 31.1373L0.0297008 1.81256C-0.161497 0.94817 0.601976 0.17827 1.41404 0.416558L6.59251 1.93611C7.00649 2.05758 7.31408 2.42118 7.38115 2.86831L11.4104 29.7333C11.4955 30.3006 11.1744 30.8517 10.6541 31.0315Z"
+              fill="currentColor"></path>
+            <path
+              d="M52.2415 15.3689L41.6392 17.5957C40.979 17.7343 40.3436 17.2725 40.2731 16.6027L38.911 3.66592C38.8418 3.00836 39.3475 2.43092 40.0095 2.41157L50.4785 2.10553C51.0604 2.08852 51.5614 2.51267 51.6395 3.08857L53.1349 14.1046C53.215 14.6946 52.8252 15.2464 52.2415 15.3689Z"
+              fill="currentColor"></path>
+            <path
+              d="M14.7585 16.6608L25.3608 14.4341C26.021 14.2954 26.6564 14.7573 26.7269 15.427L28.089 28.3638C28.1582 29.0214 27.6525 29.5988 26.9905 29.6182L16.5215 29.9242C15.9396 29.9412 15.4386 29.5171 15.3605 28.9412L13.8651 17.9251C13.785 17.3351 14.1748 16.7834 14.7585 16.6608Z"
+              fill="currentColor"></path>
+          </svg>
+        </div>
+        <h2>Forgot Password?</h2>
+        <p class="instructions">
+          Enter your email and we'll send you instructions to reset your
+          password.
+        </p>
+        <form id="request-form" class="reset-form">
+          <div class="form-group">
+            <label class="form-label">Email address</label>
+            <input
+              type="email"
+              class="form-input"
+              placeholder="Enter your email address"
+              required
+              id="email-input"
+            />
+          </div>
+          <button type="submit" class="btn-primary">Reset Password</button>
+          <a href="/login" class="back-link">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg
+            >
+            Back to login
+          </a>
+        </form>
+      </div>
+
+      <!-- STEP 2: EMAIL SENT CONFIRMATION -->
+      <div id="sent-step" class="auth-step" style="display: none;">
+        <div class="state-icon-box">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path
+              d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+            ></path><polyline points="22,6 12,13 2,6"></polyline></svg
+          >
+        </div>
+        <h2>Check your email</h2>
+        <p class="instructions" id="email-display">
+          We sent a password reset link to <strong></strong>
+        </p>
+
+        <form class="reset-form">
+          <button type="button" class="btn-primary" id="open-email-btn"
+            >Open Email App</button
+          >
+          <a href="/login" class="btn-secondary">Skip, I'll check later</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Centered Auth Layout */
+  .centered-auth-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
+    padding: 40px 24px;
+    background: var(--page-bg);
+  }
+
+  .centered-auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-island);
+    padding: 40px;
+  }
+
+  /* Auth Steps */
+  .auth-step {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .auth-step:not(.active) {
+    display: none !important;
+  }
+
+  /* Logo Container */
+  .logo-anim-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+    color: var(--foreground);
+  }
+
+  .logo-anim-container svg {
+    animation: logoFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes logoFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Typography */
+  .centered-auth-card h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+    text-align: center;
+    color: var(--foreground);
+  }
+
+  .instructions {
+    font-size: 15px;
+    opacity: 0.6;
+    text-align: center;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .instructions strong {
+    color: var(--brand-violet);
+    font-weight: 600;
+  }
+
+  /* Form */
+  .reset-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: 15px;
+    color: var(--foreground);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--brand-violet);
+    box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: var(--foreground);
+    opacity: 0.4;
+  }
+
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--foreground);
+    color: var(--page-bg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    background: var(--surface-hover);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-muted);
+  }
+
+  /* State Icon Box */
+  .state-icon-box {
+    width: 64px;
+    height: 64px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 32px;
+    color: var(--foreground);
+  }
+
+  .state-icon-box.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+  }
+
+  .state-icon-box svg {
+    stroke: currentColor;
+  }
+
+  /* Back Link */
+  .back-link {
+    text-align: center;
+    font-size: 14px;
+    color: var(--brand-violet);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 16px;
+    transition: opacity 0.2s;
+  }
+
+  .back-link:hover {
+    opacity: 0.7;
+    text-decoration: underline;
+  }
+
+  .back-link svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .centered-auth-layout {
+      min-height: calc(100vh - 60px);
+      padding: 24px 16px;
+    }
+
+    .centered-auth-card {
+      padding: 32px 20px;
+      border-radius: var(--radius-xl);
+    }
+
+    .centered-auth-card h2 {
+      font-size: 24px;
+    }
+
+    .instructions {
+      font-size: 14px;
+    }
+  }
+</style>
+
+<script>
+  const requestForm = document.getElementById("request-form");
+  const submitBtn = requestForm?.querySelector("button[type=submit]") as HTMLButtonElement | null;
+
+  if (requestForm) {
+    requestForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const emailInput = document.getElementById("email-input") as HTMLInputElement;
+      const email = emailInput?.value?.trim();
+      if (!email) return;
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Sending...";
+      }
+
+      try {
+        const response = await fetch("/api/auth/forget-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            redirectTo: `${window.location.origin}/reset-password`,
+          }),
+          credentials: "include",
+        });
+
+        // Better Auth returns 200 even if email not found (security: don't leak user existence)
+        // Always show "sent" screen for valid request
+        if (response.ok || response.status === 400) {
+          const emailDisplay = document.querySelector("#email-display strong");
+          if (emailDisplay) emailDisplay.textContent = email;
+
+          document.querySelectorAll(".auth-step").forEach((el) => {
+            el.classList.remove("active");
+            (el as HTMLElement).style.display = "none";
+          });
+          const sent = document.getElementById("sent-step");
+          if (sent) {
+            sent.classList.add("active");
+            sent.style.display = "block";
+          }
+        } else {
+          const data = await response.json().catch(() => ({}));
+          const msg = (data as any)?.message || "Something went wrong. Please try again.";
+          alert(msg);
+        }
+      } catch {
+        alert("Network error. Please check your connection and try again.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Reset Password";
+        }
+      }
+    });
+  }
+
+  // Open Email App Button
+  const openEmailBtn = document.getElementById("open-email-btn");
+  if (openEmailBtn) {
+    openEmailBtn.addEventListener("click", () => {
+      window.open("mailto:");
+    });
+  }
+</script>

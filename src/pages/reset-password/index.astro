@@ -1,0 +1,544 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Reset Password - Visupair">
+  <div class="centered-auth-layout">
+    <div class="centered-auth-card">
+      
+      <!-- STEP 3: RESET PASSWORD (with Token) -->
+      <div id="reset-step" class="auth-step active">
+        <div class="logo-anim-container">
+          <svg width="67" height="33" viewBox="0 0 67 33" fill="none" style="height: 24px; width: auto;">
+            <path d="M32.489 29.283L54.0977 29.8267C54.7934 29.8442 55.3418 29.2398 55.2556 28.5503L54.2167 20.2401C54.1338 19.5775 53.4991 19.1288 52.8454 19.2707L31.9362 23.8126C31.3691 23.9358 30.9857 24.4652 31.0463 25.0415L31.3858 28.266C31.4456 28.8335 31.9176 29.2686 32.489 29.283Z" fill="currentColor"/>
+            <path d="M34.511 2.74744L12.9023 2.20366C12.2065 2.18616 11.6582 2.79065 11.7444 3.48008L12.7833 11.7903C12.8662 12.4529 13.5009 12.9016 14.1546 12.7597L35.0638 8.21779C35.6309 8.0946 36.0143 7.56513 35.9537 6.98893L35.6142 3.7644C35.5544 3.19699 35.0824 2.76181 34.511 2.74744Z" fill="currentColor"/>
+            <path d="M56.3459 0.998994L59.0673 0.0588497C59.6838 -0.154124 60.3374 0.230814 60.4839 0.89311L66.9703 30.2179C67.1615 31.0822 66.398 31.8521 65.586 31.6138L60.4075 30.0943C59.9935 29.9729 59.6859 29.6092 59.6188 29.1621L55.5896 2.29705C55.5045 1.72985 55.8256 1.17874 56.3459 0.998994Z" fill="currentColor"/>
+            <path d="M10.6541 31.0315L7.93272 31.9716C7.31624 32.1846 6.66259 31.7996 6.5161 31.1373L0.0297008 1.81256C-0.161497 0.94817 0.601976 0.17827 1.41404 0.416558L6.59251 1.93611C7.00649 2.05758 7.31408 2.42118 7.38115 2.86831L11.4104 29.7333C11.4955 30.3006 11.1744 30.8517 10.6541 31.0315Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2>Create New Password</h2>
+        <p class="instructions">
+          Enter your new password below
+        </p>
+        <form id="reset-form" class="reset-form">
+          <div class="form-group">
+            <label class="form-label">New password</label>
+            <div class="password-input-wrapper">
+              <input 
+                type="password" 
+                class="form-input" 
+                placeholder="At least 8 characters" 
+                required 
+                id="password-input"
+                minlength="8"
+              />
+              <button type="button" class="password-toggle-btn" id="toggle-password">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confirm password</label>
+            <div class="password-input-wrapper">
+              <input 
+                type="password" 
+                class="form-input" 
+                placeholder="Confirm your password" 
+                required 
+                id="confirm-password-input"
+                minlength="8"
+              />
+              <button type="button" class="password-toggle-btn" id="toggle-confirm-password">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="password-strength-indicator">
+            <div class="strength-bar" id="strength-bar"></div>
+            <span class="strength-text" id="strength-text"></span>
+          </div>
+
+          <button type="submit" class="btn-primary" id="reset-submit-btn">Reset Password</button>
+          <a href="/login" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Back to login
+          </a>
+        </form>
+      </div>
+
+      <!-- STEP 4: SUCCESS -->
+      <div id="success-step" class="auth-step" style="display: none;">
+        <div class="state-icon-box success">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h2>Password Reset Successful</h2>
+        <p class="instructions">
+          Your password has been reset successfully. You can now log in with your new password.
+        </p>
+        
+        <div class="reset-form">
+          <a href="/login" class="btn-primary" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+            Go Back to Login
+          </a>
+        </div>
+      </div>
+
+      <!-- ERROR STATE -->
+      <div id="error-step" class="auth-step" style="display: none;">
+        <div class="state-icon-box error">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <h2>Reset Link Expired</h2>
+        <p class="instructions">
+          This password reset link has expired or is invalid. Please request a new one.
+        </p>
+        
+        <div class="reset-form">
+          <a href="/forgot-password" class="btn-primary" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">
+            Request New Link
+          </a>
+          <a href="/login" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">Back to Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Centered Auth Layout */
+  .centered-auth-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
+    padding: 40px 24px;
+    background: var(--page-bg);
+  }
+
+  .centered-auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-island);
+    padding: 40px;
+  }
+
+  /* Auth Steps */
+  .auth-step {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .auth-step:not(.active) {
+    display: none !important;
+  }
+
+  /* Logo Container */
+  .logo-anim-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+    color: var(--foreground);
+  }
+
+  .logo-anim-container svg {
+    animation: logoFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes logoFloat {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Typography */
+  .centered-auth-card h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+    text-align: center;
+    color: var(--foreground);
+  }
+
+  .instructions {
+    font-size: 15px;
+    opacity: 0.6;
+    text-align: center;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  /* Form */
+  .reset-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  .password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 12px 14px;
+    padding-right: 40px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: 15px;
+    color: var(--foreground);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--brand-violet);
+    box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: var(--foreground);
+    opacity: 0.4;
+  }
+
+  .password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--foreground);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .password-toggle-btn:hover {
+    opacity: 0.8;
+  }
+
+  /* Password Strength Indicator */
+  .password-strength-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  .strength-bar {
+    height: 3px;
+    background: var(--border-subtle);
+    border-radius: 2px;
+    flex: 1;
+    transition: background 0.3s;
+  }
+
+  .strength-bar.strength-weak {
+    background: #FF6B6B;
+    width: 33%;
+  }
+
+  .strength-bar.strength-medium {
+    background: #FFA500;
+    width: 66%;
+  }
+
+  .strength-bar.strength-strong {
+    background: #22C55E;
+    width: 100%;
+  }
+
+  .strength-text {
+    min-width: 50px;
+  }
+
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--foreground);
+    color: var(--page-bg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    background: var(--surface-hover);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-muted);
+  }
+
+  /* State Icon Box */
+  .state-icon-box {
+    width: 64px;
+    height: 64px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 32px;
+    color: var(--foreground);
+  }
+
+  .state-icon-box.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22C55E;
+  }
+
+  .state-icon-box.error {
+    background: rgba(255, 107, 107, 0.1);
+    color: #FF6B6B;
+  }
+
+  .state-icon-box svg {
+    stroke: currentColor;
+  }
+
+  /* Back Link */
+  .back-link {
+    text-align: center;
+    font-size: 14px;
+    color: var(--brand-violet);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 16px;
+    transition: opacity 0.2s;
+  }
+
+  .back-link:hover {
+    opacity: 0.7;
+    text-decoration: underline;
+  }
+
+  .back-link svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .centered-auth-layout {
+      min-height: calc(100vh - 60px);
+      padding: 24px 16px;
+    }
+
+    .centered-auth-card {
+      padding: 32px 20px;
+      border-radius: var(--radius-xl);
+    }
+
+    .centered-auth-card h2 {
+      font-size: 24px;
+    }
+
+    .instructions {
+      font-size: 14px;
+    }
+  }
+</style>
+
+<script>
+  // Check for token in URL
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (!token) {
+    // No token - show error
+    document.getElementById('reset-step')?.classList.remove('active');
+    document.getElementById('reset-step')!.style.display = 'none';
+    document.getElementById('error-step')?.classList.add('active');
+    document.getElementById('error-step')!.style.display = 'block';
+  }
+
+  // Password visibility toggles
+  const togglePasswordBtn = document.getElementById('toggle-password');
+  const passwordInput = document.getElementById('password-input') as HTMLInputElement;
+  
+  if (togglePasswordBtn && passwordInput) {
+    togglePasswordBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+    });
+  }
+
+  const toggleConfirmPasswordBtn = document.getElementById('toggle-confirm-password');
+  const confirmPasswordInput = document.getElementById('confirm-password-input') as HTMLInputElement;
+  
+  if (toggleConfirmPasswordBtn && confirmPasswordInput) {
+    toggleConfirmPasswordBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      confirmPasswordInput.type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+    });
+  }
+
+  // Password strength indicator
+  passwordInput?.addEventListener('input', (e) => {
+    const password = (e.target as HTMLInputElement).value;
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthText = document.getElementById('strength-text');
+    
+    if (!password) {
+      if (strengthBar) strengthBar.className = 'strength-bar';
+      if (strengthText) strengthText.textContent = '';
+      return;
+    }
+
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) {
+      if (strengthBar) strengthBar.className = 'strength-bar strength-weak';
+      if (strengthText) strengthText.textContent = 'Weak';
+    } else if (strength <= 3) {
+      if (strengthBar) strengthBar.className = 'strength-bar strength-medium';
+      if (strengthText) strengthText.textContent = 'Fair';
+    } else {
+      if (strengthBar) strengthBar.className = 'strength-bar strength-strong';
+      if (strengthText) strengthText.textContent = 'Strong';
+    }
+  });
+
+  // Form submission
+  const resetForm = document.getElementById('reset-form');
+  const resetSubmitBtn = document.getElementById('reset-submit-btn') as HTMLButtonElement | null;
+
+  if (resetForm) {
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const password = (document.getElementById('password-input') as HTMLInputElement).value;
+      const confirmPassword = (document.getElementById('confirm-password-input') as HTMLInputElement).value;
+
+      if (password !== confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
+
+      if (password.length < 8) {
+        alert('Password must be at least 8 characters');
+        return;
+      }
+
+      if (!token) {
+        alert('Invalid or missing reset token. Please request a new link.');
+        return;
+      }
+
+      if (resetSubmitBtn) {
+        resetSubmitBtn.disabled = true;
+        resetSubmitBtn.textContent = 'Resetting...';
+      }
+
+      try {
+        const response = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword: password }),
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          document.getElementById('reset-step')?.classList.remove('active');
+          document.getElementById('reset-step')!.style.display = 'none';
+          document.getElementById('success-step')?.classList.add('active');
+          document.getElementById('success-step')!.style.display = 'block';
+        } else {
+          const data = await response.json().catch(() => ({}));
+          const msg = (data as any)?.message || 'Reset failed. The link may have expired.';
+          // Show error step for expired/invalid token
+          if (response.status === 400 || response.status === 404) {
+            document.getElementById('reset-step')?.classList.remove('active');
+            document.getElementById('reset-step')!.style.display = 'none';
+            document.getElementById('error-step')?.classList.add('active');
+            document.getElementById('error-step')!.style.display = 'block';
+          } else {
+            alert(msg);
+          }
+        }
+      } catch {
+        alert('Network error. Please check your connection and try again.');
+      } finally {
+        if (resetSubmitBtn) {
+          resetSubmitBtn.disabled = false;
+          resetSubmitBtn.textContent = 'Reset Password';
+        }
+      }
+    });
+  }
+</script>

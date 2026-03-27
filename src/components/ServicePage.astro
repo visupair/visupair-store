@@ -1,0 +1,637 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ServicesSidebar from "./ServicesSidebar.astro";
+import ServiceRequestForm from "./ServiceRequestForm.astro";
+import type { ServicePlan } from "../lib/services-data";
+
+interface Props {
+    service: {
+        id: string;
+        title: string;
+        subtitle: string;
+        plans?: ServicePlan[];
+        [key: string]: any;
+    } | null;
+}
+
+const { service } = Astro.props;
+const selectedServiceId = service ? service.id : null;
+---
+
+<Layout title={service ? `${service.title} | Visupair` : "Services | Visupair"}>
+    {service ? (
+    <div class="services-layout">
+        <div>
+            <ServicesSidebar selectedServiceId={selectedServiceId} />
+        </div>
+
+        <div class="services-wrapper">
+            <div id="service-content-view">
+                <div class="service-header">
+                    <h1 class="service-title">{service.title}</h1>
+                    <p class="service-subtitle">{service.subtitle}</p>
+                </div>
+
+                <div class="pricing-grid">
+                    {
+                        service.plans?.map((plan) => (
+                            <div
+                                class={`pricing-card ${plan.highlight ? "highlight" : ""}`}
+                            >
+                                {plan.highlight && (
+                                    <div class="popular-badge">
+                                        Most Popular
+                                    </div>
+                                )}
+
+                                <div class="plan-header">
+                                    <span class="plan-name">{plan.name}</span>
+                                    <div class="plan-price-wrapper">
+                                        <span class="plan-currency">€</span>
+                                        <span class="plan-amount">
+                                            {plan.price}
+                                        </span>
+                                    </div>
+                                    <p class="plan-desc">{plan.description}</p>
+                                </div>
+
+                                <div class="pricing-divider" />
+
+                                <ul class="feature-list">
+                                    {plan.features?.map((feature, idx) => (
+                                        <li>
+                                            <div class="feature-icon">
+                                                <svg
+                                                    width="12"
+                                                    height="12"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="4"
+                                                >
+                                                    <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                            </div>
+                                            {feature}
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                <button
+                                    class={`btn-plan ${plan.highlight ? "primary" : "outline"} js-select-plan`}
+                                    data-plan-name={plan.name}
+                                    data-plan-price={plan.price}
+                                    data-plan-desc={plan.description}
+                                    data-plan-highlight={
+                                        plan.highlight ? "true" : "false"
+                                    }
+                                    data-plan-features={JSON.stringify(
+                                        plan.features,
+                                    )}
+                                    data-service-id={service.id}
+                                >
+                                    {plan.ctaLabel || `Choose ${plan.name}`}
+                                </button>
+                            </div>
+                        ))
+                    }
+                </div>
+            </div>
+
+            <!-- Request Form Component (Initially Hidden) -->
+            <ServiceRequestForm />
+        </div>
+    </div>
+    ) : (
+        <div style="padding: 100px; text-align: center;">
+            <h1>No services available yet.</h1>
+            <p>Please check back later or contact us directly.</p>
+        </div>
+    )}
+</Layout>
+
+<script>
+    function initializeServicePage() {
+        const buttons = document.querySelectorAll(".js-select-plan");
+        const contentView = document.getElementById("service-content-view");
+        const formContainer = document.getElementById("service-request-form");
+        const backButton = document.getElementById("back-to-plans");
+
+        // Form Elements
+        const formPlanName = document.getElementById("form-plan-name");
+        const formPlanNameInline = document.getElementById(
+            "form-plan-name-inline",
+        );
+        const formPlanNameInlineDesktop = document.getElementById(
+            "form-plan-name-inline-desktop",
+        );
+        const formPlanPrice = document.getElementById("form-plan-price");
+        const formPlanPriceInline = document.getElementById(
+            "form-plan-price-inline",
+        );
+        const formPlanDesc = document.getElementById("form-plan-desc");
+        const formPlanFeatures = document.getElementById(
+            "form-plan-features-list",
+        );
+        const formPopularBadge = document.getElementById("form-popular-badge");
+        const inputServiceId = document.getElementById(
+            "input-service-id",
+        ) as HTMLInputElement;
+        const inputPlanName = document.getElementById(
+            "input-plan-name",
+        ) as HTMLInputElement;
+        const successPlanName = document.getElementById("success-plan-name");
+
+        if (!buttons.length || !contentView || !formContainer) return;
+
+        // Handle Plan Selection
+        buttons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const name = btn.getAttribute("data-plan-name") || "";
+                const price = btn.getAttribute("data-plan-price") || "0";
+                const serviceId = btn.getAttribute("data-service-id") || "";
+                const description = btn.getAttribute("data-plan-desc") || "";
+                const isHighlight =
+                    btn.getAttribute("data-plan-highlight") === "true";
+                const featuresJson =
+                    btn.getAttribute("data-plan-features") || "[]";
+
+                // Parse features
+                let featuresHtml = "";
+                try {
+                    const features = JSON.parse(featuresJson);
+                    featuresHtml = features
+                        .map(
+                            (feature: string) => `
+                        <li>
+                            <div class="feature-icon">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                            ${feature}
+                        </li>
+                    `,
+                        )
+                        .join("");
+                } catch (e) {
+                    featuresHtml = "<li>Standard features</li>";
+                }
+
+                // Populate Form
+                if (formPlanName) formPlanName.innerText = name;
+                if (formPlanNameInline) formPlanNameInline.innerText = name;
+                if (formPlanNameInlineDesktop)
+                    formPlanNameInlineDesktop.innerText = name;
+                if (successPlanName)
+                    successPlanName.innerText = `${name} Package`;
+                if (formPlanPrice) formPlanPrice.innerText = price;
+                if (formPlanPriceInline) formPlanPriceInline.innerText = price;
+                if (formPlanDesc) formPlanDesc.innerText = description;
+                if (formPlanFeatures) formPlanFeatures.innerHTML = featuresHtml;
+                if (formPopularBadge) {
+                    formPopularBadge.style.display = isHighlight
+                        ? "block"
+                        : "none";
+                }
+
+                if (inputServiceId) inputServiceId.value = serviceId;
+                if (inputPlanName) inputPlanName.value = name;
+
+                // Toggle View
+                contentView.style.display = "none";
+                formContainer.style.display = "block";
+
+                // Scroll to top smoothly without jumping
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth",
+                });
+            });
+        });
+
+        // Handle Back Button
+        if (backButton) {
+            backButton.addEventListener("click", () => {
+                formContainer.style.display = "none";
+                contentView.style.display = "block";
+                // Reset form success state if needed
+                const successMsg = document.getElementById("success-message");
+                const formEl = document.getElementById("proposal-form");
+                if (successMsg) successMsg.style.display = "none";
+                if (formEl) formEl.style.display = "block";
+            });
+        }
+
+        // Handle Internal "Return to Services" button in success state
+        const closeSuccessBtn = document.getElementById("close-success");
+        if (closeSuccessBtn) {
+            closeSuccessBtn.addEventListener("click", () => {
+                if (backButton) backButton.click();
+            });
+        }
+
+        // Handle Form Submission Mock
+        const proposalForm = document.getElementById("proposal-form");
+        const successMessage = document.getElementById("success-message");
+
+        if (proposalForm) {
+            proposalForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                // Get form data
+                const formData = new FormData(proposalForm as HTMLFormElement);
+                const data = {
+                    service_id: formData.get("service_id"),
+                    plan_name: formData.get("plan_name"),
+                    fullName: formData.get("fullName"),
+                    email: formData.get("email"),
+                    companyName: formData.get("companyName"),
+                    businessDesc: formData.get("businessDesc"),
+                    startDate: formData.get("startDate"),
+                    endDate: formData.get("endDate"),
+                };
+
+                // Add loading state
+                const submitBtn = proposalForm.querySelector(
+                    'button[type="submit"]',
+                );
+                const originalBtnText = submitBtn
+                    ? submitBtn.textContent
+                    : "Request a Proposal";
+                if (submitBtn) {
+                    submitBtn.textContent = "Submitting...";
+                    (submitBtn as HTMLButtonElement).disabled = true;
+                }
+
+                try {
+                    const response = await fetch("/api/submit-proposal", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data),
+                    });
+
+                    if (response.ok) {
+                        proposalForm.style.display = "none";
+                        if (successMessage)
+                            successMessage.style.display = "block";
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                    } else {
+                        const errorData = await response.json();
+                        alert(
+                            `Error: ${errorData.message || "Failed to submit request"}`,
+                        );
+                    }
+                } catch (error) {
+                    console.error("Submission error:", error);
+                    alert(
+                        "There was an error submitting your request. Please try again.",
+                    );
+                } finally {
+                    // Reset button state
+                    if (submitBtn) {
+                        submitBtn.textContent = originalBtnText;
+                        (submitBtn as HTMLButtonElement).disabled = false;
+                    }
+                }
+            });
+        }
+    }
+
+    // Run on load and after View Transitions
+    document.addEventListener("astro:page-load", initializeServicePage);
+</script>
+
+<style>
+    .services-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        margin: 0px auto;
+        padding: 0 12px;
+    }
+
+    .services-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 40px;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .service-header {
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .service-title {
+        font-size: 48px;
+        margin-bottom: 16px;
+        line-height: 1.1;
+        font-weight: 700;
+        color: var(--foreground);
+    }
+
+    .service-subtitle {
+        opacity: 0.7;
+        font-size: 18px;
+        line-height: 1.5;
+        color: var(--foreground);
+    }
+
+    /* Pricing Grid */
+    .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        width: 100%;
+    }
+
+    /* Pricing Card */
+    .pricing-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: 40px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        overflow: visible;
+    }
+
+    /* Highlight Plan Logic */
+    .pricing-card.highlight {
+        border: 2px solid var(--brand-violet);
+        box-shadow: 0 16px 48px rgba(132, 128, 255, 0.2);
+        transform: translateY(-8px);
+        z-index: 2;
+    }
+
+    .pricing-card:not(.highlight):hover {
+        border-color: var(--brand-violet);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        z-index: 1;
+    }
+
+    /* Typography Hierarchy */
+    .plan-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+
+    .plan-name {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--brand-violet);
+        margin-bottom: 4px;
+    }
+
+    .plan-price-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        color: var(--foreground);
+    }
+
+    .plan-currency {
+        font-size: 24px;
+        font-weight: 500;
+        align-self: flex-start;
+        margin-top: 8px;
+    }
+
+    .plan-amount {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+    }
+
+    .plan-period {
+        font-size: 14px;
+        opacity: 0.5;
+        align-self: flex-end;
+        margin-bottom: 8px;
+    }
+
+    .plan-desc {
+        font-size: 15px;
+        opacity: 0.7;
+        line-height: 1.5;
+        min-height: 48px;
+        max-width: 90%;
+        margin: 0 auto;
+    }
+
+    /* Divider */
+    .pricing-divider {
+        height: 1px;
+        width: 100%;
+        background: var(--border-subtle);
+        opacity: 0.6;
+    }
+
+    /* Features */
+    .feature-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin: 0;
+        padding: 0;
+        flex: 1;
+    }
+
+    .feature-list li {
+        display: flex;
+        gap: 16px;
+        font-size: 15px;
+        line-height: 1.4;
+        opacity: 0.9;
+        align-items: flex-start;
+        color: var(--foreground);
+    }
+
+    .feature-icon {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        color: var(--brand-lime);
+        background: color-mix(in srgb, var(--brand-lime), transparent 80%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Buttons */
+    .btn-plan {
+        width: 100%;
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        margin-top: auto;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-family: var(--font-family);
+    }
+
+    .btn-plan.primary {
+        background: var(--brand-violet);
+        color: white;
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    }
+
+    .btn-plan.primary:hover {
+        background: #9d9aff; /* Lighter violet for hover */
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .btn-plan.outline {
+        background: rgba(132, 128, 255, 0.05);
+        border: 1px solid var(--brand-violet);
+        color: var(--brand-violet);
+    }
+
+    .btn-plan.outline:hover {
+        background: var(--brand-violet);
+        color: white;
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+        transform: translateY(-2px);
+        opacity: 1;
+    }
+
+    /* Popular Badge */
+    .popular-badge {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--brand-lime);
+        color: var(--brand-dark-navy);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 6px 16px;
+        border-radius: var(--radius-pill);
+        letter-spacing: 0.1em;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Tablet - 2+1 Layout (2 cards on top, 1 full-width below) */
+    @media (max-width: 1024px) and (min-width: 769px) {
+        .services-wrapper {
+            padding: 24px 20px;
+        }
+
+        .service-header {
+            margin-bottom: 24px;
+        }
+
+        .service-title {
+            font-size: 32px;
+        }
+
+        .service-subtitle {
+            font-size: 15px;
+        }
+
+        .pricing-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        /* Make the third card span full width */
+        .pricing-card:nth-child(3) {
+            grid-column: 1 / -1;
+        }
+
+        .pricing-card {
+            padding: 24px 20px;
+            gap: 20px;
+        }
+
+        .plan-header {
+            gap: 8px;
+        }
+
+        .plan-name {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .plan-currency {
+            font-size: 18px;
+            margin-top: 4px;
+        }
+
+        .plan-amount {
+            font-size: 38px;
+        }
+
+        .plan-desc {
+            font-size: 13px;
+            min-height: 36px;
+        }
+
+        .feature-list {
+            gap: 10px;
+        }
+
+        .feature-list li {
+            font-size: 13px;
+            gap: 12px;
+        }
+
+        .feature-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-plan {
+            padding: 14px;
+            font-size: 13px;
+        }
+
+        .popular-badge {
+            font-size: 9px;
+            padding: 4px 12px;
+        }
+    }
+
+    /* Mobile - 1 column */
+    @media (max-width: 768px) {
+        .services-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .services-wrapper {
+            border-radius: var(--radius-md);
+            padding: 24px 12px;
+        }
+
+        .pricing-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

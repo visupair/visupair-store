@@ -1,0 +1,186 @@
+/* ===============================
+   Global Reset & Base Styles
+   =============================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  /* Remove Android/iOS tap highlight flash */
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===============================
+   Minimal Floating Scrollbar
+   =============================== */
+
+/* Chrome / Edge / Safari */
+*::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+*::-webkit-scrollbar-track,
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: none !important;
+}
+
+/* Firefox */
+html,
+body {
+  scrollbar-width: thin;
+}
+
+/* ===============================
+   Product Grid Scrollbar
+   =============================== */
+
+/* Target the container efficiently using multiple selectors to ensure match */
+
+.product-grid-container,
+div[class*="product-grid-container"],
+.portfolio-grid-container,
+.portfolio-detail-panel,
+.product-detail-panel,
+.course-detail-panel,
+.portfolio-sidebar {
+  /* Standard properties (Firefox) */
+  scrollbar-width: thin;
+  /* Fallback color if themes fail to load */
+  scrollbar-color: #1e1933 transparent;
+}
+
+/* WebKit styles (Chrome/Edge/Safari) */
+.product-grid-container::-webkit-scrollbar,
+div[class*="product-grid-container"]::-webkit-scrollbar,
+.portfolio-grid-container::-webkit-scrollbar,
+.portfolio-detail-panel::-webkit-scrollbar,
+.product-detail-panel::-webkit-scrollbar,
+.course-detail-panel::-webkit-scrollbar,
+.portfolio-sidebar::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.product-grid-container::-webkit-scrollbar-thumb,
+div[class*="product-grid-container"]::-webkit-scrollbar-thumb,
+.portfolio-grid-container::-webkit-scrollbar-thumb,
+.portfolio-detail-panel::-webkit-scrollbar-thumb,
+.product-detail-panel::-webkit-scrollbar-thumb,
+.course-detail-panel::-webkit-scrollbar-thumb,
+.portfolio-sidebar::-webkit-scrollbar-thumb {
+  border-radius: 999px !important;
+  /* Fallback color */
+  background-color: #1e1933;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--page-bg);
+  color: var(--foreground);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+main {
+  flex: 1;
+}
+
+/* Lock scroll when menu is open */
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* ===============================
+   Accessibility: Reduced Motion
+   =============================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  /* 1. Stop all keyframe animations immediately */
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* 2. Stop entrance animations */
+  .navbar-container {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* 3. Disable hover movement effects (scaling, rotating, lifting) */
+  .nav-link:hover {
+    transform: none !important;
+  }
+
+  .dropdown-link:hover .icon-box-wrapper {
+    transform: none !important;
+  }
+
+  .icon-button:hover svg,
+  .icon-button.favorites-btn:hover svg,
+  .icon-button.favorites-btn:active svg,
+  .icon-button.theme-btn:hover svg,
+  .logo:hover svg {
+    transform: none !important;
+  }
+
+  .mobile-link:hover {
+    transform: none !important;
+  }
+
+  .switch-knob {
+    transition-duration: 0.1s !important;
+  }
+
+  /* 4. Fix Dropdown/Mobile Menu sliding */
+  /* Force them to their final "shown" position immediately, relies on Opacity for show/hide */
+  .store-dropdown {
+    transition: opacity 0.2s ease, visibility 0.2s ease !important;
+    transform: translateX(-50%) !important;
+    /* Remove translateY offset */
+  }
+
+  .mobile-menu {
+    transition: opacity 0.2s ease, visibility 0.2s ease !important;
+    transform: translateY(0) !important;
+  }
+
+  .mobile-nav-list>li,
+  .mobile-footer {
+    transform: none !important;
+    transition: opacity 0.2s ease !important;
+    transition-delay: 0s !important;
+  }
+
+  /* 5. Keep color/shadow transitions for feedback */
+  .nav-link,
+  .dropdown-link,
+  .icon-button,
+  .mobile-link,
+  .logo svg,
+  .logo-text {
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease !important;
+  }
+}

@@ -1,0 +1,135 @@
+---
+import "../styles/fonts.css";
+import "../styles/tokens.css";
+import "../styles/globals.css";
+import "../styles/themes.css";
+
+import Navigation from "../components/Navigation.astro";
+import Footer from "../components/Footer.astro";
+import AccountSidebar from "../components/AccountSidebar.astro";
+import FullscreenGallery from "../components/FullscreenGallery.astro";
+
+import { ClientRouter } from "astro:transitions";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Visupair",
+  description = "Creative portfolio and digital showcase. Explore unique designs, fashion, 3D models and artworks from Visupair studio.",
+} = Astro.props;
+
+// Try to get user from middleware (available only in SSR mode)
+// For prerendered pages, this will be undefined
+const user = Astro.locals?.user ?? null;
+
+function getUserInitials(name: string): string {
+  if (!name) return "U";
+  const parts = name.trim().split(" ");
+  return parts.length >= 2
+    ? (parts[0][0] + parts[1][0]).toUpperCase()
+    : name[0].toUpperCase();
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Preload logo font — highest priority, prevents FOUT on logo text -->
+    <link
+      rel="preload"
+      href="/fonts/Visu_pair/VISUPAIR-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <!-- Page-specific head injections (preload hints, etc.) -->
+    <slot name="head" />
+    <!-- Inline theme script to prevent flash -->
+    <script is:inline>
+      const applyTheme = () => {
+        const savedTheme = localStorage.getItem("theme");
+        // Default to dark mode if no preference saved
+        const darkMode = !savedTheme || savedTheme === "dark";
+
+        // Apply to current document
+        if (darkMode) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+      };
+
+      // Apply immediately on initial load
+      applyTheme();
+
+      // Handle View Transitions to prevent flash
+      document.addEventListener("astro:before-swap", (ev) => {
+        // Pass the current theme to the new document before swap
+        const currentTheme =
+          document.documentElement.getAttribute("data-theme");
+        if (currentTheme) {
+          ev.newDocument.documentElement.setAttribute(
+            "data-theme",
+            currentTheme,
+          );
+        }
+      });
+
+      // Re-run full logic after swap to ensure consistency
+      document.addEventListener("astro:after-swap", applyTheme);
+    </script>
+  </head>
+  <ClientRouter />
+
+  <body>
+    <!-- Global Navigation -->
+    <Navigation />
+
+    <!-- Page Content -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- Global Footer -->
+    <Footer />
+
+    <!-- Global Fullscreen Gallery (Persists across transitions) -->
+    <div transition:persist="fullscreen-gallery">
+      <FullscreenGallery />
+    </div>
+
+    <!-- Account Sidebar — rendered conditionally based on session -->
+    <!-- For SSR pages: rendered immediately if user exists -->
+    <!-- For static pages: rendered empty, filled by client-side JS -->
+    <div transition:persist="account-sidebar" id="account-sidebar-wrapper">
+      {
+        user ? (
+          <AccountSidebar
+            userName={user.name || "User"}
+            userEmail={user.email}
+            userInitials={getUserInitials(user.name || "User")}
+          />
+        ) : (
+          <AccountSidebar userName="User" userEmail="" userInitials="U" />
+        )
+      }
+    </div>
+  </body>
+</html>
+
+<style>
+  :global(html) {
+    scroll-behavior: smooth;
+  }
+</style>

@@ -1,0 +1,111 @@
+---
+interface Props {
+    rating: number; // 0 to 5
+    size?: number; // Size in px
+    interactive?: boolean; // If true, allows selecting rating
+    name?: string; // Form input name if interactive
+}
+
+const { rating, size = 20, interactive = false, name = "rating" } = Astro.props;
+---
+
+<div
+    class={`star-rating ${interactive ? "interactive" : ""}`}
+    style={`--size: ${size}px;`}
+>
+    {
+        interactive && (
+            <div class="star-inputs">
+                {[5, 4, 3, 2, 1].map((n) => (
+                    <>
+                        <input
+                            type="radio"
+                            id={`${name}-star-${n}`}
+                            name={name}
+                            value={n}
+                            checked={Math.round(rating) === n}
+                            required
+                        />
+                        <label for={`${name}-star-${n}`} title={`${n} stars`}>
+                            <svg
+                                width={size}
+                                height={size}
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                class="star-icon"
+                            >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                        </label>
+                    </>
+                ))}
+            </div>
+        )
+    }
+
+    {
+        !interactive && (
+            <div class="star-display">
+                {[1, 2, 3, 4, 5].map((n) => (
+                    <svg
+                        width={size}
+                        height={size}
+                        viewBox="0 0 24 24"
+                        fill={n <= Math.round(rating) ? "currentColor" : "none"}
+                        stroke="currentColor"
+                        stroke-width="2"
+                        class={`star-icon ${n <= Math.round(rating) ? "filled" : "empty"}`}
+                    >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                ))}
+            </div>
+        )
+    }
+</div>
+
+<style>
+    .star-rating {
+        display: inline-flex;
+        align-items: center;
+        color: var(--brand-lime); /* Default star color */
+    }
+
+    /* Interactive Mode Styles */
+    .interactive .star-inputs {
+        display: flex;
+        flex-direction: row-reverse; /* Allows hover on previous stars using CSS + selector */
+        gap: 4px;
+    }
+
+    .star-inputs input {
+        display: none;
+    }
+
+    .star-inputs label {
+        cursor: pointer;
+        color: var(--border-subtle); /* Empty star color in form */
+        transition: color 0.3s ease-out;
+    }
+
+    /* Hover and Checked states for form */
+    .star-inputs label:hover,
+    .star-inputs label:hover ~ label,
+    .star-inputs input:checked ~ label {
+        color: var(--brand-lime);
+    }
+
+    /* Display Mode Styles */
+    .star-display {
+        display: flex;
+        gap: 2px;
+    }
+
+    .star-icon.empty {
+        color: var(--border-subtle); /* Empty star color in display */
+    }
+
+    .star-icon.filled {
+        color: var(--brand-lime);
+    }
+</style>

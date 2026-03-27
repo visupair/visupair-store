@@ -1,0 +1,14 @@
+---
+import ServicePage from "../../components/ServicePage.astro";
+import { servicesData } from "../../lib/services-data";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const service = servicesData.find((s) => s.id === id);
+
+// Fallback to first service if not found (or handle 404)
+const selectedService = service || servicesData[0];
+---
+
+<ServicePage service={selectedService} />

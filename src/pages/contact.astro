@@ -1,0 +1,621 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Contact — Visupair">
+  <div class="contact-layout">
+    <!-- Left Block: Visual & Information -->
+    <div class="contact-visual-side">
+      <div style="width: 100%;">
+        <div class="response-badge">
+          <div class="pulse-dot"></div>
+          Response within 24 hours
+        </div>
+      </div>
+
+      <!-- Moved Text to Bottom -->
+      <div class="contact-text-bottom-wrapper">
+        <span class="contact-label">CONTACT</span>
+        <h1 class="contact-heading">
+          Let's build something<br />
+          <span>exceptional</span> together
+        </h1>
+        <p class="contact-sub">
+          Share your project details and our team will reach out within one
+          business day. We are here to collaborate and craft meaningful
+          experiences.
+        </p>
+      </div>
+    </div>
+
+    <!-- Right Block: Contact Form -->
+    <div class="contact-form-side">
+      <h2 class="form-heading">Contact <span>Us</span></h2>
+      <!-- Top Buttons for Direct Contact -->
+      <div class="contact-direct-links">
+        <a href="mailto:info@visupair.com" class="direct-link-btn">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+            ></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          info@visupair.com
+        </a>
+        <a href="tel:+48539818790" class="direct-link-btn">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.12 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+            ></path>
+          </svg>
+          +48 539 818 790
+        </a>
+      </div>
+      <form class="contact-form" id="contact-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="firstName">First Name</label>
+            <input
+              type="text"
+              id="firstName"
+              name="firstName"
+              class="form-input"
+              placeholder="John"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="lastName">Last Name</label>
+            <input
+              type="text"
+              id="lastName"
+              name="lastName"
+              class="form-input"
+              placeholder="Doe"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-input"
+            placeholder="john@company.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="company">Company</label>
+          <input
+            type="text"
+            id="company"
+            name="company"
+            class="form-input"
+            placeholder="Your company"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="message">Message</label>
+          <textarea
+            id="message"
+            name="message"
+            class="form-input"
+            placeholder="Tell us about your project, goals, or how we can help"
+            required></textarea>
+        </div>
+
+        <div>
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span class="btn-text">Send Message</span>
+            <svg
+              class="btn-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+          <div class="privacy-text">
+            By submitting this form, you agree to our <a
+              href="/legal/privacy-policy">privacy policy</a
+            >.
+          </div>
+        </div>
+      </form>
+
+      <!-- Success State (Hidden by default) -->
+      <div id="success-message" class="success-state" style="display: none;">
+        <div class="success-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <h3>Message Sent!</h3>
+        <p>
+          Thanks for reaching out. We've received your message and will get back
+          to you shortly.
+        </p>
+        <button id="send-another" class="btn-outline">Send Another</button>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .contact-layout {
+    display: flex;
+    width: calc(100% - 24px);
+    height: calc(100vh - 100px);
+    margin: 0 auto;
+    gap: 12px;
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  /* Visual Block (Left) */
+  .contact-visual-side {
+    flex: 1;
+    background: linear-gradient(135deg, #151128 0%, #0e0a23 100%);
+    border-radius: var(--radius-xl);
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-island);
+  }
+
+  /* Gradient Overlay for visual interest */
+  .contact-visual-side::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at 100% 0%,
+      rgba(132, 128, 255, 0.15) 0%,
+      transparent 50%
+    );
+    pointer-events: none;
+  }
+
+  .contact-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--brand-violet);
+    opacity: 0.8;
+    margin-bottom: 24px;
+    display: block;
+  }
+
+  /* Form Heading (Right Side) */
+  .form-heading {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+  }
+
+  .form-heading span {
+    color: var(--brand-violet);
+  }
+
+  .contact-heading {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    color: white;
+    letter-spacing: -0.02em;
+  }
+
+  .contact-heading span {
+    color: var(--brand-violet);
+  }
+
+  .contact-sub {
+    font-size: 18px;
+    line-height: 1.6;
+    opacity: 0.7;
+    max-width: 90%;
+    color: #e9e8ff;
+  }
+
+  /* New class to push text to bottom */
+  .contact-text-bottom-wrapper {
+    margin-top: auto;
+  }
+
+  .response-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--brand-lime);
+    width: fit-content;
+    margin-bottom: 32px;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--brand-lime);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(203, 255, 98, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Form Block (Right) */
+  .contact-form-side {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 48px;
+    box-shadow: var(--shadow-island);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Direct Contact Links (Top of Form) */
+  .contact-direct-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .direct-link-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 18px;
+    text-decoration: none;
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .direct-link-btn:hover {
+    border-color: var(--brand-violet);
+    color: var(--brand-violet);
+    background: rgba(132, 128, 255, 0.05);
+    transform: translateY(-2px);
+  }
+
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 14px 16px;
+    font-family: var(--font-family);
+    font-size: 15px;
+    color: var(--foreground);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--brand-violet);
+    box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
+  }
+
+  .form-input::placeholder {
+    opacity: 0.4;
+  }
+
+  textarea.form-input {
+    min-height: 140px;
+    resize: vertical;
+  }
+
+  .btn-submit {
+    background: rgba(132, 128, 255, 0.05);
+    color: var(--brand-violet);
+    border: 1px solid var(--brand-violet);
+    padding: 20px;
+    border-radius: var(--radius-xl);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    width: 100%;
+    font-family: var(--font-family);
+  }
+
+  .btn-submit:hover {
+    background: var(--brand-violet);
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(132, 128, 255, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .privacy-text {
+    font-size: 13px;
+    opacity: 0.5;
+    text-align: center;
+    margin-top: 24px;
+  }
+
+  .privacy-text a {
+    color: var(--foreground);
+    text-decoration: underline;
+    opacity: 0.8;
+  }
+
+  .privacy-text a:hover {
+    opacity: 1;
+  }
+
+  /* Success State Styles */
+  .success-state {
+    text-align: center;
+    padding: 40px 0;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .success-state h3 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--foreground);
+  }
+
+  .success-state p {
+    font-size: 16px;
+    opacity: 0.8;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    color: var(--foreground);
+  }
+
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--brand-lime);
+    color: var(--brand-dark-navy);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  .success-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--foreground);
+    padding: 12px 24px;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-outline:hover {
+    border-color: var(--brand-violet);
+    color: var(--brand-violet);
+  }
+
+  /* ========= TABLET RESPONSIVE ========= */
+  @media (max-width: 1200px) {
+    .contact-layout {
+      flex-direction: row;
+      min-height: auto;
+      height: auto;
+      gap: 24px;
+      padding: 16px;
+    }
+
+    .direct-link-btn {
+      font-size: 12px;
+    }
+  }
+
+  /* ========= MOBILE RESPONSIVE ========= */
+  @media (max-width: 900px) {
+    .contact-layout {
+      flex-direction: column;
+      min-height: auto;
+      gap: 24px;
+      padding: 16px;
+    }
+
+    .contact-visual-side {
+      padding: 32px;
+      min-height: 400px;
+    }
+
+    .contact-form-side {
+      padding: 24px;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .contact-heading {
+      font-size: 36px;
+    }
+
+    .contact-direct-links {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+</style>
+
+<script>
+  // Form submission handler (client-side)
+  const form = document.getElementById("contact-form") as HTMLFormElement;
+  const successMessage = document.getElementById(
+    "success-message",
+  ) as HTMLDivElement;
+  const sendAnotherBtn = document.getElementById(
+    "send-another",
+  ) as HTMLButtonElement;
+  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+  const btnText = submitBtn?.querySelector(".btn-text") as HTMLElement;
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // Disable button
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        if (btnText) btnText.textContent = "Sending...";
+      }
+
+      // Get form data
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch("/api/contact", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Hide form, show success
+          form.style.display = "none";
+          if (successMessage) successMessage.style.display = "block";
+        } else {
+          console.error("Submission failed:", result);
+          alert("Something went wrong. Please try again.");
+        }
+      } catch (error) {
+        console.error("Submission error:", error);
+        alert("An error occurred. Please check your connection.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          if (btnText) btnText.textContent = "Send Message";
+        }
+      }
+    });
+  }
+
+  // Handle "Send Another" button
+  if (sendAnotherBtn) {
+    sendAnotherBtn.addEventListener("click", () => {
+      if (successMessage) successMessage.style.display = "none";
+      if (form) {
+        form.reset();
+        form.style.display = "flex";
+      }
+    });
+  }
+</script>

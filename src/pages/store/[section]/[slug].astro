@@ -1,0 +1,91 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import ProductDetail from "../../../components/ProductDetail.astro";
+import StoreSidebar from "../../../components/StoreSidebar.astro";
+import { storeSections } from "../../../lib/store-data";
+import { getProducts } from "../../../lib/sanity";
+
+// SSR Mode: Dynamic Lookup
+export const prerender = false;
+
+const { section, slug } = Astro.params;
+
+// Get server-detected currency from middleware
+const serverCurrency = Astro.locals.currency;
+
+// Fetch all products (cached) to find the matching one
+const allProducts = await getProducts();
+
+// Find product by slug AND section to avoid conflicts
+const product = allProducts.find((p: any) => {
+    return (
+        p.slug === slug &&
+        p.categoryPath &&
+        Array.isArray(p.categoryPath) &&
+        p.categoryPath.includes(section)
+    );
+});
+
+// If no product found, return 404
+if (!product) {
+    console.error(`Product not found: slug=${slug}, section=${section}`);
+    return Astro.redirect("/404");
+}
+
+// Determine sectionId if not passed (it is passed in params but good to verify)
+const sectionId = section || product.categoryPath[0];
+const currentSection = storeSections[sectionId];
+
+// Get category from query params to preserve it on back navigation
+const selectedCategory = Astro.url.searchParams.get("category");
+
+// Calculate back link - preserve category if provided
+let backLink = `/store/${sectionId}`;
+if (selectedCategory) {
+    backLink += `?category=${selectedCategory}`;
+}
+---
+
+<Layout title={`${product.name} | Visupair`}>
+    <div class="store-layout">
+        <!-- Sidebar with persistence -->
+        <div transition:persist="store-sidebar">
+            <StoreSidebar
+                categories={currentSection?.categories || []}
+                selectedCategoryId={null}
+                sectionId={sectionId}
+                searchProducts={allProducts}
+            />
+        </div>
+
+        <div class="product-wrapper" transition:name={`product-${product.id}`}>
+            <ProductDetail product={product} backLink={backLink} serverCurrency={serverCurrency} />
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .store-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px); /* Keep consistent height with grid view */
+    }
+
+    .product-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .store-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 12px;
+            gap: 12px;
+        }
+    }
+</style>

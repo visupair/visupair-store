@@ -1,0 +1,413 @@
+---
+interface Props {
+    title: string;
+    description: string;
+    image: string;
+    href: string;
+}
+
+const { title, description, image, href } = Astro.props;
+---
+
+<a href={href} class="sc-card animate-text">
+    <div class="sc-image">
+        <img src={image} alt={title} loading="lazy" draggable="false" />
+    </div>
+
+    <div class="sc-overlay"></div>
+
+    <div class="sc-content">
+        <div class="sc-text">
+            <div class="sc-label">
+                <span class="sc-dot"></span>
+                <h3 class="sc-title">{title}</h3>
+            </div>
+            <div class="sc-reveal">
+                <p class="sc-desc">{description}</p>
+            </div>
+        </div>
+        <span class="sc-arrow">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        </span>
+    </div>
+</a>
+
+<style>
+    /* ═══════════════════════════════════════
+       ShowcaseCard — Homepage Feature Cards
+       ═══════════════════════════════════════ */
+
+    .sc-card {
+        display: block;
+        text-decoration: none;
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        position: relative;
+        aspect-ratio: 10 / 10.8;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        cursor: pointer;
+    }
+
+    /* ── Image ── */
+    .sc-image {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+
+    .sc-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+
+    /* ── Gradient Overlay ── */
+    .sc-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: linear-gradient(
+            to top,
+            rgba(132, 128, 255, 0.35) 0%,
+            rgba(132, 128, 255, 0.15) 35%,
+            rgba(132, 128, 255, 0.02) 65%,
+            transparent 100%
+        );
+        transition: opacity 0.4s ease;
+    }
+
+    .sc-card:hover .sc-overlay {
+        background: linear-gradient(
+            to top,
+            rgba(132, 128, 255, 0.45) 0%,
+            rgba(132, 128, 255, 0.2) 40%,
+            rgba(132, 128, 255, 0.05) 65%,
+            transparent 100%
+        );
+    }
+
+    /* ── Content Area (horizontal: text + arrow) ── */
+    .sc-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 3;
+        padding: 22px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+    }
+
+    /* ── Text Block (title + description) ── */
+    .sc-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        transition: gap 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sc-card:hover .sc-text {
+        gap: 10px;
+    }
+
+    /* ── Label (dot + title) ── */
+    .sc-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sc-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--brand-violet);
+        flex-shrink: 0;
+        transition:
+            transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+            box-shadow 0.3s ease;
+    }
+
+    .sc-card:hover .sc-dot {
+        transform: scale(1.3);
+        box-shadow: 0 0 12px rgba(132, 128, 255, 0.6);
+    }
+
+    .sc-title {
+        font-size: clamp(18px, 2.2vw, 24px);
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+    }
+
+    /* ── Arrow (vertically centered next to all text) ── */
+    .sc-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        border-radius: 50%;
+        background: var(--brand-violet);
+        color: #ffffff;
+        flex-shrink: 0;
+        opacity: 0;
+        transform: scale(0.8);
+        transition:
+            transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+            opacity 0.3s ease,
+            background 0.2s ease;
+    }
+
+    .sc-card:hover .sc-arrow {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .sc-card:active .sc-arrow {
+        transform: scale(0.92);
+    }
+
+    .sc-arrow svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+        margin-left: 1px;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ── Reveal Area (description) ── */
+    .sc-reveal {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transition:
+            grid-template-rows 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+            opacity 0.35s ease;
+    }
+
+    .sc-card:hover .sc-reveal {
+        grid-template-rows: 1fr;
+        opacity: 1;
+    }
+
+    .sc-desc {
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.75);
+        margin: 0;
+        overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════
+       Hover Glow & Border
+       ═══════════════════════════════════════ */
+    .sc-card {
+        transition:
+            transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 0.4s ease,
+            border-color 0.35s ease;
+    }
+
+    .sc-card:hover {
+        transform: translateY(-6px);
+        border-color: var(--brand-violet);
+        box-shadow:
+            0 0 20px rgba(132, 128, 255, 0.25),
+            0 0 40px rgba(132, 128, 255, 0.1),
+            0 0 0 1px rgba(132, 128, 255, 0.2);
+    }
+
+    /* ═══════════════════════════════════════
+       Animate In (Scroll Reveal)
+       ═══════════════════════════════════════ */
+    .animate-text {
+        opacity: 0;
+        transform: translateY(30px);
+        transition:
+            opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+            transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+            box-shadow 0.4s ease,
+            border-color 0.35s ease;
+        transition-delay: var(--anim-delay, 0s);
+        will-change: opacity, transform;
+    }
+
+    .animate-text.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Fix hover jitter after scroll-in */
+    .sc-card.animate-text.is-visible:hover {
+        transform: translateY(-6px);
+    }
+
+    /* ═══════════════════════════════════════
+       Dark Theme
+       ═══════════════════════════════════════ */
+    :global([data-theme="dark"]) .sc-overlay {
+        background: linear-gradient(
+            to top,
+            rgba(14, 10, 35, 0.92) 0%,
+            rgba(14, 10, 35, 0.5) 35%,
+            rgba(14, 10, 35, 0.05) 65%,
+            transparent 100%
+        );
+    }
+
+    :global([data-theme="dark"]) .sc-card:hover .sc-overlay {
+        background: linear-gradient(
+            to top,
+            rgba(14, 10, 35, 0.96) 0%,
+            rgba(14, 10, 35, 0.6) 40%,
+            rgba(14, 10, 35, 0.1) 65%,
+            transparent 100%
+        );
+    }
+
+    :global([data-theme="dark"]) .sc-desc {
+        color: rgba(233, 232, 255, 0.65);
+    }
+
+    :global([data-theme="dark"]) .sc-card {
+        border-color: rgba(233, 232, 255, 0.06);
+    }
+
+    :global([data-theme="dark"]) .sc-card:hover {
+        border-color: var(--brand-violet);
+        box-shadow:
+            0 0 24px rgba(132, 128, 255, 0.3),
+            0 0 48px rgba(132, 128, 255, 0.15),
+            0 0 0 1px rgba(132, 128, 255, 0.25);
+    }
+
+    :global([data-theme="dark"]) .sc-dot {
+        box-shadow: 0 0 8px rgba(132, 128, 255, 0.3);
+    }
+
+    :global([data-theme="dark"]) .sc-card:hover .sc-dot {
+        box-shadow: 0 0 16px rgba(132, 128, 255, 0.7);
+    }
+
+    /* ═══════════════════════════════════════
+       Responsive
+       ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+        .sc-content {
+            padding: 18px 16px;
+            gap: 12px;
+        }
+
+        .sc-title {
+            font-size: 18px;
+        }
+
+        .sc-desc {
+            font-size: 12px;
+        }
+
+        .sc-arrow {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+        }
+
+        .sc-arrow svg {
+            width: 14px;
+            height: 14px;
+        }
+    }
+
+    /* Touch devices: show everything, disable all hover effects */
+    @media (hover: none) {
+        .sc-reveal {
+            grid-template-rows: 1fr;
+            opacity: 1;
+        }
+
+        .sc-text {
+            gap: 8px;
+        }
+
+        .sc-arrow {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .sc-desc {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Disable all hover effects */
+        .sc-card:hover {
+            transform: none;
+            border-color: var(--border-subtle);
+            box-shadow: none;
+        }
+
+        .sc-card.animate-text.is-visible:hover {
+            transform: translateY(0);
+        }
+
+        .sc-card:hover .sc-image img {
+            transform: none;
+        }
+
+        .sc-card:hover .sc-overlay {
+            background: linear-gradient(
+                to top,
+                rgba(14, 10, 35, 0.92) 0%,
+                rgba(14, 10, 35, 0.5) 35%,
+                rgba(14, 10, 35, 0.05) 65%,
+                transparent 100%
+            );
+        }
+
+        .sc-card:hover .sc-text {
+            gap: 8px;
+        }
+
+        .sc-card:hover .sc-dot {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .sc-card:hover .sc-arrow {
+            transform: scale(1);
+        }
+
+        .sc-card:hover .sc-arrow svg {
+            transform: none;
+        }
+
+        .sc-card:active .sc-arrow {
+            transform: scale(0.92);
+        }
+    }
+</style>

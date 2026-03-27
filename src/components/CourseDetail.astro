@@ -1,0 +1,1097 @@
+---
+import type { Course } from "../lib/store-data";
+import type { Currency } from "../lib/server-currency";
+
+interface Props {
+    course: Course;
+    onClose: () => void;
+    serverCurrency?: Currency; // Currency detected on server (from Cloudflare)
+}
+
+const { course, onClose, serverCurrency } = Astro.props;
+
+// Helper to generate placeholder image
+const getPlaceholderImage = (text: string, seed: number = 0) => {
+    const encodedText = encodeURIComponent(text);
+    const bg = seed === 0 ? "151128" : seed === 1 ? "1a1635" : "221d3a";
+    return `https://placehold.co/1200x750/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
+};
+
+const details = course.details || {};
+const instructor = course.instructor || { name: "Instructor", title: "Expert" };
+const curriculum = course.curriculum || [];
+const courseImage =
+    course.mainImage || course.image || getPlaceholderImage(course.name);
+const registrationOpen = course.registrationOpen !== false;
+
+// Select appropriate price to display
+const displayPrice =
+    serverCurrency === "PLN" && course.pricePLN
+        ? `${course.pricePLN}zł`
+        : `€${course.price}`;
+
+// Helper function to get initials for avatar
+const getInitials = (name: string) => {
+    return name.split(" ").map((word) => word[0]);
+};
+---
+
+<div class="course-detail-panel">
+    <!-- Close Button -->
+    <button
+        class="detail-close-btn"
+        onclick="window.history.back()"
+        aria-label="Close"
+    >
+        <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </button>
+
+    <div class="course-detail-layout">
+        <!-- LEFT: Image & Instructor (Aligned via Flex) -->
+        <div class="detail-gallery-column">
+            <div class="detail-large-image">
+                <img src={courseImage} alt={course.name} loading="lazy" />
+            </div>
+
+            <!-- Instructor Card -->
+            <div class="instructor-card">
+                {
+                    instructor.avatar ? (
+                        <img
+                            src={instructor.avatar}
+                            alt={instructor.name}
+                            class="instructor-avatar-large-img"
+                        />
+                    ) : (
+                        <div class="instructor-avatar-large">
+                            {getInitials(instructor.name)}
+                        </div>
+                    )
+                }
+                <div class="instructor-info">
+                    <div class="instructor-label">Instructed By</div>
+                    <div class="instructor-name">{instructor.name}</div>
+                    <div class="instructor-title">{instructor.title}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Content & Actions -->
+        <div class="detail-info-column">
+            <div class="detail-header-block">
+                <span
+                    class={`course-badge ${registrationOpen ? "open" : "closed"}`}
+                >
+                    {
+                        registrationOpen
+                            ? "Registration Open"
+                            : "Registration Closed"
+                    }
+                </span>
+                <h1 class="detail-title">{course.name}</h1>
+                <div class="price-tag">
+                    <span
+                        class="price-amount"
+                        data-price-eur={course.price}
+                        data-price-pln={course.pricePLN ||
+                            Math.round(course.price * 4.3)}
+                        data-server-currency={serverCurrency || ""}
+                    >
+                        €{course.price}
+                    </span>
+                    <span class="price-sub">/ lifetime access</span>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-container">
+                <div class="stat-box">
+                    <span class="stat-label">Duration</span>
+                    <span class="stat-value">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        {
+                            details.duration ||
+                                (details as any)["Duration"] ||
+                                "Self-Paced"
+                        }
+                    </span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Level</span>
+                    <span class="stat-value">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        {
+                            details.level ||
+                                (details as any)["Level"] ||
+                                "All Levels"
+                        }
+                    </span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Tools</span>
+                    <span class="stat-value">
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"
+                            ></polygon>
+                            <polyline points="2 17 12 22 22 17"></polyline>
+                            <polyline points="2 12 12 17 22 12"></polyline>
+                        </svg>
+                        {
+                            details.software ||
+                                (details as any)["Software"] ||
+                                (details as any)["Format"] ||
+                                "Standard"
+                        }
+                    </span>
+                </div>
+            </div>
+
+            <p class="detail-desc">{course.description}</p>
+
+            <!-- Curriculum Section -->
+            {
+                curriculum.length > 0 && (
+                    <div>
+                        <details style={{ width: "100%" }} open>
+                            <summary class="accordion-header">
+                                <span>Curriculum & Schedule</span>
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </summary>
+                            <div class="curriculum-list">
+                                {curriculum.map((item) => (
+                                    <div class="curriculum-item">
+                                        <span class="curr-week">
+                                            {item.week}
+                                        </span>
+                                        <span class="curr-title">
+                                            {item.title}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </details>
+                    </div>
+                )
+            }
+
+            <!-- Enroll Button -->
+            {
+                (course.price || course.pricePLN) && registrationOpen ? (
+                    <button
+                        id="enroll-btn"
+                        class="btn-enroll"
+                        data-product-id={course._id}
+                        data-stripe-price-id={course.stripePriceId}
+                        data-product-type="course"
+                        data-enroll-eur={course.price}
+                        data-enroll-pln={
+                            course.pricePLN || Math.round(course.price * 4.3)
+                        }
+                        data-server-currency={serverCurrency || ""}
+                    >
+                        <span>Enroll Now for {displayPrice}</span>
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </button>
+                ) : (
+                    <button
+                        class="btn-enroll"
+                        disabled
+                        style="opacity: 0.5; cursor: not-allowed;"
+                    >
+                        <span>
+                            {registrationOpen
+                                ? "Enrollment Link Coming Soon"
+                                : "Registration Closed"}
+                        </span>
+                    </button>
+                )
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Stripe Checkout is handled on the server (redirect) -->
+
+<style>
+    .course-detail-panel {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        min-height: calc(100vh - 520px);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .course-detail-layout {
+        display: flex;
+        width: 100%;
+        min-height: 600px;
+        align-items: stretch;
+        gap: 40px;
+    }
+
+    .detail-gallery-column {
+        flex: 0 0 50%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 24px;
+    }
+
+    .detail-large-image {
+        width: 100%;
+        background: var(--surface-muted);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        border: 1px solid var(--border-subtle);
+        min-height: 400px;
+    }
+
+    .detail-large-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s;
+        display: block;
+    }
+
+    .detail-large-image:hover img {
+        transform: scale(1.02);
+    }
+
+    .detail-info-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding-bottom: 0;
+    }
+
+    .detail-close-btn {
+        position: absolute;
+        top: -16px;
+        right: -16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        color: var(--foreground);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 0;
+    }
+
+    .detail-close-btn:hover {
+        background: var(--brand-violet);
+        color: white;
+        transform: rotate(90deg);
+    }
+
+    .detail-header-block {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-bottom: 8px;
+    }
+
+    .course-badge {
+        display: inline-block;
+        width: fit-content;
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .course-badge.open {
+        background: color-mix(in srgb, var(--brand-lime), transparent 80%);
+        color: var(--brand-lime);
+    }
+
+    .course-badge.closed {
+        background: color-mix(in srgb, #ef4444, transparent 80%);
+        color: #ef4444;
+    }
+
+    .detail-title {
+        font-size: 42px;
+        font-weight: 700;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        color: var(--foreground);
+    }
+
+    .price-tag {
+        font-size: 28px;
+        font-weight: 500;
+        color: var(--brand-violet);
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .price-divider {
+        opacity: 0.4;
+        font-weight: 400;
+    }
+
+    .price-sub {
+        font-size: 15px;
+        font-weight: 400;
+        opacity: 0.6;
+        color: var(--foreground);
+    }
+
+    .detail-desc {
+        font-size: 15px;
+        line-height: 1.7;
+        opacity: 0.8;
+    }
+
+    .instructor-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 24px;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-island);
+        margin-top: auto;
+    }
+
+    .instructor-avatar-large {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--brand-violet);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+        box-shadow: 0 0 0 4px var(--surface-muted);
+        flex-shrink: 0;
+    }
+
+    .instructor-avatar-large-img {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .instructor-info {
+        flex: 1;
+    }
+
+    .instructor-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: 700;
+        opacity: 0.5;
+        letter-spacing: 0.1em;
+        margin-bottom: 4px;
+    }
+
+    .instructor-name {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--foreground);
+    }
+
+    .instructor-title {
+        font-size: 13px;
+        opacity: 0.7;
+        color: var(--foreground);
+    }
+
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .stat-box {
+        background: var(--surface-muted);
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        border: 1px solid transparent;
+        transition: border-color 0.2s;
+    }
+
+    .stat-box:hover {
+        border-color: var(--brand-violet);
+    }
+
+    .stat-label {
+        font-size: 11px;
+        opacity: 0.5;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--foreground);
+    }
+
+    .stat-value svg {
+        flex-shrink: 0;
+    }
+
+    .curriculum-list {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .curriculum-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .curriculum-item:last-child {
+        border-bottom: none;
+    }
+
+    .curr-week {
+        font-size: 11px;
+        font-weight: 700;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        min-width: 60px;
+        flex-shrink: 0;
+    }
+
+    .curr-title {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--foreground);
+    }
+
+    .accordion-header {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: none;
+        border: none;
+        padding: 0 0 16px 0;
+        cursor: pointer;
+        color: var(--foreground);
+        font-family: var(--font-family);
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .accordion-header:hover {
+        opacity: 0.8;
+    }
+
+    .accordion-header svg {
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .accordion-header[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+    }
+
+    /* Details/Accordion Animation */
+    details {
+        transition: all 0.3s ease;
+    }
+
+    details[open] .curriculum-list {
+        animation: slideDown 0.3s ease-out forwards;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .btn-enroll {
+        width: 100%;
+        padding: 22px;
+        background: var(--brand-violet);
+        color: white; /* Changed from var(--foreground) to white for consistency */
+        border: none;
+        border-radius: var(--radius-xl);
+        font-weight: 700;
+        font-size: 18px;
+        cursor: pointer;
+        transition:
+            transform 0.2s,
+            background-color 0.2s,
+            box-shadow 0.2s; /* Added background-color transition */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: auto;
+        font-family: var(--font-family);
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3); /* Added initial shadow */
+    }
+
+    .btn-enroll:hover {
+        background: #9d9aff; /* Lighter violet for hover */
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5); /* Increased shadow on hover */
+        transform: translateY(-2px);
+    }
+
+    .btn-enroll:active {
+        transform: translateY(0);
+    }
+
+    .btn-enroll svg {
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 900px) {
+        .course-detail-layout {
+            flex-direction: column;
+            gap: 24px;
+            min-height: auto;
+        }
+
+        .detail-gallery-column {
+            flex: unset;
+            width: 100%;
+            gap: 16px;
+            height: auto;
+            justify-content: flex-start;
+        }
+
+        .detail-info-column {
+            width: 100%;
+            padding-top: 0;
+            padding-bottom: 0;
+            gap: 20px;
+        }
+
+        .detail-title {
+            font-size: 32px;
+        }
+
+        .stats-container {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .stat-box {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+        }
+
+        .detail-close-btn {
+            top: -8px;
+            right: -8px;
+            background: var(--surface);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-enroll {
+            position: sticky;
+            bottom: 16px;
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+        }
+
+        .instructor-card {
+            padding: 20px;
+            gap: 12px;
+        }
+
+        .detail-large-image {
+            aspect-ratio: 16/9;
+        }
+    }
+
+    /* Checkout Modal Styles */
+    .checkout-modal {
+        display: none; /* Hidden by default */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 2147483647; /* Max Safe Integer to be always on top */
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        overflow: hidden; /* Prevent background scroll interaction */
+    }
+
+    .checkout-modal.active {
+        display: flex;
+        opacity: 1;
+    }
+
+    .checkout-container {
+        position: relative;
+        width: 95%; /* Responsive width */
+        max-width: 800px; /* Bigger for desktop */
+        height: 90vh; /* Taller */
+        max-height: 900px;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        overflow: hidden;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .checkout-modal {
+            align-items: flex-end; /* Bottom Sheet style or center? */
+            padding: 0;
+        }
+        .checkout-container {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+            border-radius: 0 !important;
+            border: none !important;
+        }
+        .close-checkout-btn {
+            top: 16px;
+            right: 16px;
+            z-index: 2147483648; /* Higher than iframe */
+        }
+    }
+
+    .close-checkout-btn {
+        position: absolute;
+        top: 45px;
+        right: 25px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        border: 1px solid var(--border-subtle);
+        color: var(--foreground);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+
+    .close-checkout-btn:hover {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+
+    .checkout-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-muted);
+        z-index: 1;
+    }
+
+    #checkout-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        position: relative;
+        z-index: 2; /* Cover loading spinner */
+        background: transparent;
+    }
+</style>
+
+<script>
+    import { authClient } from "../lib/auth-client";
+
+    // ── Checkout Error Toast ─────────────────────────────────────────────────
+    function showCheckoutToast(message: string) {
+        document.getElementById("vs-checkout-toast")?.remove();
+
+        if (!document.getElementById("vs-toast-styles")) {
+            const s = document.createElement("style");
+            s.id = "vs-toast-styles";
+            s.textContent = `
+                #vs-checkout-toast {
+                    position: fixed;
+                    bottom: 28px;
+                    right: 28px;
+                    z-index: 9999;
+                    max-width: 400px;
+                    width: calc(100vw - 48px);
+                    background: var(--surface);
+                    border: 1px solid rgba(239,68,68,0.2);
+                    border-left: 4px solid #ef4444;
+                    border-radius: var(--radius-xl);
+                    box-shadow: var(--shadow-dropdown);
+                    padding: 16px 16px 16px 14px;
+                    font-family: var(--font-family);
+                    animation: vsToastIn 0.28s cubic-bezier(.4,0,.2,1);
+                    transition: opacity 0.2s;
+                }
+                @keyframes vsToastIn {
+                    from { transform: translateY(14px) scale(0.97); opacity: 0; }
+                    to   { transform: translateY(0)    scale(1);    opacity: 1; }
+                }
+                .vs-toast-inner { display: flex; align-items: flex-start; gap: 12px; }
+                .vs-toast-icon  { color: #ef4444; flex-shrink: 0; margin-top: 1px; line-height: 0; }
+                .vs-toast-body  { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+                .vs-toast-title { font-size: 14px; font-weight: 600; color: var(--foreground); line-height: 1.3; }
+                .vs-toast-msg   { font-size: 13px; color: var(--foreground); opacity: 0.65; line-height: 1.45; word-break: break-word; }
+                .vs-toast-close { background: none; border: none; cursor: pointer; color: var(--foreground); opacity: 0.45; padding: 0; flex-shrink: 0; line-height: 0; transition: opacity 0.15s; align-self: flex-start; margin-top: 1px; }
+                .vs-toast-close:hover { opacity: 0.9; }
+                @media (max-width: 480px) {
+                    #vs-checkout-toast { bottom: 20px; right: 16px; left: 16px; width: auto; }
+                }
+            `;
+            document.head.appendChild(s);
+        }
+
+        const toast = document.createElement("div");
+        toast.id = "vs-checkout-toast";
+        toast.setAttribute("role", "alert");
+        toast.setAttribute("aria-live", "assertive");
+        toast.innerHTML = `
+            <div class="vs-toast-inner">
+                <div class="vs-toast-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div class="vs-toast-body">
+                    <span class="vs-toast-title">Payment failed</span>
+                    <span class="vs-toast-msg">${message}</span>
+                </div>
+                <button class="vs-toast-close" aria-label="Close notification">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+
+        const dismiss = () => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 220);
+        };
+        toast.querySelector(".vs-toast-close")?.addEventListener("click", dismiss);
+        setTimeout(dismiss, 7000);
+    }
+
+    // Client-side currency detection and price updating
+    // Exchange rate: 1 EUR = 4.3 PLN (update this value periodically)
+    type Currency = "EUR" | "PLN";
+
+    function detectUserCurrency(): Currency {
+        // PRIORITY 1: Check server-detected currency (from Cloudflare CF-IPCountry header)
+        const priceElement = document.querySelector("[data-server-currency]");
+        const serverCurrency = priceElement?.getAttribute(
+            "data-server-currency",
+        );
+
+        if (
+            serverCurrency &&
+            (serverCurrency === "EUR" || serverCurrency === "PLN")
+        ) {
+            console.log(
+                "Server-detected currency (Cloudflare):",
+                serverCurrency,
+            );
+            console.log("Using server currency (most reliable!)");
+            return serverCurrency as Currency;
+        }
+
+        // FALLBACK 1: Check timezone (client-side)
+        try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            console.log("Client timezone:", timezone);
+
+            if (
+                timezone &&
+                (timezone.includes("Warsaw") ||
+                    timezone === "Europe/Warsaw" ||
+                    timezone === "Poland")
+            ) {
+                console.log("Currency: PLN (Poland timezone detected)");
+                return "PLN";
+            }
+        } catch (e) {
+            console.warn("Timezone detection failed:", e);
+        }
+
+        // FALLBACK 2: Check browser language
+        const locale = navigator.language || (navigator as any).userLanguage;
+        console.log("Client language:", locale);
+
+        if (locale && locale.toLowerCase().startsWith("pl")) {
+            console.log("Currency: PLN (Polish language detected)");
+            return "PLN";
+        }
+
+        // Default to EUR
+        console.log("Currency: EUR (default)");
+        return "EUR";
+    }
+
+    function updatePrices() {
+        const currency = detectUserCurrency();
+
+        // Update price display
+        const priceElements = document.querySelectorAll(
+            "[data-price-eur][data-price-pln]",
+        );
+
+        priceElements.forEach((element) => {
+            const priceEUR = element.getAttribute("data-price-eur");
+            const pricePLN = element.getAttribute("data-price-pln");
+
+            if (!priceEUR || !pricePLN) return;
+
+            if (currency === "PLN") {
+                element.textContent = `${pricePLN}zł`;
+            } else {
+                element.textContent = `€${priceEUR}`;
+            }
+        });
+
+        // Update enroll button text
+        const enrollButtons = document.querySelectorAll(
+            "[data-enroll-eur][data-enroll-pln]",
+        );
+
+        enrollButtons.forEach((button) => {
+            const priceEUR = button.getAttribute("data-enroll-eur");
+            const pricePLN = button.getAttribute("data-enroll-pln");
+
+            if (!priceEUR || !pricePLN) return;
+
+            const span = button.querySelector("span");
+            if (span) {
+                if (currency === "PLN") {
+                    span.textContent = `Enroll Now for ${pricePLN}zł`;
+                } else {
+                    span.textContent = `Enroll Now for €${priceEUR}`;
+                }
+            }
+        });
+    }
+
+    // Run on page load
+    // updatePrices(); // This line is replaced by initCourseDetail
+
+    // Initialize function for course detail page
+    function initCourseDetail() {
+        updatePrices();
+        window.addEventListener("pageshow", updatePrices);
+    }
+
+    // Run initialization
+    initCourseDetail();
+
+    // Re-run on View Transitions
+    document.addEventListener("astro:page-load", initCourseDetail);
+
+    document.addEventListener("astro:page-load", () => {
+        const enrollBtn = document.getElementById("enroll-btn");
+        // Buy Logic
+        if (enrollBtn) {
+            // Store original text
+            enrollBtn.dataset.originalText =
+                enrollBtn.textContent || "Enroll Now";
+
+            enrollBtn.addEventListener("click", async () => {
+                // Check if user is logged in
+                const session = await authClient.getSession();
+                if (!session.data) {
+                    window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                    return;
+                }
+
+                const stripePriceId = enrollBtn.dataset.stripePriceId;
+                const productId = enrollBtn.dataset.productId;
+                const priceEur = parseFloat(enrollBtn.dataset.enrollEur || "0");
+
+                const span = enrollBtn.querySelector("span");
+                if (span) {
+                    span.textContent = "Redirecting to Checkout...";
+                }
+
+                try {
+                    const userEmail = session.data.user.email;
+
+                    const response = await fetch("/api/create-checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            productId,
+                            priceId: stripePriceId || undefined,
+                            productName:
+                                enrollBtn
+                                    .closest(".course-detail-panel")
+                                    ?.querySelector(".detail-title")
+                                    ?.textContent || "Course",
+                            productType: "course",
+                            userEmail,
+                            price: priceEur,
+                            currency: "EUR",
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.url) {
+                        throw new Error(
+                            data.error || "Failed to create checkout session",
+                        );
+                    }
+
+                    window.location.href = data.url;
+                } catch (err: any) {
+                    console.error("Checkout error:", err);
+                    showCheckoutToast(
+                        err.message || "Unable to start checkout. Please try again shortly."
+                    );
+                    if (span)
+                        span.textContent =
+                            enrollBtn.dataset.originalText || "Enroll Now";
+                }
+            });
+        }
+    });
+</script>

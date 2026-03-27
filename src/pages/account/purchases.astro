@@ -1,0 +1,408 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { authClient } from "../../lib/auth-client";
+import { sanityClient, urlFor } from "../../lib/sanity";
+
+// Check if user is logged in
+const session = await authClient.getSession({
+  fetchOptions: {
+    headers: Astro.request.headers,
+  },
+});
+
+if (!session.data) {
+  return Astro.redirect("/login");
+}
+
+const userEmail = session.data.user.email;
+
+// Fetch Orders from Sanity
+// We want orders that are 'paid' and belong to this user
+// We expand the products to get their details (image, name, digitalFileKey)
+const query = `*[_type == "order" && userEmail == $email && status == "paid"] | order(createdAt desc) {
+    _id,
+    orderNumber,
+    createdAt,
+    totalPrice,
+    currency,
+    status,
+    "products": products[] {
+        "key": _key,
+        "product": @ -> {
+            _id,
+            name,
+            "image": mainImage,
+            productType,
+            digitalFileKey
+        }
+    }
+}`;
+
+const orders = await sanityClient.fetch(query, { email: userEmail });
+
+// Check for success param from redirect
+const successParam = Astro.url.searchParams.get("success");
+---
+
+<Layout title="My Purchases - Visupair">
+  <main class="account-page">
+    <div class="purchases-section">
+      {
+        successParam && (
+          <div class="success-banner">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <div>
+              <strong>Payment Successful!</strong>
+              <p>Thank you for your purchase. Your items are listed below.</p>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        orders.length === 0 ? (
+          <div class="empty-state">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+            <h3>No purchases yet</h3>
+            <p>When you make a purchase, it will appear here.</p>
+            <a href="/store/fashion-design" class="btn-primary">
+              Browse Products
+            </a>
+          </div>
+        ) : (
+          <div class="orders-list">
+            <h1 class="page-title">My Purchases</h1>
+            {orders.map((order: any) => (
+              <div class="order-card">
+                <div class="order-header">
+                  <div class="order-meta">
+                    <span class="order-date">
+                      {new Date(order.createdAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                    <span class="order-number">
+                      #{order.orderNumber || order._id.slice(-8)}
+                    </span>
+                  </div>
+                  <div class="order-total">
+                    {order.currency === "PLN"
+                      ? `${order.totalPrice} zł`
+                      : `€${order.totalPrice}`}
+                  </div>
+                </div>
+
+                <div class="order-items">
+                  {order.products &&
+                    order.products.map(({ product }: any) =>
+                      product ? (
+                        <div class="order-item">
+                          <div class="item-image">
+                            {product.image && (
+                              <img
+                                src={urlFor(product.image).width(200).url()}
+                                alt={product.name}
+                              />
+                            )}
+                          </div>
+                          <div class="item-details">
+                            <h4>{product.name}</h4>
+                            <span class="item-type">
+                              {product.productType === "digital"
+                                ? "Digital Product"
+                                : "Physical Product"}
+                            </span>
+
+                            <div class="item-actions">
+                              {product.digitalFileKey ? (
+                                <a
+                                  href={`/api/download/${product.digitalFileKey}`}
+                                  class="btn-download"
+                                  target="_blank"
+                                  download
+                                >
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                  >
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  Download Files
+                                </a>
+                              ) : (
+                                <span class="shipping-status">Processing</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null,
+                    )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .account-page {
+    padding: 24px 12px;
+    margin: 0px auto;
+    max-width: 1000px;
+  }
+
+  .purchases-section {
+    min-height: calc(100vh - 420px);
+  }
+
+  .header-actions {
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    margin-bottom: 24px;
+    color: var(--foreground);
+  }
+
+  .success-banner {
+    background: color-mix(in srgb, var(--brand-lime), transparent 85%);
+    border: 1px solid color-mix(in srgb, var(--brand-lime), transparent 50%);
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    color: var(--foreground);
+  }
+
+  .success-banner svg {
+    color: var(--brand-lime);
+    flex-shrink: 0;
+  }
+
+  .orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .order-card {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .order-header {
+    padding: 16px 24px;
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .order-date {
+    font-weight: 600;
+    color: var(--foreground);
+    margin-right: 12px;
+  }
+
+  .order-number {
+    font-family: monospace;
+    opacity: 0.6;
+    font-size: 13px;
+  }
+
+  .order-total {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--brand-violet);
+  }
+
+  .order-items {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .order-item {
+    display: flex;
+    gap: 20px;
+  }
+
+  .item-image {
+    width: 80px;
+    height: 80px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .item-details h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .item-type {
+    font-size: 12px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .item-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--brand-violet);
+    color: white;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+  }
+
+  .btn-download:hover {
+    background: #9d9aff;
+    transform: translateY(-1px);
+  }
+
+  .shipping-status {
+    font-size: 13px;
+    padding: 4px 10px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-subtle);
+    opacity: 0.8;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    height: auto;
+    padding: 145px 24px;
+  }
+
+  .empty-state svg {
+    width: 64px;
+    height: 64px;
+    opacity: 0.3;
+    margin-bottom: 24px;
+  }
+
+  .empty-state h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--foreground);
+  }
+
+  .empty-state p {
+    font-size: 15px;
+    opacity: 0.6;
+    margin-bottom: 24px;
+    max-width: 400px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--brand-violet);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+  }
+
+  .btn-primary:hover {
+    background: #9d9aff;
+    box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 600px) {
+    .order-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .order-item {
+      flex-direction: column;
+    }
+
+    .item-image {
+      width: 100%;
+      height: 200px;
+    }
+  }
+</style>

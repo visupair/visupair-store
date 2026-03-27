@@ -1,0 +1,32 @@
+name = "visupair-store"
+compatibility_date = "2026-01-28"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Local testing on port 8787
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Production configuration
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Routes (if needed)
+# [[routes]]
+# pattern = "example.com/api/*"
+# zone_name = "example.com"
+
+# KV namespace bindings (if needed)
+[[kv_namespaces]]
+binding = "VISUPAIR_KV"
+id = "cd85d1d3d782433bb88735dd46c96d8c"
+preview_id = "192252c621ed4e35ba8c2e6d9c283acf"
+
+# Database bindings (D1 for better-auth)
+[[d1_databases]]
+binding = "visupair_store"
+database_name = "visupair-store"
+database_id = "48b3bd9d-9ddb-41ce-9e15-d1dadc35d0c5"
+
+
+

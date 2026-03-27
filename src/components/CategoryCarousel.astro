@@ -1,0 +1,790 @@
+---
+import Button from "./Button.astro";
+
+interface Category {
+  title: string;
+  description: string;
+  image: string;
+  href: string;
+}
+
+interface Props {
+  categories: Category[];
+}
+
+const { categories } = Astro.props;
+const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<div class="cc-wrap">
+  <div class="cc" data-carousel={uid}>
+    <!-- Viewport -->
+    <div class="cc-viewport">
+      <!-- Static header overlay -->
+      <div class="cc-header">
+        <h2 class="cc-header__title">Discover the Store</h2>
+        <p class="cc-header__desc">
+          Discover our premium range of digital assets and design services.
+        </p>
+      </div>
+
+      <!-- Track (JS will clone first/last slides into here) -->
+      <div class="cc-track" data-track>
+        {
+          categories.map((cat, i) => (
+            <div class="cc-slide" data-slide={i}>
+              <img
+                src={cat.image}
+                alt={cat.title}
+                class="cc-slide__img"
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchpriority={i === 0 ? "high" : "auto"}
+                draggable="false"
+              />
+              <div class="cc-slide__overlay" />
+              <div class="cc-slide__content-wrapper">
+                <div class="cc-slide__info">
+                  <h3 class="cc-slide__title">{cat.title}</h3>
+                  <p class="cc-slide__desc">{cat.description}</p>
+                </div>
+              </div>
+              <div class="cc-slide__bottom">
+                <Button
+                  href={cat.href}
+                  label="Visit Store"
+                  variant="primary"
+                  icon={true}
+                />
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="cc-controls">
+      <button class="cc-btn" data-prev aria-label="Previous slide">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <div class="cc-dots" data-dots>
+        {
+          categories.map((_, i) => (
+            <button
+              class:list={["cc-dot", { active: i === 0 }]}
+              data-dot={i}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))
+        }
+      </div>
+      <button class="cc-btn" data-next aria-label="Next slide">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function initCarousels() {
+    document
+      .querySelectorAll<HTMLElement>("[data-carousel]")
+      .forEach((root) => {
+        // Prevent double-init
+        if (root.dataset.ready) return;
+        root.dataset.ready = "1";
+
+        const track = root.querySelector<HTMLElement>("[data-track]")!;
+        const slides = Array.from(
+          root.querySelectorAll<HTMLElement>("[data-slide]"),
+        );
+        const dots = Array.from(
+          root.querySelectorAll<HTMLElement>("[data-dot]"),
+        );
+        const prevBtn = root.querySelector<HTMLElement>("[data-prev]");
+        const nextBtn = root.querySelector<HTMLElement>("[data-next]");
+        const viewport = root.querySelector<HTMLElement>(".cc-viewport");
+
+        if (!track || slides.length === 0) return;
+
+        const total = slides.length;
+        const hasLoop = total > 1;
+        let pos = hasLoop ? 1 : 0; // position index in extended track
+        let busy = false; // animation lock
+        let dragging = false;
+        let dragStartX = 0;
+        let didDrag = false;
+        let autoplayId: ReturnType<typeof setInterval> | null = null;
+        let safetyTimer: ReturnType<typeof setTimeout> | null = null;
+        const ac = new AbortController();
+        const sig = ac.signal;
+
+        // ─── Clone first & last for infinite loop ───
+        if (hasLoop) {
+          const cloneFirst = slides[0].cloneNode(true) as HTMLElement;
+          const cloneLast = slides[total - 1].cloneNode(true) as HTMLElement;
+          cloneFirst.removeAttribute("data-slide");
+          cloneLast.removeAttribute("data-slide");
+          cloneFirst.setAttribute("aria-hidden", "true");
+          cloneLast.setAttribute("aria-hidden", "true");
+          track.appendChild(cloneFirst);
+          track.insertBefore(cloneLast, slides[0]);
+        }
+
+        // ─── Helpers ───
+        function setPos(animate: boolean) {
+          if (animate) {
+            track.style.transition =
+              "transform 0.55s cubic-bezier(0.25, 1, 0.5, 1)";
+          } else {
+            track.style.transition = "none";
+          }
+          track.style.transform = `translateX(-${pos * 100}%)`;
+          if (!animate) {
+            void track.offsetHeight; // force reflow so 'none' takes effect
+          }
+        }
+
+        function realIndex(): number {
+          if (!hasLoop) return pos;
+          if (pos <= 0) return total - 1;
+          if (pos > total) return 0;
+          return pos - 1;
+        }
+
+        function syncDots() {
+          const idx = realIndex();
+          dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+        }
+
+        // ─── Navigation ───
+        function clearSafety() {
+          if (safetyTimer) {
+            clearTimeout(safetyTimer);
+            safetyTimer = null;
+          }
+        }
+
+        function scheduleSafety() {
+          clearSafety();
+          safetyTimer = setTimeout(() => {
+            busy = false;
+          }, 800);
+        }
+
+        function move(dir: number) {
+          if (busy) return;
+          busy = true;
+          pos += dir;
+          setPos(true);
+          syncDots();
+          restartAutoplay();
+          scheduleSafety();
+        }
+
+        function goTo(slideIdx: number) {
+          if (busy) return;
+          const target = hasLoop ? slideIdx + 1 : slideIdx;
+          if (target === pos) return;
+          busy = true;
+          pos = target;
+          setPos(true);
+          syncDots();
+          restartAutoplay();
+          scheduleSafety();
+        }
+
+        // ─── Transition end → snap clones ───
+        // CRITICAL: check e.target === track to ignore bubbled events
+        // from child elements (images, arrows, overlays have their own transitions)
+        track.addEventListener(
+          "transitionend",
+          (e) => {
+            if (e.target !== track) return;
+            if (e.propertyName !== "transform") return;
+            busy = false;
+            clearSafety();
+            if (!hasLoop) return;
+            if (pos > total) {
+              pos = 1;
+              setPos(false);
+            } else if (pos <= 0) {
+              pos = total;
+              setPos(false);
+            }
+          },
+          { signal: sig },
+        );
+
+        // ─── Button clicks ───
+        prevBtn?.addEventListener("click", () => move(-1), { signal: sig });
+        nextBtn?.addEventListener("click", () => move(1), { signal: sig });
+
+        // ─── Dot clicks ───
+        dots.forEach((dot, i) => {
+          dot.addEventListener("click", () => goTo(i), { signal: sig });
+        });
+
+        // ─── Keyboard ───
+        document.addEventListener(
+          "keydown",
+          (e) => {
+            const tag = (e.target as HTMLElement)?.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")
+              return;
+            if (e.key === "ArrowLeft") move(-1);
+            else if (e.key === "ArrowRight") move(1);
+          },
+          { signal: sig },
+        );
+
+        // ─── Drag / Swipe (pointer events) ───
+        track.addEventListener(
+          "pointerdown",
+          (e) => {
+            if (e.button !== 0) return;
+            dragging = true;
+            didDrag = false;
+            dragStartX = e.clientX;
+          },
+          { signal: sig },
+        );
+
+        document.addEventListener(
+          "pointermove",
+          (e) => {
+            if (!dragging) return;
+            if (Math.abs(e.clientX - dragStartX) > 10) didDrag = true;
+          },
+          { signal: sig },
+        );
+
+        document.addEventListener(
+          "pointerup",
+          (e) => {
+            if (!dragging) return;
+            dragging = false;
+            const diff = dragStartX - e.clientX;
+            if (Math.abs(diff) > 50) {
+              didDrag = true;
+              move(diff > 0 ? 1 : -1);
+            }
+          },
+          { signal: sig },
+        );
+
+        // Prevent link click after drag
+        track.addEventListener(
+          "click",
+          (e) => {
+            if (didDrag) {
+              e.preventDefault();
+              e.stopPropagation();
+              didDrag = false;
+            }
+          },
+          { signal: sig, capture: true },
+        );
+
+        // ─── Autoplay ───
+        function startAutoplay() {
+          if (autoplayId || total <= 1) return;
+          autoplayId = setInterval(() => move(1), 5000);
+        }
+
+        function stopAutoplay() {
+          if (autoplayId) {
+            clearInterval(autoplayId);
+            autoplayId = null;
+          }
+        }
+
+        function restartAutoplay() {
+          stopAutoplay();
+          startAutoplay();
+        }
+
+        // Pause on hover
+        viewport?.addEventListener("pointerenter", stopAutoplay, {
+          signal: sig,
+        });
+        viewport?.addEventListener("pointerleave", startAutoplay, {
+          signal: sig,
+        });
+
+        // ─── Destroy (for Astro View Transitions) ───
+        function destroy() {
+          stopAutoplay();
+          clearSafety();
+          ac.abort();
+          delete root.dataset.ready;
+        }
+
+        // Store destroy ref for cleanup
+        (root as any).__carouselDestroy = destroy;
+
+        // ─── Start ───
+        setPos(false);
+        syncDots();
+        startAutoplay();
+      });
+  }
+
+  // ─── Bootstrap ───
+  function cleanupCarousels() {
+    document
+      .querySelectorAll<HTMLElement>("[data-carousel]")
+      .forEach((root) => {
+        (root as any).__carouselDestroy?.();
+      });
+  }
+
+  // Initial load
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCarousels);
+  } else {
+    initCarousels();
+  }
+
+  // Astro View Transitions
+  document.addEventListener("astro:before-preparation", cleanupCarousels);
+  document.addEventListener("astro:page-load", initCarousels);
+</script>
+
+<style>
+  /* ═══════════════════════════════════════
+     WRAPPER
+     ═══════════════════════════════════════ */
+  .cc-wrap {
+    width: 100%;
+    padding: 0 12px;
+    box-sizing: border-box;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cc {
+    width: 100%;
+    position: relative;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 100px rgba(0, 0, 0, 0.02),
+      var(--shadow-island);
+    animation: ccFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) 0.1s both;
+  }
+
+  :global([data-theme="dark"]) .cc {
+    box-shadow:
+      inset 0 0 100px rgba(0, 0, 0, 0.2),
+      var(--shadow-island);
+  }
+
+  @keyframes ccFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ═══════════════════════════════════════
+     VIEWPORT & TRACK
+     ═══════════════════════════════════════ */
+  .cc-viewport {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    height: clamp(550px, 80vw, 950px);
+    background: #000;
+  }
+
+  .cc-track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    will-change: transform;
+    touch-action: pan-y; /* allow vertical scroll, capture horizontal */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ═══════════════════════════════════════
+     SLIDE
+     ═══════════════════════════════════════ */
+  .cc-slide {
+    position: relative;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .cc-slide:active {
+    cursor: grabbing;
+  }
+
+  /* ── Image ── */
+  .cc-slide__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  /* ── Gradient overlay ── */
+  .cc-slide__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      to bottom,
+      rgba(14, 10, 35, 0.75) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(14, 10, 35, 0.85) 100%
+    );
+  }
+
+  /* ═══════════════════════════════════════
+     HEADER OVERLAY (top center)
+     ═══════════════════════════════════════ */
+  .cc-header {
+    position: absolute;
+    top: clamp(24px, 4vw, 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    padding: clamp(12px, 2vw, 24px);
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .cc-header__title {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin: 0 0 12px;
+  }
+
+  .cc-header__desc {
+    font-size: clamp(14px, 1.5vw, 16px);
+    color: #fff;
+    opacity: 0.8;
+    margin: 0;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .cc-header {
+      top: clamp(16px, 3vw, 24px);
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+
+  /* ═══════════════════════════════════════
+     SLIDE CONTENT WRAPPER (bottom center, above button)
+     ═══════════════════════════════════════ */
+  .cc-slide__content-wrapper {
+    position: absolute;
+    left: 50%;
+    bottom: 100px;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* ═══════════════════════════════════════
+     SLIDE BOTTOM (info + button)
+     ═══════════════════════════════════════ */
+  .cc-slide__bottom {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    .cc-slide__bottom {
+      bottom: 50px;
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+      padding: 0;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .cc-slide__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cc-slide__title {
+    font-size: clamp(20px, 3vw, 36px);
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .cc-slide__desc {
+    font-size: clamp(13px, 1.2vw, 16px);
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+  }
+
+  /* ═══════════════════════════════════════
+     CONTROLS (buttons left/right + dots bottom)
+     ═══════════════════════════════════════ */
+  .cc-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: clamp(24px, 4vw, 40px);
+    pointer-events: none;
+  }
+
+  .cc-controls > .cc-dots {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+  }
+
+  /* ── Prev / Next ── */
+  .cc-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
+    pointer-events: auto;
+  }
+
+  .cc-btn:hover {
+    background: var(--brand-violet);
+    color: #fff;
+    transform: scale(1.1);
+  }
+
+  .cc-btn:active {
+    transform: scale(0.95);
+  }
+
+  .cc-btn svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+
+  /* ── Dots ── */
+  .cc-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .cc-dot {
+    width: 8px;
+    height: 8px;
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition:
+      background 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.2s ease;
+    pointer-events: auto;
+  }
+
+  .cc-dot:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(1.2);
+  }
+
+  .cc-dot.active {
+    background: #fff;
+    width: 20px;
+    border-radius: 4px;
+  }
+
+  /* ═══════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .cc-viewport {
+      height: clamp(550px, 90vw, 900px);
+    }
+    .cc-header {
+      padding: clamp(16px, 3vw, 24px);
+      top: clamp(20px, 5vw, 40px);
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+    .cc-header__title {
+      font-size: clamp(20px, 3vw, 32px);
+    }
+    .cc-header__desc {
+      font-size: clamp(12px, 1.2vw, 14px);
+    }
+    .cc-slide__content-wrapper {
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .cc-slide__bottom {
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .cc-slide__title {
+      font-size: clamp(16px, 2.5vw, 24px);
+    }
+    .cc-slide__desc {
+      font-size: clamp(12px, 1vw, 14px);
+    }
+    .cc-btn {
+      display: none;
+    }
+    .cc-controls {
+      padding: 0;
+    }
+    .cc-controls > .cc-dots {
+      bottom: 12px;
+    }
+    .cc-dot {
+      width: 6px;
+      height: 6px;
+    }
+    .cc-dot.active {
+      width: 16px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .cc-viewport {
+      height: clamp(550px, 95vw, 900px);
+    }
+    .cc-header {
+      padding: 12px 4px;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
+    .cc-header__title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+    .cc-header__desc {
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .cc-slide__content-wrapper {
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .cc-slide__bottom {
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .cc-slide__title {
+      font-size: 16px;
+    }
+    .cc-slide__desc {
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .cc-btn {
+      display: none;
+    }
+    .cc-controls > .cc-dots {
+      bottom: 12px;
+    }
+    .cc-dot {
+      width: 5px;
+      height: 5px;
+    }
+    .cc-dot.active {
+      width: 14px;
+    }
+  }
+
+  /* Touch: always show button, no hover effects */
+  @media (hover: none) {
+    .cc-slide:hover .cc-slide__img {
+      transform: none;
+    }
+  }
+</style>

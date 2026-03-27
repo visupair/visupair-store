@@ -1,0 +1,269 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ProductGrid from "../../components/ProductGrid.astro";
+import { getProducts } from "../../lib/sanity";
+import { mockProducts } from "../../lib/store-data";
+import { createAuth } from "../../lib/auth";
+import { user, favorite } from "../../lib/auth-schema";
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+
+// Check if user is logged in
+let userSession = null;
+let favoriteProducts: any[] = [];
+let favoriteProductIds: string[] = [];
+
+try {
+    // 1. Get Session
+    const sessionResponse = await fetch(
+        `${Astro.url.origin}/api/auth/get-session`,
+        {
+            headers: {
+                cookie: Astro.request.headers.get("cookie") || "",
+            },
+        },
+    );
+
+    if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json();
+        if (sessionData && sessionData.user) {
+            userSession = sessionData;
+        }
+    }
+
+    // Redirect if not authenticated
+    if (!userSession) {
+        return Astro.redirect("/login");
+    }
+
+    // 2. Fetch Favorites from DB
+    // @ts-ignore
+    const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
+    const dbBinding = (cfEnv as any)?.visupair_store as D1Database | undefined;
+
+    if (dbBinding) {
+        const db = drizzle(dbBinding, { schema: { user, favorite } });
+        const favs = await db
+            .select()
+            .from(favorite)
+            .where(eq(favorite.userId, userSession.user.id));
+        favoriteProductIds = favs.map((f) => f.productId);
+    }
+
+    // 3. Fetch Products and Filter
+    if (favoriteProductIds.length > 0) {
+        // Fetch from Sanity
+        const sanityProducts = await getProducts();
+        // Combine with mock products (ensure no duplicates if any)
+        // Note: In production ideally we only use Sanity, but for now we mix.
+        // We use Map to dedup by ID just in case
+        const allProductsMap = new Map();
+        [...mockProducts, ...sanityProducts].forEach((p) =>
+            allProductsMap.set(p.id, p),
+        );
+
+        favoriteProducts = favoriteProductIds
+            .map((id) => allProductsMap.get(id))
+            .filter(Boolean);
+    }
+} catch (error) {
+    console.error("Failed to fetch favorites data:", error);
+}
+
+// Redirect to login if not authenticated (double check)
+if (!userSession) {
+    return Astro.redirect("/login");
+}
+---
+
+<Layout title="Favorites - Visupair">
+    <main class="account-page">
+        <div
+            class="favorites-section"
+            data-initial-favorites={JSON.stringify(favoriteProductIds)}
+        >
+            <div
+                id="favorites-content"
+                style={favoriteProducts.length > 0 ? "" : "display: none;"}
+            >
+                <h1 class="page-title">Your Favorites</h1>
+                <div class="favorites-grid-wrapper">
+                    <ProductGrid
+                        products={favoriteProducts}
+                        baseUrl="/store/fashion-design"
+                        categories={[]}
+                    />
+                </div>
+            </div>
+
+            <div
+                id="empty-state"
+                class="empty-state"
+                style={favoriteProducts.length > 0
+                    ? "display: none;"
+                    : "display: flex;"}
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                    ></path>
+                </svg>
+                <h3>No favorites yet</h3>
+                <p>Items you add to your wishlist will appear here.</p>
+                <a href="/store/fashion-design" class="btn-primary">
+                    Browse Products
+                </a>
+            </div>
+        </div>
+    </main>
+</Layout>
+
+<style>
+    .account-page {
+        padding: 0px 12px;
+        margin: 0px auto;
+    }
+
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 24px;
+        color: var(--foreground);
+        text-align: center;
+    }
+
+    .favorites-section {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        min-height: calc(100vh - 420px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .favorites-grid-wrapper {
+        width: 100%;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        height: 100%;
+        min-height: 400px;
+        padding: 40px 24px;
+        flex: 1;
+    }
+
+    .empty-state svg {
+        width: 64px;
+        height: 64px;
+        opacity: 0.3;
+        margin-bottom: 24px;
+    }
+
+    .empty-state h3 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--foreground);
+    }
+
+    .empty-state p {
+        font-size: 15px;
+        opacity: 0.6;
+        margin-bottom: 24px;
+        max-width: 400px;
+    }
+
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: var(--brand-violet);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        font-family: var(--font-family);
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: #9d9aff;
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+        transform: translateY(-2px);
+    }
+</style>
+
+<script>
+    import { favoritesStore } from "../../lib/favoritesStore";
+
+    // Handle updates for the favorites page specifically
+    function handleFavoritesPageUpdate() {
+        // 1. Hydrate if data present (Runs on initial load/nav)
+        const section = document.querySelector(".favorites-section");
+        if (section) {
+            const initialData = section.getAttribute("data-initial-favorites");
+            if (initialData) {
+                try {
+                    const ids = JSON.parse(initialData);
+                    if (Array.isArray(ids) && ids.length > 0) {
+                        // Only set if store is empty or we want to force sync?
+                        // It's safer to sync, but we might overwrite newer client state if nav back?
+                        // Actually, if we just landed here, server state is truth.
+                        favoritesStore.set(ids);
+                    }
+                } catch (e) {
+                    console.error("Error parsing favorites", e);
+                }
+            }
+        }
+
+        // 2. Subscribe to changes to remove items
+        const unsubscribe = favoritesStore.subscribe((favorites) => {
+            const content = document.getElementById("favorites-content");
+            const emptyState = document.getElementById("empty-state");
+
+            // Only run if elements exist (we are on the favorites page)
+            if (!content || !emptyState) return;
+
+            const cards = content.querySelectorAll(".product-card");
+            let visibleCount = 0;
+
+            cards.forEach((card) => {
+                const id = card.getAttribute("data-product-id");
+                if (id && !favorites.includes(id)) {
+                    card.remove();
+                } else {
+                    visibleCount++;
+                }
+            });
+
+            if (visibleCount === 0) {
+                content.style.display = "none";
+                emptyState.style.display = "flex";
+            } else {
+                content.style.display = "block";
+                emptyState.style.display = "none";
+            }
+        });
+    }
+
+    // Run on load/nav
+    document.addEventListener("astro:page-load", handleFavoritesPageUpdate);
+</script>

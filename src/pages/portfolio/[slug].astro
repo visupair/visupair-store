@@ -1,0 +1,59 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PortfolioDetail from "../../components/PortfolioDetail.astro";
+import PortfolioSidebar from "../../components/PortfolioSidebar.astro";
+import {
+    getPortfolioCategories,
+    getPortfolioProject,
+} from "../../lib/portfolio";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+// Find the portfolio item matching the slug
+const item = await getPortfolioProject(slug);
+
+if (!item) {
+    return Astro.redirect("/portfolio");
+}
+
+const sectionId = "portfolio";
+const categories = await getPortfolioCategories();
+
+// Get the category ID from the item (using slug as ID now)
+const categoryId = item.categorySlug;
+---
+
+<Layout title={`${item.title} | Portfolio | Visupair`}>
+    <div class="portfolio-layout">
+        <div transition:persist="portfolio-sidebar">
+            <PortfolioSidebar
+                categories={categories}
+                selectedCategoryId={categoryId}
+                sectionId={sectionId}
+            />
+        </div>
+
+        <PortfolioDetail item={item} backLink="/portfolio" />
+    </div>
+</Layout>
+
+<style>
+    .portfolio-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    @media (max-width: 768px) {
+        .portfolio-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 16px;
+            gap: 16px;
+        }
+    }
+</style>

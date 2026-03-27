@@ -1,0 +1,115 @@
+/* ===============================
+   Theme Overrides (Light/Dark)
+   =============================== */
+
+/* Dark Mode */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --brand-lime: var(--brand-neon-lime);
+  /* Reverts to Neon in Dark Mode */
+  --page-bg: #000016;
+  --surface: #151128;
+  /* Slightly lighter than bg */
+  --surface-hover: #221D3A;
+  --surface-muted: #1E1933;
+  /* For capsule/dropdown bg */
+  --surface-icon-box: #2A2442;
+  /* Specific for icon squares */
+  --foreground: #E9E8FF;
+  --border-subtle: rgba(233, 232, 255, 0.08);
+  --input-bg: #0E0A23;
+  --input-border: #2A2442;
+
+  --shadow-island: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-dropdown: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-capsule: 0 2px 10px rgba(0, 0, 0, 0.2);
+
+  /* Switch Specific */
+  --switch-bg: #2A2442;
+  --switch-knob: #FFFFFF;
+}
+
+/* Dark Mode Switch State */
+[data-theme="dark"] .switch-knob {
+  transform: translateX(26px);
+  background-color: #FFFFFF;
+}
+
+/* Mobile Switch knob translation adjustment */
+[data-theme="dark"] .theme-switch.mobile .switch-knob {
+  transform: translateX(22px);
+}
+
+/* Active state for theme icons */
+[data-theme="dark"] .icon-moon-track {
+  opacity: 1;
+  color: var(--brand-lime);
+}
+
+[data-theme="light"] .icon-sun-track {
+  opacity: 1;
+  color: #F59E0B;
+}
+
+
+
+/* ===============================
+   Dark Theme Scrollbar
+   =============================== */
+
+[data-theme="dark"] html::-webkit-scrollbar-thumb,
+[data-theme="dark"] body::-webkit-scrollbar-thumb,
+[data-theme="dark"] .product-grid-container::-webkit-scrollbar-thumb,
+[data-theme="dark"] div[class*="product-grid-container"]::-webkit-scrollbar-thumb,
+[data-theme="dark"] .portfolio-grid-container::-webkit-scrollbar-thumb,
+[data-theme="dark"] .portfolio-detail-panel::-webkit-scrollbar-thumb,
+[data-theme="dark"] .product-detail-panel::-webkit-scrollbar-thumb,
+[data-theme="dark"] .course-detail-panel::-webkit-scrollbar-thumb,
+[data-theme="dark"] .portfolio-sidebar::-webkit-scrollbar-thumb {
+  background-color: #1e1933 !important;
+  border-radius: 999px;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"],
+[data-theme="dark"] .product-grid-container,
+[data-theme="dark"] div[class*="product-grid-container"],
+[data-theme="dark"] .portfolio-grid-container,
+[data-theme="dark"] .portfolio-detail-panel,
+[data-theme="dark"] .product-detail-panel,
+[data-theme="dark"] .course-detail-panel,
+[data-theme="dark"] .portfolio-sidebar {
+  scrollbar-color: #1e1933 transparent;
+}
+
+/* ===============================
+   Light Theme Scrollbar
+   =============================== */
+
+html:not([data-theme="dark"])::-webkit-scrollbar-thumb,
+body:not([data-theme="dark"])::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .product-grid-container::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) div[class*="product-grid-container"]::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .portfolio-grid-container::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .portfolio-detail-panel::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .product-detail-panel::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .course-detail-panel::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .portfolio-sidebar::-webkit-scrollbar-thumb {
+  background-color: #cecdd2 !important;
+  border-radius: 999px;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]),
+body:not([data-theme="dark"]),
+html:not([data-theme="dark"]) .product-grid-container,
+html:not([data-theme="dark"]) div[class*="product-grid-container"],
+html:not([data-theme="dark"]) .portfolio-grid-container,
+html:not([data-theme="dark"]) .portfolio-detail-panel,
+html:not([data-theme="dark"]) .product-detail-panel,
+html:not([data-theme="dark"]) .course-detail-panel,
+html:not([data-theme="dark"]) .portfolio-sidebar {
+  scrollbar-color: #cecdd2 transparent;
+}

@@ -1,0 +1,142 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { storeSections } from "../../../lib/store-data";
+import { getProducts, getCategoriesTree } from "../../../lib/sanity";
+import StoreSidebar from "../../../components/StoreSidebar.astro";
+import ProductGrid from "../../../components/ProductGrid.astro";
+
+// SSR Mode: Dynamic Lookup
+export const prerender = false;
+
+const { section } = Astro.params;
+
+// Get server-detected currency from middleware
+const serverCurrency = Astro.locals.currency;
+
+// Validate section
+if (!section || !storeSections[section]) {
+    return Astro.redirect("/404");
+}
+
+const sectionId = section;
+const currentSection = storeSections[sectionId]; // Still used for title/base metadata if needed
+
+// Fetch data from Sanity
+let allProducts: any[] = [];
+let allCategoriesTree: any[] = [];
+
+try {
+    allProducts = await getProducts();
+    allCategoriesTree = await getCategoriesTree();
+} catch (e) {
+    console.error("Sanity fetch error:", e);
+}
+
+// Find the category tree for this section
+const sectionCategoryTree = allCategoriesTree.find(
+    (cat: any) => cat.id === sectionId,
+);
+const categoriesToShow = sectionCategoryTree
+    ? sectionCategoryTree.children
+    : [];
+
+// Filter products for this section
+const filteredProducts = allProducts.filter((product) => {
+    // 1. Must belong to this store section aka "Department"
+    const inCategory =
+        product.categoryPath &&
+        Array.isArray(product.categoryPath) &&
+        product.categoryPath.includes(sectionId);
+
+    // Fallback: Check 'department' field compatibility
+    const isFashion =
+        product.department === "fashion" && sectionId === "fashion-design";
+    const isModels =
+        product.department === "3d-models" && sectionId === "3d-models";
+    const isArt = product.department === "artworks" && sectionId === "artworks";
+
+    return inCategory || isFashion || isModels || isArt;
+});
+
+// Further filter by selected category query/search
+const searchQuery = Astro.url.searchParams.get("search") || "";
+const selectedCategory = Astro.url.searchParams.get("category");
+
+const displayProducts = filteredProducts.filter((product) => {
+    // 2. Search filter
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+            !product.name?.toLowerCase().includes(q) &&
+            !product.description?.toLowerCase().includes(q)
+        ) {
+            return false;
+        }
+    }
+
+    // 3. Category filter
+    if (selectedCategory && selectedCategory !== "all") {
+        if (!product.categoryPath?.includes(selectedCategory)) {
+            return false;
+        }
+    }
+    return true;
+});
+---
+
+<Layout title={`${currentSection.title} | Visupair`}>
+    <div class="store-layout">
+        <StoreSidebar
+            categories={categoriesToShow}
+            selectedCategoryId={selectedCategory}
+            sectionId={sectionId}
+            searchProducts={filteredProducts}
+        />
+        <div class="products-wrapper" id="products-wrapper">
+            <ProductGrid
+                products={displayProducts}
+                baseUrl={`/store/${sectionId}`}
+                preserveCategory={selectedCategory}
+                categories={categoriesToShow}
+                serverCurrency={serverCurrency}
+            />
+        </div>
+    </div>
+</Layout>
+
+<script>
+    // No dynamic product loading needed - use proper routing instead
+</script>
+
+<style>
+    .store-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    .products-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .store-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .products-wrapper {
+            border-radius: var(--radius-md);
+        }
+    }
+</style>

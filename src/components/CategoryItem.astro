@@ -1,0 +1,212 @@
+---
+import type { Category } from "../lib/store-data";
+
+interface Props {
+    category: Category;
+    level: number;
+    isOpen?: boolean;
+    isActive?: boolean;
+    selectedCategoryId?: string | null;
+}
+
+const {
+    category,
+    level,
+    isOpen = false,
+    isActive = false,
+    selectedCategoryId,
+} = Astro.props;
+const hasChildren = category.children && category.children.length > 0;
+
+// Determine active state using prop OR direct comparison
+const isMainActive =
+    isActive || (selectedCategoryId && category.id === selectedCategoryId);
+---
+
+<div class="category-wrapper">
+    <div
+        class={`category-item ${isMainActive ? "active" : ""} ${level > 0 ? "sub-item" : ""} ${hasChildren ? "parent-category" : ""}`}
+        data-category-id={category.id}
+        data-is-parent={hasChildren}
+        style={level > 0 ? `margin-left: ${level * 8}px` : ""}
+    >
+        <span class="category-text">{category.title}</span>
+        {
+            hasChildren && (
+                <svg
+                    class={`category-chevron ${isOpen ? "expanded" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-category-chevron
+                >
+                    <polyline points="9 18 15 12 9 6" />
+                </svg>
+            )
+        }
+    </div>
+
+    {
+        hasChildren && (
+            <div
+                class={`category-children-wrapper ${isOpen ? "open" : ""}`}
+                data-category-children={category.id}
+            >
+                <div class="category-children-inner">
+                    {category.children!.map((child) => {
+                        const childHasChildren =
+                            child.children && child.children.length > 0;
+                        const isChildActive =
+                            selectedCategoryId &&
+                            child.id === selectedCategoryId;
+
+                        return (
+                            <>
+                                <div
+                                    class={`category-item sub-item ${level > 0 ? "" : ""} ${childHasChildren ? "parent-category" : ""} ${isChildActive ? "active" : ""}`}
+                                    data-category-id={child.id}
+                                    data-is-parent={childHasChildren}
+                                    style={`margin-left: ${(level + 1) * 8}px`}
+                                >
+                                    <span class="category-text">
+                                        {child.title}
+                                    </span>
+                                    {childHasChildren && (
+                                        <svg
+                                            class="category-chevron"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            data-category-chevron
+                                        >
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    )}
+                                </div>
+                                {childHasChildren && (
+                                    <div
+                                        class="category-children-wrapper"
+                                        data-category-children={child.id}
+                                    >
+                                        <div class="category-children-inner">
+                                            {child.children!.map(
+                                                (grandchild) => {
+                                                    const isGrandActive =
+                                                        selectedCategoryId &&
+                                                        grandchild.id ===
+                                                            selectedCategoryId;
+                                                    return (
+                                                        <div
+                                                            class={`category-item sub-item ${isGrandActive ? "active" : ""}`}
+                                                            data-category-id={
+                                                                grandchild.id
+                                                            }
+                                                            data-is-parent="false"
+                                                            style={`margin-left: ${(level + 2) * 8}px`}
+                                                        >
+                                                            <span class="category-text">
+                                                                {
+                                                                    grandchild.title
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                },
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })}
+                </div>
+            </div>
+        )
+    }
+</div>
+
+<style>
+    .category-wrapper {
+        display: contents;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--foreground);
+        opacity: 0.8;
+        transition:
+            background 0.2s ease,
+            opacity 0.2s ease;
+        user-select: none;
+    }
+
+    .category-item:hover {
+        background: var(--surface-hover);
+        opacity: 1;
+    }
+
+    .category-item.active {
+        background: var(--surface-muted);
+        color: var(--brand-violet);
+        font-weight: 600;
+        opacity: 1;
+    }
+
+    .category-item.parent-category {
+        opacity: 1;
+        font-weight: 500;
+    }
+
+    .category-item.sub-item {
+        font-size: 13px;
+        font-weight: 400;
+    }
+
+    .category-text {
+        flex: 1;
+    }
+
+    :global(.category-chevron) {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity: 0.5;
+        flex-shrink: 0;
+        cursor: pointer;
+        stroke: currentColor;
+    }
+
+    :global(.category-chevron.expanded) {
+        transform: rotate(90deg);
+    }
+
+    .category-children-wrapper {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition:
+            grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+            opacity 0.2s ease;
+        opacity: 0;
+    }
+
+    .category-children-wrapper.open {
+        grid-template-rows: 1fr;
+        opacity: 1;
+    }
+
+    .category-children-inner {
+        overflow: hidden;
+    }
+</style>

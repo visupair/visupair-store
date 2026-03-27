@@ -1,0 +1,156 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import StoreSidebar from "../../../../components/StoreSidebar.astro";
+import ProductGrid from "../../../../components/ProductGrid.astro";
+import { storeSections } from "../../../../lib/store-data";
+import { getProducts, getCategoriesTree } from "../../../../lib/sanity";
+
+const { section, categoryId } = Astro.params;
+const searchQuery = Astro.url.searchParams.get("search") || "";
+
+// SSR Mode: Dynamic Lookup
+export const prerender = false;
+
+if (!section || !categoryId) {
+    return Astro.redirect("/404");
+}
+
+const sectionId = section;
+const currentSection = storeSections[sectionId];
+
+if (!currentSection) {
+    return Astro.redirect("/404");
+}
+
+// Fetch data from Sanity
+let allProducts: any[] = [];
+let allCategoriesTree: any[] = [];
+
+try {
+    allProducts = await getProducts();
+    allCategoriesTree = await getCategoriesTree();
+} catch (e) {
+    console.error("Sanity fetch error:", e);
+}
+
+// Find the category tree for this section
+const sectionCategoryTree = allCategoriesTree.find(
+    (cat: any) => cat.id === sectionId,
+);
+const categoriesToShow = sectionCategoryTree
+    ? sectionCategoryTree.children
+    : [];
+
+// Filter products for this section and category
+const filteredProducts = allProducts.filter((product) => {
+    // 1. Must belong to this store section
+    const inCategory =
+        product.categoryPath &&
+        Array.isArray(product.categoryPath) &&
+        product.categoryPath.includes(sectionId);
+
+    // Fallback check
+    const isFashion =
+        product.department === "fashion" && sectionId === "fashion-design";
+    const isModels =
+        product.department === "3d-models" && sectionId === "3d-models";
+    const isArt = product.department === "artworks" && sectionId === "artworks";
+
+    if (!inCategory && !isFashion && !isModels && !isArt) {
+        return false;
+    }
+
+    // 2. Search filter
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (
+            !product.name?.toLowerCase().includes(q) &&
+            !product.description?.toLowerCase().includes(q)
+        ) {
+            return false;
+        }
+    }
+
+    // 3. Category filter
+    if (categoryId && categoryId !== "all") {
+        if (!product.categoryPath?.includes(categoryId)) {
+            return false;
+        }
+    }
+
+    return true;
+});
+
+// For Search Autocomplete in Sidebar (should include all products in this SECTION, not justified by category selection)
+const sectionProducts = allProducts.filter((p) => {
+    if (
+        p.categoryPath &&
+        Array.isArray(p.categoryPath) &&
+        p.categoryPath.includes(sectionId)
+    )
+        return true;
+
+    return (
+        (p.department === "fashion" && sectionId === "fashion-design") ||
+        (p.department === "3d-models" && sectionId === "3d-models") ||
+        (p.department === "artworks" && sectionId === "artworks")
+    );
+});
+// Get server-detected currency from middleware
+const serverCurrency = Astro.locals.currency;
+---
+
+<Layout>
+    <div class="store-layout">
+        <StoreSidebar
+            categories={categoriesToShow}
+            selectedCategoryId={categoryId === "all"
+                ? null
+                : (categoryId as string)}
+            sectionId={sectionId}
+            searchProducts={sectionProducts}
+        />
+        <div class="products-wrapper" id="products-wrapper">
+            <ProductGrid
+                products={filteredProducts}
+                baseUrl={`/store/${sectionId}`}
+                preserveCategory={categoryId === "all" ? null : categoryId}
+                categoryMode={true}
+                serverCurrency={serverCurrency}
+            />
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .store-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    .products-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .store-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .products-wrapper {
+            border-radius: var(--radius-md);
+        }
+    }
+</style>

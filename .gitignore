@@ -13,12 +13,27 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# environment variables
+# environment variables (СЕКРЕТЫ!)
 .env
+.env.local
 .env.production
+.env*.local
+
+# cloudflare local state
+.wrangler/
 
 # macOS-specific files
 .DS_Store
+Thumbs.db
 
-# jetbrains setting folder
+# IDE settings (могут содержать пути)
 .idea/
+.vscode/settings.json
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# Build artifacts
+build/

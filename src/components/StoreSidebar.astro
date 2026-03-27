@@ -1,0 +1,527 @@
+---
+import type { Category, Product } from "../lib/store-data";
+import CategoryItem from "./CategoryItem.astro";
+
+interface Props {
+    categories: Category[];
+    selectedCategoryId: string | null;
+    sectionId: string;
+    searchProducts: Product[]; // Passed from parent
+}
+
+const { categories, selectedCategoryId, sectionId, searchProducts } =
+    Astro.props;
+---
+
+<aside class="store-sidebar" data-section-id={sectionId}>
+    <div class="sidebar-header">
+        <div class="search-container">
+            <input
+                type="text"
+                class="sidebar-search-input"
+                placeholder="Search products..."
+                id="search-input"
+                autocomplete="off"
+            />
+            <button id="search-btn" class="search-btn-abs" aria-label="Search">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+            <div id="search-suggestions" class="search-suggestions hidden">
+            </div>
+        </div>
+    </div>
+
+    <div class="category-tree">
+        {/* "All" Option */}
+        <div
+            class={`category-item ${selectedCategoryId === null ? "active" : ""}`}
+            data-category-id="all"
+            data-is-parent="false"
+        >
+            <span class="category-text">All Products</span>
+        </div>
+
+        {/* Recursive Categories */}
+        {
+            categories.map((category) => (
+                <CategoryItem
+                    category={category}
+                    level={0}
+                    isOpen={false}
+                    isActive={selectedCategoryId === category.id}
+                    selectedCategoryId={selectedCategoryId}
+                />
+            ))
+        }
+    </div>
+</aside>
+
+<script define:vars={{ searchProducts }}>
+    // Initialize on page load
+    const initStoreSidebar = () => {
+        // Client-side state for accordion
+        const openCategoryIds = new Set();
+        const suggestionsEl = document.getElementById("search-suggestions");
+        const searchInput = document.getElementById("search-input");
+        const searchBtn = document.getElementById("search-btn");
+        const storeSidebar = document.querySelector(".store-sidebar");
+
+        if (!storeSidebar) return;
+
+        // Restore search query from URL
+        const params = new URLSearchParams(window.location.search);
+        const currentSearch = params.get("search");
+        if (searchInput && currentSearch) {
+            searchInput.value = currentSearch;
+        }
+
+        // Auto-expand active category parents
+        const activeItem = storeSidebar.querySelector(
+            ".category-item[data-category-id].active",
+        );
+
+        if (activeItem) {
+            let parentWrapper = activeItem.closest(
+                ".category-children-wrapper",
+            );
+            while (parentWrapper) {
+                const parentId = parentWrapper.getAttribute(
+                    "data-category-children",
+                );
+                if (parentId) {
+                    openCategoryIds.add(parentId);
+                }
+                // Move up to finding the next parent wrapper
+                // The structure is flat-ish sibling-wise but logical in DOM
+                // Wrapper -> [Grandparent Item, Grandparent Wrapper] -> ...
+                // Actually, looking at CategoryItem, wrappers are siblings to items but nested in parent wrapper.
+                // Wrapper is inside Parent Wrapper.
+                if (parentWrapper.parentElement) {
+                    parentWrapper = parentWrapper.parentElement.closest(
+                        ".category-children-wrapper",
+                    );
+                } else {
+                    parentWrapper = null;
+                }
+            }
+            updateUI();
+        }
+
+        function executeSearch() {
+            if (!searchInput) return;
+
+            const query = searchInput.value.trim();
+            const url = new URL(window.location);
+
+            if (query) {
+                url.searchParams.set("search", query);
+            } else {
+                url.searchParams.delete("search");
+            }
+
+            window.location.href = url.toString();
+        }
+
+        // Manual Search Trigger (Button)
+        searchBtn?.addEventListener("click", executeSearch);
+
+        // Manual Search Trigger (Enter Key)
+        searchInput?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                executeSearch();
+                suggestionsEl?.classList.add("hidden");
+            }
+        });
+
+        // Autocomplete Logic
+        searchInput?.addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase().trim();
+
+            if (!query || !suggestionsEl) {
+                suggestionsEl?.classList.add("hidden");
+                return;
+            }
+
+            // Filter products
+            const matches = searchProducts
+                .filter((p) => p.name.toLowerCase().includes(query))
+                .slice(0, 5); // Limit to 5 suggestions
+
+            if (matches.length > 0) {
+                suggestionsEl.innerHTML = matches
+                    .map(
+                        (p) => `
+                    <div class="suggestion-item" data-name="${p.name}">
+                        <span class="suggestion-name">${p.name}</span>
+                    </div>
+                `,
+                    )
+                    .join("");
+                suggestionsEl.classList.remove("hidden");
+            } else {
+                // Show "No results" message
+                suggestionsEl.innerHTML = `
+                    <div class="suggestion-no-results">
+                        <span>No products found</span>
+                    </div>
+                `;
+                suggestionsEl.classList.remove("hidden");
+            }
+        });
+
+        // Show suggestions on focus if there's a query
+        searchInput?.addEventListener("focus", (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (query && suggestionsEl && suggestionsEl.innerHTML) {
+                suggestionsEl.classList.remove("hidden");
+            }
+        });
+
+        // Handle suggestion click
+        suggestionsEl?.addEventListener("click", (e) => {
+            const item = e.target.closest(".suggestion-item");
+            if (item && searchInput) {
+                const name = item.getAttribute("data-name");
+                searchInput.value = name;
+                suggestionsEl.classList.add("hidden");
+                executeSearch();
+            }
+        });
+
+        // Close suggestions on click outside - ONLY on sidebar scope
+        const handleDocumentClick = (e) => {
+            if (
+                !searchInput?.contains(e.target) &&
+                !suggestionsEl?.contains(e.target)
+            ) {
+                suggestionsEl?.classList.add("hidden");
+            }
+        };
+        document.addEventListener("click", handleDocumentClick);
+
+        // --- Category Logic ---
+
+        function getParentItem(element) {
+            return element.closest("[data-category-id]");
+        }
+
+        function toggleAccordion(categoryId) {
+            if (openCategoryIds.has(categoryId)) {
+                openCategoryIds.delete(categoryId);
+            } else {
+                openCategoryIds.add(categoryId);
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            document
+                .querySelectorAll('[data-category-id][data-is-parent="true"]')
+                .forEach((item) => {
+                    const categoryId = item.getAttribute("data-category-id");
+                    if (!categoryId) return;
+
+                    const chevron = item.querySelector(
+                        "[data-category-chevron]",
+                    );
+                    const childrenWrapper = document.querySelector(
+                        `[data-category-children="${categoryId}"]`,
+                    );
+
+                    if (chevron && childrenWrapper) {
+                        if (openCategoryIds.has(categoryId)) {
+                            chevron.classList.add("expanded");
+                            childrenWrapper.classList.add("open");
+                        } else {
+                            chevron.classList.remove("expanded");
+                            childrenWrapper.classList.remove("open");
+                        }
+                    }
+                });
+        }
+
+        // Handle category item clicks - scoped to sidebar only
+        storeSidebar.addEventListener("click", (e) => {
+            const target = e.target;
+
+            // Handle chevron clicks
+            if (target.hasAttribute("data-category-chevron")) {
+                e.stopPropagation();
+                const categoryItem = getParentItem(target);
+                if (categoryItem) {
+                    const categoryId =
+                        categoryItem.getAttribute("data-category-id");
+                    if (categoryId) {
+                        toggleAccordion(categoryId);
+                    }
+                }
+                return;
+            }
+
+            // Handle category item clicks
+            const categoryItem = target.closest("[data-category-id]");
+            if (categoryItem) {
+                const categoryId =
+                    categoryItem.getAttribute("data-category-id");
+                const isParent =
+                    categoryItem.getAttribute("data-is-parent") === "true";
+
+                if (isParent) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (categoryId) toggleAccordion(categoryId);
+                    return;
+                }
+
+                // Sub-categories and "All": navigate using path-based URLs
+                // Use sectionId from data attribute instead of URL parsing
+                const currentSectionId =
+                    storeSidebar.getAttribute("data-section-id");
+
+                let newUrl = "";
+                if (categoryId === "all") {
+                    newUrl = `/store/${currentSectionId}`;
+                } else {
+                    newUrl = `/store/${currentSectionId}/category/${categoryId}`;
+                }
+
+                // Preserve search parameter if it exists
+                const params = new URLSearchParams(window.location.search);
+                const search = params.get("search");
+                if (search) {
+                    newUrl += `?search=${encodeURIComponent(search)}`;
+                }
+
+                window.location.href = newUrl;
+            }
+        });
+
+        updateUI();
+    };
+
+    // Initialize on page load
+    document.addEventListener("astro:page-load", initStoreSidebar);
+    initStoreSidebar();
+</script>
+
+<style is:global>
+    .store-sidebar {
+        width: 280px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        height: 100%;
+    }
+
+    .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .search-container {
+        position: relative;
+        z-index: 20; /* Ensure search is above other content when active */
+    }
+
+    .search-btn-abs {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 1px solid var(--brand-violet);
+        background: transparent;
+        color: var(--foreground);
+        opacity: 0.5;
+        cursor: pointer;
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .search-btn-abs:hover {
+        opacity: 1;
+        background: var(--surface-hover);
+        color: var(--brand-violet);
+        transform: translateY(-50%) scale(1.05);
+    }
+
+    .search-btn-abs:active {
+        transform: translateY(-50%) scale(0.95);
+    }
+
+    .sidebar-search-input {
+        width: 100%;
+        padding: 12px 44px 12px 16px;
+        background: var(--surface-muted);
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        color: var(--foreground);
+        font-family: var(--font-family);
+        font-size: 14px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .sidebar-search-input:focus {
+        outline: none;
+        background: var(--input-bg);
+        border-color: var(--brand-violet);
+        box-shadow: 0 4px 12px rgba(111, 92, 255, 0.15); /* Soft glow */
+    }
+
+    /* Search Suggestions */
+    .search-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 8px;
+        padding: 8px;
+        gap: 6px; /* Necessary for separate blocks */
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-dropdown);
+        z-index: 100;
+        overflow: hidden;
+        display: none;
+        flex-direction: column;
+    }
+
+    /* Active State */
+    .search-suggestions:not(.hidden) {
+        display: flex; /* Changed to flex to stack items */
+        animation: fadeIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .suggestion-item {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 2px 16px;
+        min-height: 30px; /* Proper touch target height */
+        display: flex;
+        align-items: center; /* Vertically center text */
+        justify-content: flex-start;
+        cursor: pointer;
+        background: var(--surface-muted); /* Distinct background for blocks */
+        border: 1px solid var(--border-subtle); /* Visible border around each block */
+        border-radius: var(--radius-sm);
+        transition:
+            background-color 0.15s ease,
+            border-color 0.15s ease,
+            transform 0.15s ease;
+        position: relative;
+        gap: 10px;
+    }
+
+    .suggestion-item:last-child {
+        /* No border removal needed for blocks */
+    }
+
+    .suggestion-item:hover {
+        background: var(--surface-hover);
+        border-color: var(--brand-violet); /* Full highlight */
+        transform: translateX(2px);
+    }
+
+    /* Target the text span specifically */
+    .suggestion-item .suggestion-name {
+        font-size: 14px;
+        color: var(--foreground);
+        font-weight: 400;
+        line-height: 1.5;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        cursor: pointer; /* Ensure pointer cursor */
+        user-select: none; /* Prevent text selection */
+    }
+
+    .suggestion-item:hover .suggestion-name {
+        color: var(--brand-violet);
+    }
+
+    /* No results message */
+    .suggestion-no-results {
+        width: 100%;
+        padding: 12px 16px;
+        text-align: center;
+        color: var(--foreground);
+        opacity: 0.6;
+        font-size: 14px;
+        font-style: italic;
+    }
+
+    .category-tree {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--foreground);
+        opacity: 0.8;
+        transition:
+            background 0.2s ease,
+            opacity 0.2s ease;
+        user-select: none;
+    }
+
+    .category-item:hover {
+        background: var(--surface-hover);
+        opacity: 1;
+    }
+
+    .category-item.active {
+        background: var(--surface-muted);
+        color: var(--brand-violet);
+        font-weight: 600;
+        opacity: 1;
+    }
+
+    @media (max-width: 768px) {
+        .store-sidebar {
+            width: 100%;
+            position: static;
+            max-height: none;
+            border-radius: var(--radius-md);
+        }
+    }
+</style>

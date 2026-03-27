@@ -1,0 +1,633 @@
+---
+import type { Product, Category } from "../lib/store-data";
+import type { Currency } from "../lib/server-currency";
+import { slugify } from "../utils/slugs";
+import { urlFor } from "../lib/sanity";
+
+interface Props {
+    products: Product[];
+    baseUrl?: string;
+    preserveCategory?: string | null;
+    categoryMode?: boolean;
+    categories?: Category[];
+    serverCurrency?: Currency;
+}
+
+const {
+    products,
+    baseUrl = "/store/fashion-design",
+    preserveCategory,
+    categoryMode = false,
+    categories = [],
+    serverCurrency,
+} = Astro.props;
+
+// Helper to generate placeholder image
+const getPlaceholderImage = (text: string) => {
+    const encodedText = encodeURIComponent(text);
+    return `https://placehold.co/600x600/1A1635/CBFF62?text=${encodedText}&font=roboto`;
+};
+
+// Generate product link with preserved category
+const getProductLink = (product: Product) => {
+    // Priority: use explicit slug from CMS, fallback to name slugification
+    const slug = product.slug || slugify(product.name);
+
+    const baseLink = `${baseUrl}/${slug}`;
+    if (preserveCategory && categoryMode) {
+        // In category mode, use path-based URL: /store/section/category/categoryId/product-slug
+        return `${baseUrl}/category/${preserveCategory}/${slug}`;
+    } else if (preserveCategory) {
+        // Fallback for query-based mode
+        return `${baseLink}?category=${preserveCategory}`;
+    }
+    return baseLink;
+};
+
+// Helper to determine product groups based on section
+// Helper to determine product groups based on section
+const getProductGroups = (products: Product[]) => {
+    if (products.length === 0) return [];
+
+    // Detect section from the first product (assuming homogeneous list per page)
+    const sectionId = products[0].categoryPath?.[0];
+
+    // Special Handling for Fashion Design (Physical vs Digital types)
+    if (sectionId === "fashion-design") {
+        const physical = products.filter(
+            (p) => !p.productType || p.productType === "physical",
+        );
+        const digital = products.filter((p) => p.productType === "digital");
+
+        const groups = [];
+        if (physical.length > 0)
+            groups.push({ title: "Physical Products", products: physical });
+        if (digital.length > 0)
+            groups.push({ title: "Digital Products", products: digital });
+        // Return single group if only one type exists to avoid unnecessary headers if not needed,
+        if (groups.length === 0) return [{ title: "", products: products }];
+        return groups;
+    }
+
+    // Dynamic Grouping for other sections (3D Models, Artworks) based on passed Categories
+    if (categories && categories.length > 0) {
+        const groups: { title: string; products: Product[] }[] = [];
+        const usedProductIds = new Set<string>();
+
+        categories.forEach((cat) => {
+            // Find products belonging to this category
+            // We check if the product's categoryPath INCLUDES the category ID (slug)
+            const catProducts = products.filter((p) =>
+                p.categoryPath?.includes(cat.id),
+            );
+
+            if (catProducts.length > 0) {
+                groups.push({ title: cat.title, products: catProducts });
+                catProducts.forEach((p) => usedProductIds.add(p.id));
+            }
+        });
+
+        // Find products that didn't fit into any of the top-level categories
+        const others = products.filter((p) => !usedProductIds.has(p.id));
+        if (others.length > 0) {
+            groups.push({ title: "Other", products: others });
+        }
+
+        if (groups.length > 0) return groups;
+    }
+
+    // Fallback: Return as single group
+    return [{ title: "", products: products }];
+};
+
+const groups = getProductGroups(products);
+
+// Determine if we should show headers (if more than 1 group, OR specific sections that always want headers)
+// For Fashion, we previously checks mixed types. Now user wants specific separation.
+const showHeaders = groups.length > 1;
+
+// However, for single-group lists in specific sections, we might still want the title if it's a specific subset?
+// Actually simpler: if title is present, show it. If we fallback to default, title is empty.
+---
+
+<div class="product-grid-container">
+    {
+        products.length === 0 ? (
+            <div class="empty-state">
+                <p>No products found.</p>
+            </div>
+        ) : (
+            <>
+                {groups.map((group) => (
+                    <div class="product-group">
+                        {group.title &&
+                            (groups.length > 1 || group.title !== "") && (
+                                <div class="section-header">
+                                    <span class="section-title">
+                                        {group.title}
+                                    </span>
+                                </div>
+                            )}
+                        <div class="product-grid">
+                            {group.products.map((product, index) => (
+                                <a
+                                    href={getProductLink(product)}
+                                    class="product-card"
+                                    data-product-id={product.id}
+                                    style={`--animation-delay: ${index * 50}ms`}
+                                    transition:name={`product-${product.id}`}
+                                >
+                                    <div class="product-image">
+                                        <img
+                                            src={
+                                                product.mainImage
+                                                    ? urlFor(product.mainImage)
+                                                          .width(600)
+                                                          .height(600)
+                                                          .url()
+                                                    : product.image ||
+                                                      getPlaceholderImage(
+                                                          product.name,
+                                                      )
+                                            }
+                                            alt={product.name}
+                                            loading="lazy"
+                                        />
+                                        <button
+                                            class="fav-btn"
+                                            aria-label="Add to favorites"
+                                            onclick="event.preventDefault(); event.stopPropagation();"
+                                        >
+                                            <svg
+                                                width="18"
+                                                height="18"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                            >
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                            </svg>
+                                        </button>
+                                        {product.inStock !== undefined && (
+                                            <span
+                                                class={`stock-indicator ${product.inStock ? "in-stock" : "out-of-stock"}`}
+                                            >
+                                                {product.inStock
+                                                    ? "In Stock"
+                                                    : "Out of Stock"}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div class="product-info">
+                                        <div class="product-row">
+                                            <h3 class="product-name">
+                                                {product.name}
+                                            </h3>
+                                            <span
+                                                class="product-price product-price-grid"
+                                                data-price-eur={product.price}
+                                                data-price-pln={
+                                                    product.pricePLN ||
+                                                    Math.round(
+                                                        product.price * 4.3,
+                                                    )
+                                                }
+                                                data-server-currency={
+                                                    serverCurrency || ""
+                                                }
+                                            >
+                                                €{product.price}
+                                            </span>
+                                        </div>
+                                        <p class="product-desc">
+                                            {product.description}
+                                        </p>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </>
+        )
+    }
+</div>
+
+<style>
+    .product-grid-container {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin: 0 0 16px 0;
+        gap: 16px;
+    }
+
+    .section-header::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-subtle);
+    }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--foreground);
+        opacity: 0.7;
+        white-space: nowrap;
+    }
+
+    .product-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-group + .product-group {
+        margin-top: 48px;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        opacity: 0.5;
+        text-align: center;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 24px;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .product-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition:
+            transform 0.2s,
+            box-shadow 0.2s,
+            border-color 0.2s;
+        cursor: pointer;
+        opacity: 0;
+        animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: var(--animation-delay);
+        text-decoration: none;
+        position: relative; /* Ensure positioning context */
+    }
+
+    .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(132, 128, 255, 0.15);
+        border-color: var(--brand-violet);
+    }
+
+    .product-image {
+        width: 100%;
+        aspect-ratio: 1/1;
+        background: var(--surface-muted);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .product-card:hover .product-image img {
+        transform: scale(1.05);
+    }
+
+    .fav-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition:
+            opacity 0.2s,
+            background 0.2s;
+        cursor: pointer;
+        z-index: 10;
+    }
+
+    .stock-indicator {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: var(--radius-pill);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        opacity: 0; /* Hidden by default on desktop */
+        transition: opacity 0.2s;
+        z-index: 10;
+        pointer-events: none;
+        letter-spacing: 0.03em;
+    }
+
+    .stock-indicator::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .stock-indicator.in-stock {
+        background: var(--brand-lime);
+        color: #0e0a23;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .stock-indicator.out-of-stock {
+        background: #ef4444;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (hover: hover) {
+        .product-card:hover .fav-btn,
+        .product-card:hover .stock-indicator {
+            opacity: 1;
+        }
+    }
+
+    .fav-btn svg {
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .fav-btn:hover {
+        background: var(--brand-violet);
+    }
+
+    .fav-btn:hover svg {
+        transform: scale(1.15);
+    }
+
+    .fav-btn:active svg {
+        transform: scale(0.9);
+    }
+
+    .fav-btn.active {
+        background: var(--brand-violet);
+        color: white;
+    }
+
+    /* Mobile & Tablet: Show fav button and badge always, move badge to bottom */
+    @media (max-width: 1024px), (hover: none) {
+        .fav-btn,
+        .stock-indicator {
+            opacity: 1 !important;
+        }
+
+        .fav-btn {
+            background: rgba(14, 10, 35, 0.6);
+        }
+
+        .stock-indicator {
+            top: auto;
+            bottom: 8px;
+            font-size: 9px;
+        }
+    }
+
+    .product-info {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .product-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .product-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--foreground);
+        margin: 0;
+    }
+
+    .product-price {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--brand-violet);
+        white-space: nowrap;
+    }
+
+    .product-desc {
+        color: var(--foreground);
+        font-size: 13px;
+        opacity: 0.6;
+        margin: 4px 0 0 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .product-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .product-grid-container {
+            padding: 16px;
+        }
+    }
+</style>
+
+<script>
+    import {
+        favoritesStore,
+        toggleFavorite,
+        initFavorites,
+    } from "../lib/favoritesStore";
+
+    // Logic to update all buttons based on store state
+    function updateButtons(favorites: readonly string[]) {
+        const buttons = document.querySelectorAll(".fav-btn");
+        buttons.forEach((btn) => {
+            const card = btn.closest(".product-card");
+            const productId = card?.getAttribute("data-product-id");
+            const svg = btn.querySelector("svg");
+
+            if (productId && favorites.includes(productId)) {
+                // Filled heart
+                if (svg) {
+                    svg.setAttribute("fill", "currentColor");
+                    btn.classList.add("active");
+                }
+            } else {
+                // Empty heart
+                if (svg) {
+                    svg.setAttribute("fill", "none");
+                    btn.classList.remove("active");
+                }
+            }
+        });
+    }
+
+    // Logic for click handling
+    function handleFavoriteClick(e: Event) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const btn = e.currentTarget as HTMLButtonElement;
+        const card = btn.closest(".product-card");
+        const productId = card?.getAttribute("data-product-id");
+
+        if (productId) {
+            toggleFavorite(productId);
+        }
+    }
+
+    // Subscribe to store changes globally (runs once per session)
+    // This ensures that when the store updates (e.g. via toggle), the UI updates.
+    favoritesStore.subscribe(updateButtons);
+
+    // --- Page Load Handling (View Transitions) ---
+    // This runs on initial load AND after every navigation
+    document.addEventListener("astro:page-load", () => {
+        // 1. Initialize data
+        initFavorites();
+
+        // 2. Apply current store state to the new DOM elements
+        // (Subscription callback doesn't auto-run for new DOM unless store changes)
+        updateButtons(favoritesStore.get());
+
+        // 3. Attach Event Listeners
+        const buttons = document.querySelectorAll(".fav-btn");
+        buttons.forEach((btn) => {
+            // Remove old listeners just in case (though usually new DOM nodes)
+            btn.removeEventListener("click", handleFavoriteClick);
+            btn.addEventListener("click", handleFavoriteClick);
+        });
+
+        // 4. Currency Logic
+        updateProductGridPrices();
+    });
+
+    // Run currency logic on page load is covered by astro:page-load,
+    // but we define the types/function here to keep scope clean if needed elsewhere?
+    // The previous implementation had them at top level.
+    // We should move the currency functions outside or keep them hoisted.
+    // Since they were functions, they are hoisted.
+
+    // Currency detection for product grid
+    type Currency = "EUR" | "PLN";
+
+    function detectUserCurrency(): Currency {
+        // PRIORITY 0: Check URL params (for testing/overriding)
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugCurrency = urlParams.get("currency");
+        if (debugCurrency === "EUR" || debugCurrency === "PLN") {
+            return debugCurrency;
+        }
+
+        // PRIORITY 1: Server-detected currency (Cloudflare)
+        const priceElement = document.querySelector("[data-server-currency]");
+        const serverCurrency = priceElement?.getAttribute(
+            "data-server-currency",
+        );
+
+        if (
+            serverCurrency &&
+            (serverCurrency === "EUR" || serverCurrency === "PLN")
+        ) {
+            return serverCurrency as Currency;
+        }
+
+        // FALLBACK 1: Check timezone
+        try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (
+                timezone &&
+                (timezone.includes("Warsaw") ||
+                    timezone === "Europe/Warsaw" ||
+                    timezone === "Poland")
+            ) {
+                return "PLN";
+            }
+        } catch (e) {}
+
+        // FALLBACK 2: Check browser language
+        const locale = navigator.language || (navigator as any).userLanguage;
+        if (locale && locale.toLowerCase().startsWith("pl")) {
+            return "PLN";
+        }
+
+        return "EUR";
+    }
+
+    function updateProductGridPrices() {
+        const currency = detectUserCurrency();
+        const priceElements = document.querySelectorAll(
+            ".product-price-grid[data-price-eur][data-price-pln]",
+        );
+
+        priceElements.forEach((element) => {
+            const priceEUR = element.getAttribute("data-price-eur");
+            const pricePLN = element.getAttribute("data-price-pln");
+
+            if (!priceEUR || !pricePLN) return;
+
+            if (currency === "PLN") {
+                element.textContent = `${pricePLN} zł`;
+            } else {
+                element.textContent = `€${priceEUR}`;
+            }
+        });
+    }
+</script>

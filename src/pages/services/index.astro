@@ -1,0 +1,30 @@
+---
+import ServicePage from "../../components/ServicePage.astro";
+import { getServices } from "../../lib/sanity";
+
+// Set cache headers to reduce Cloudflare usage
+Astro.response.headers.set(
+    "Cache-Control",
+    "public, max-age=60, s-maxage=3600",
+);
+
+// Fetch services from Sanity
+let services = [];
+let errorFetching = null;
+
+try {
+    services = await getServices();
+} catch (error) {
+    console.error("Failed to fetch services from Sanity", error);
+    if (error instanceof Error) {
+        errorFetching = error.message;
+    } else {
+        errorFetching = String(error);
+    }
+}
+
+// Show first service by default, or null if none
+const selectedService = services && services.length > 0 ? services[0] : null;
+---
+
+<ServicePage service={selectedService} />

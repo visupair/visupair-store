@@ -1,0 +1,99 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import CourseGrid from "../../components/CourseGrid.astro";
+
+// Get server-detected currency from middleware
+const serverCurrency = Astro.locals.currency;
+
+// Fetch courses from Sanity via API
+let courses = [];
+try {
+    const response = await fetch(`${Astro.url.origin}/api/courses`);
+    const data = await response.json();
+
+    // Ensure we have an array
+    if (Array.isArray(data)) {
+        courses = data;
+    } else {
+        console.error("API returned non-array data:", data);
+    }
+} catch (error) {
+    console.error("Error fetching courses:", error);
+}
+---
+
+<Layout>
+    <div class="page-container">
+        <div class="content-block">
+            {
+                courses.length === 0 ? (
+                    <div class="empty-state">
+                        <h2>No courses available yet</h2>
+                        <p>
+                            Create your first course in the Sanity admin panel!
+                        </p>
+                    </div>
+                ) : (
+                    <CourseGrid courses={courses} serverCurrency={serverCurrency} />
+                )
+            }
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .page-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 0 12px;
+        margin: 0 auto;
+    }
+
+    .content-block {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: 32px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-island);
+        position: relative;
+        overflow: hidden;
+        min-height: calc(100vh - 520px);
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 20px;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .empty-state h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--foreground);
+    }
+
+    .empty-state p {
+        font-size: 16px;
+        opacity: 0.7;
+    }
+
+    @media (max-width: 900px) {
+        .page-container {
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .content-block {
+            padding: 20px;
+        }
+    }
+</style>

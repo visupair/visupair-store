@@ -1,0 +1,560 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Button from "../components/Button.astro";
+export const prerender = true;
+---
+
+<Layout
+  title="About Us — Visupair"
+  description="We're two artists selling our own work — fashion, illustrations, 3D models, and more. No middlemen, just art."
+>
+  <div class="about-wrapper">
+    <div class="about-island">
+      <!-- Lamp Lottie — top center -->
+      <div class="about-lamp" id="about-lamp-container" aria-hidden="true">
+      </div>
+
+      <!-- Three-column layout -->
+      <div class="about-grid">
+        <!-- Left: Gul character -->
+        <div class="about-char about-char--left">
+          <img
+            id="about-gul"
+            class="about-char__img"
+            alt="Gul — artist and co-founder of Visupair"
+            loading="lazy"
+            draggable="false"
+            ondragstart="return false;"
+          />
+        </div>
+
+        <!-- Center: text content -->
+        <div class="about-content">
+          <div class="about-badge animate-text" style="--anim-delay: 0s;">
+            About Us
+          </div>
+
+          <h1 class="about-title animate-text" style="--anim-delay: 0.1s;">
+            Who We Are
+          </h1>
+
+          <p class="about-subtitle animate-text" style="--anim-delay: 0.2s;">
+            We're Gul and Vali — two artists making things we actually care
+            about. Fashion, illustrations, digital art, 3D models. We sell it
+            all ourselves, directly to you.
+          </p>
+
+          <div class="about-actions animate-text" style="--anim-delay: 0.3s;">
+            <Button href="/store" variant="primary" label="See Our Work" />
+            <Button
+              href="/portfolio"
+              variant="secondary"
+              label="Explore Portfolio"
+            />
+          </div>
+        </div>
+
+        <!-- Right: Vali character -->
+        <div class="about-char about-char--right">
+          <img
+            id="about-vali"
+            class="about-char__img"
+            alt="Vali — artist and co-founder of Visupair"
+            loading="lazy"
+            draggable="false"
+            ondragstart="return false;"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme-aware SVG + Lottie switching -->
+  <script>
+    type Theme = "dark" | "light";
+
+    let lottie: any = null;
+    let lampAnim: any = null;
+    let currentTheme: Theme | null = null;
+    let themeObserver: MutationObserver | null = null;
+    let intersectionObserver: IntersectionObserver | null = null;
+
+    const getTheme = (): Theme => {
+      const saved = localStorage.getItem("theme");
+      return saved === "dark" || saved === "light"
+        ? saved
+        : document.documentElement.hasAttribute("data-theme")
+          ? "dark"
+          : "light";
+    };
+
+    const swapSVGs = (theme: Theme) => {
+      const gul = document.getElementById(
+        "about-gul",
+      ) as HTMLImageElement | null;
+      const vali = document.getElementById(
+        "about-vali",
+      ) as HTMLImageElement | null;
+      if (gul) gul.src = `/images/hero/Gul-${theme}.svg`;
+      if (vali) vali.src = `/images/hero/Vali-${theme}.svg`;
+    };
+
+    const loadLamp = async (theme: Theme) => {
+      const container = document.getElementById("about-lamp-container");
+      if (!container) return;
+
+      // Destroy animation if theme changed
+      if (lampAnim && theme !== currentTheme) {
+        lampAnim.destroy();
+        lampAnim = null;
+        container.innerHTML = "";
+        container.classList.remove("lamp-loaded");
+      }
+
+      // Already loaded for this theme — just show it
+      const hasAnimationInDOM = container.querySelector("svg") !== null;
+      if (currentTheme === theme && lampAnim && hasAnimationInDOM) {
+        container.classList.add("lamp-loaded");
+        return;
+      }
+
+      try {
+        // Preserve the lottie library across page transitions —
+        // only the animation instance is destroyed, not the library
+        if (!lottie) {
+          const module = await import("lottie-web/build/player/lottie_light");
+          lottie = module.default || module;
+        }
+
+        container.innerHTML = "";
+        lampAnim = lottie.loadAnimation({
+          container,
+          renderer: "svg",
+          autoplay: true,
+          loop: true,
+          path: `/images/hero/lamp-${theme}.json`,
+        });
+
+        // Fade in smoothly only after SVG is ready in DOM
+        lampAnim.addEventListener("DOMLoaded", () => {
+          container.classList.add("lamp-loaded");
+        });
+
+        currentTheme = theme;
+      } catch (e) {
+        console.error("Failed to load Lottie lamp:", e);
+      }
+    };
+
+    const applyTheme = (theme: Theme) => {
+      swapSVGs(theme);
+      loadLamp(theme);
+    };
+
+    const onThemeChange = () => {
+      const theme = getTheme();
+      if (theme !== currentTheme) {
+        applyTheme(theme);
+      }
+    };
+
+    // Only disconnect observers when user navigates away.
+    // The animation KEEPS PLAYING during the transition — same as index.astro.
+    const cleanupObservers = () => {
+      themeObserver?.disconnect();
+      themeObserver = null;
+      intersectionObserver?.disconnect();
+      intersectionObserver = null;
+    };
+
+    // Called after the old DOM is fully replaced — safe to destroy animation now.
+    const cleanupAnimation = () => {
+      if (lampAnim) {
+        lampAnim.destroy();
+        lampAnim = null;
+      }
+      currentTheme = null;
+    };
+
+    const init = () => {
+      // Full reset before re-initialising on new page visit
+      cleanupObservers();
+      cleanupAnimation();
+      applyTheme(getTheme());
+
+      themeObserver = new MutationObserver(onThemeChange);
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+
+      // Text animation observer
+      const textObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              textObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { rootMargin: "0px 0px -50px 0px", threshold: 0.1 },
+      );
+
+      document.querySelectorAll(".animate-text").forEach((el) => {
+        textObserver.observe(el);
+      });
+
+      const container = document.getElementById("about-lamp-container");
+      if (container) {
+        intersectionObserver = new IntersectionObserver(
+          (entries) => {
+            if (entries[0].isIntersecting) {
+              if (lampAnim) lampAnim.play();
+            } else {
+              if (lampAnim) lampAnim.pause();
+            }
+          },
+          { threshold: 0.7 },
+        );
+        intersectionObserver.observe(container);
+      }
+    };
+
+    // Before transition starts: stop observing, but let animation finish visually
+    document.addEventListener("astro:before-preparation", cleanupObservers);
+    // After DOM swap: destroy old animation instance
+    document.addEventListener("astro:after-swap", cleanupAnimation);
+    // New page ready: boot everything up fresh
+    document.addEventListener("astro:page-load", init);
+  </script>
+
+  <style>
+    /* ── Reuse same blob keyframes as Home page ── */
+    @keyframes blobDrift1 {
+      0% {
+        transform: translate(0%, 0%) scale(1);
+      }
+      20% {
+        transform: translate(-12%, 18%) scale(1.08);
+      }
+      45% {
+        transform: translate(8%, -20%) scale(1.04);
+      }
+      70% {
+        transform: translate(-18%, -8%) scale(1.12);
+      }
+      100% {
+        transform: translate(0%, 0%) scale(1);
+      }
+    }
+
+    @keyframes blobDrift2 {
+      0% {
+        transform: translate(0%, 0%) scale(1);
+      }
+      25% {
+        transform: translate(15%, -15%) scale(1.06);
+      }
+      55% {
+        transform: translate(-10%, 20%) scale(1.1);
+      }
+      80% {
+        transform: translate(12%, 10%) scale(1.04);
+      }
+      100% {
+        transform: translate(0%, 0%) scale(1);
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       TEXT ANIMATIONS (Slide Up & Fade In)
+       ═══════════════════════════════════════ */
+    .animate-text {
+      opacity: 0;
+      transform: translateY(20px);
+      transition:
+        opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transition-delay: var(--anim-delay, 0s);
+      will-change: opacity, transform;
+    }
+
+    .animate-text.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes islandFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Island wrapper ── */
+    .about-wrapper {
+      width: 100%;
+      padding: 0 12px;
+      box-sizing: border-box;
+    }
+
+    .about-island {
+      width: 100%;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      position: relative;
+      background: var(--surface);
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.02),
+        var(--shadow-island);
+      transition: box-shadow 0.4s ease;
+      animation: islandFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    :global([data-theme="dark"]) .about-island {
+      /* background: linear-gradient(135deg, #1a1635, #2a2442); */
+      box-shadow:
+        inset 0 0 100px rgba(0, 0, 0, 0.2),
+        var(--shadow-island);
+    }
+
+    /* Glow effects - shared styles */
+    .about-island::before,
+    .about-island::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      will-change: transform;
+    }
+
+    /* ── Blob base ── */
+    .about-island::before {
+      top: -60%;
+      right: -40%;
+      width: clamp(800px, 150vw, 2400px);
+      aspect-ratio: 1;
+      background: transparent;
+    }
+
+    .about-island::after {
+      bottom: -50%;
+      left: -35%;
+      width: clamp(700px, 130vw, 2000px);
+      aspect-ratio: 1;
+      background: transparent;
+    }
+
+    :global([data-theme="dark"]) .about-island::before {
+      background: radial-gradient(
+        closest-side,
+        rgba(163, 142, 255, 0.4) 0%,
+        rgba(163, 142, 255, 0.15) 35%,
+        rgba(163, 142, 255, 0.02) 70%,
+        rgba(163, 142, 255, 0) 100%
+      );
+      opacity: 0.5;
+      animation: blobDrift1 22s infinite alternate ease-in-out;
+    }
+
+    :global([data-theme="dark"]) .about-island::after {
+      background: radial-gradient(
+        closest-side,
+        rgba(132, 128, 255, 0.35) 0%,
+        rgba(132, 128, 255, 0.12) 35%,
+        rgba(132, 128, 255, 0.02) 70%,
+        rgba(132, 128, 255, 0) 100%
+      );
+      opacity: 0.5;
+      animation: blobDrift2 28s infinite alternate ease-in-out;
+    }
+
+    /* ── Lamp — top center (Absolute Overlay) ── */
+    .about-lamp {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 3; /* above blobs (0), chars (1) and content (1) */
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      height: clamp(350px, 44vw, 640px);
+      margin: 0;
+      /* Start hidden, fade in after animation SVG is ready */
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .about-lamp.lamp-loaded {
+      opacity: 1;
+    }
+
+    .about-lamp > * {
+      height: 100%;
+      width: auto;
+    }
+
+    /* ── Three-column grid ── */
+    .about-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: flex-end;
+      gap: 0;
+      padding-top: clamp(180px, 28vw, 250px);
+      padding-bottom: 0px;
+    }
+
+    /* ── Characters ── */
+    .about-char {
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    .about-char--left {
+      justify-content: flex-start;
+    } /* Gul to left wall */
+    .about-char--right {
+      justify-content: flex-end;
+    } /* Vali to right wall */
+
+    .about-char__img {
+      display: block;
+      width: 100%;
+      max-width: clamp(168px, 26vw, 384px);
+      height: auto;
+      object-fit: contain;
+      object-position: bottom center;
+      /* Prevent selecting, dragging and saving */
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+
+    /* ── Center content ── */
+    .about-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 clamp(20px, 3vw, 48px);
+      transform: translateY(-120px);
+      gap: clamp(16px, 2.5vw, 44px);
+      min-width: clamp(240px, 36vw, 480px);
+    }
+
+    .about-badge {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 6px 16px;
+      background: rgba(132, 128, 255, 0.1);
+      border: 1px solid rgba(132, 128, 255, 0.25);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-violet);
+    }
+
+    .about-title {
+      font-family: var(--font-family);
+      font-size: clamp(40px, 6vw, 80px);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      margin: 0;
+    }
+
+    .about-subtitle {
+      font-size: clamp(14px, 1.4vw, 17px);
+      line-height: 1.65;
+      color: var(--foreground-muted);
+      max-width: 36ch;
+      margin: 0;
+    }
+
+    .about-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── Tablet (750px–1024px): keep grid, shrink chars ── */
+    @media (min-width: 750px) and (max-width: 1024px) {
+      .about-char__img {
+        max-width: clamp(160px, 96vw, 320px);
+      }
+      .about-title {
+        font-size: clamp(32px, 5vw, 52px);
+      }
+    }
+
+    /* ── Mobile (<750px): stack vertically ── */
+    @media (max-width: 749px) {
+      .about-lamp {
+        height: clamp(20px, 84vw, 480px);
+        transform: scale(1.3);
+      }
+
+      /* Row 1: both characters side-by-side, Row 2: text content */
+      .about-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        padding-bottom: clamp(25px, 0vw, 100px);
+      }
+
+      .about-char--left {
+        grid-column: 1;
+        grid-row: 1;
+        justify-content: flex-start;
+      }
+
+      .about-char--right {
+        grid-column: 2;
+        grid-row: 1;
+        display: flex; /* restore — hidden before */
+        justify-content: flex-end;
+      }
+
+      .about-content {
+        grid-column: 1 / -1; /* full width */
+        grid-row: 2;
+        transform: translateY(0px);
+        padding: 40px 24px;
+        min-width: unset;
+      }
+
+      .about-char__img {
+        max-width: 100%;
+      }
+
+      .about-title {
+        font-size: clamp(36px, 9vw, 52px);
+      }
+    }
+
+    /* ── Reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .about-island::before,
+      .about-island::after,
+      .about-island {
+        animation: none !important;
+      }
+    }
+  </style>
+</Layout>

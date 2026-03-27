@@ -1,0 +1,69 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import PortfolioDetail from "../../../../components/PortfolioDetail.astro";
+import PortfolioSidebar from "../../../../components/PortfolioSidebar.astro";
+import {
+    getPortfolioCategories,
+    getPortfolioProject,
+} from "../../../../lib/portfolio";
+
+export const prerender = false;
+
+const { categoryId, slug } = Astro.params;
+
+// Validate parameters
+if (!categoryId || !slug) {
+    return Astro.redirect("/portfolio");
+}
+
+// Find the portfolio item matching the slug
+const item = await getPortfolioProject(slug);
+
+if (!item) {
+    return Astro.redirect("/portfolio");
+}
+
+const sectionId = "portfolio";
+const categories = await getPortfolioCategories();
+
+// Validation: Ensure the item belongs to the requested category
+if (item.categorySlug !== categoryId) {
+    return Astro.redirect(`/portfolio/category/${item.categorySlug}/${slug}`);
+}
+
+// Calculate back link - return to category view
+const backLink = `/portfolio/category/${categoryId}`;
+---
+
+<Layout title={`${item.title} | Portfolio | Visupair`}>
+    <div class="portfolio-layout">
+        <div transition:persist="portfolio-sidebar">
+            <PortfolioSidebar
+                categories={categories}
+                selectedCategoryId={categoryId as string}
+                sectionId={sectionId}
+            />
+        </div>
+
+        <PortfolioDetail item={item} backLink={backLink} />
+    </div>
+</Layout>
+
+<style>
+    .portfolio-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    @media (max-width: 768px) {
+        .portfolio-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 16px;
+            gap: 16px;
+        }
+    }
+</style>

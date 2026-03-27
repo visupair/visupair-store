@@ -1,0 +1,9 @@
+CREATE TABLE review (
+  id TEXT PRIMARY KEY,
+  userId TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  productId TEXT NOT NULL,
+  rating INTEGER NOT NULL,
+  comment TEXT,
+  createdAt INTEGER NOT NULL,
+  updatedAt INTEGER NOT NULL
+);

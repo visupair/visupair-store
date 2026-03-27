@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Better Auth Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-box {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border: 1px solid #ddd;
+    }
+    button {
+      background: #8480FF;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .result {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .success { color: #22C55E; }
+    .error { color: #FF6B6B; }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Better Auth Test</h1>
+  
+  <div class="test-box">
+    <h2>1. Test Auth API Status</h2>
+    <button onclick="testAuthStatus()">Check API</button>
+    <div id="status-result" class="result"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>2. Sign Up Test</h2>
+    <input type="email" id="signup-email" placeholder="Email" value="user@example.com">
+    <input type="password" id="signup-password" placeholder="Password" value="TestPass123">
+    <input type="text" id="signup-name" placeholder="Name" value="Test User">
+    <button onclick="testSignUp()">Sign Up</button>
+    <div id="signup-result" class="result"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>3. Sign In Test</h2>
+    <input type="email" id="signin-email" placeholder="Email" value="user@example.com">
+    <input type="password" id="signin-password" placeholder="Password" value="TestPass123">
+    <button onclick="testSignIn()">Sign In</button>
+    <div id="signin-result" class="result"></div>
+  </div>
+
+  <div class="test-box">
+    <h2>4. Get Session</h2>
+    <button onclick="testGetSession()">Get Current Session</button>
+    <div id="session-result" class="result"></div>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://localhost:4322/api/auth';
+
+    async function testAuthStatus() {
+      const res = document.getElementById('status-result');
+      try {
+        const response = await fetch(`${BASE_URL}/csrf`, { method: 'GET' });
+        res.innerHTML = `<span class="success">✓ Auth API is responding (${response.status})</span>`;
+        console.log('CSRF Response:', response);
+      } catch (error) {
+        res.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+      }
+    }
+
+    async function testSignUp() {
+      const res = document.getElementById('signup-result');
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const name = document.getElementById('signup-name').value;
+
+      try {
+        const response = await fetch(`${BASE_URL}/sign-up`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, name }),
+          credentials: 'include'
+        });
+        const data = await response.json();
+        res.innerHTML = `<span class="${response.ok ? 'success' : 'error'}">
+          ${response.ok ? '✓' : '✗'} Status: ${response.status}
+          <br>${JSON.stringify(data, null, 2)}
+        </span>`;
+      } catch (error) {
+        res.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+      }
+    }
+
+    async function testSignIn() {
+      const res = document.getElementById('signin-result');
+      const email = document.getElementById('signin-email').value;
+      const password = document.getElementById('signin-password').value;
+
+      try {
+        const response = await fetch(`${BASE_URL}/sign-in/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include'
+        });
+        const data = await response.json();
+        res.innerHTML = `<span class="${response.ok ? 'success' : 'error'}">
+          ${response.ok ? '✓' : '✗'} Status: ${response.status}
+          <br>${JSON.stringify(data, null, 2)}
+        </span>`;
+      } catch (error) {
+        res.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+      }
+    }
+
+    async function testGetSession() {
+      const res = document.getElementById('session-result');
+      try {
+        const response = await fetch(`${BASE_URL}/session`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        const data = await response.json();
+        res.innerHTML = `<span class="${response.ok ? 'success' : 'error'}">
+          ${response.ok ? '✓' : '✗'} Status: ${response.status}
+          <br>${JSON.stringify(data, null, 2)}
+        </span>`;
+      } catch (error) {
+        res.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+      }
+    }
+
+    // Test on load
+    window.addEventListener('load', testAuthStatus);
+  </script>
+</body>
+</html>

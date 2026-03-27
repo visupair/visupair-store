@@ -1,0 +1,125 @@
+---
+import Layout from "../../../../../layouts/Layout.astro";
+import ProductDetail from "../../../../../components/ProductDetail.astro";
+import StoreSidebar from "../../../../../components/StoreSidebar.astro";
+import { storeSections } from "../../../../../lib/store-data";
+import { getProducts, getCategoriesTree } from "../../../../../lib/sanity";
+
+// SSR Mode: Dynamic Lookup
+export const prerender = false;
+
+const { section, categoryId, slug } = Astro.params;
+
+// Validate parameters
+if (!section || !categoryId || !slug) {
+    return Astro.redirect("/404");
+}
+
+// Validate section exists
+if (!storeSections[section]) {
+    return Astro.redirect("/404");
+}
+
+// Fetch products from Sanity
+let allProducts: any[] = [];
+let allCategoriesTree: any[] = [];
+
+try {
+    allProducts = await getProducts();
+    allCategoriesTree = await getCategoriesTree();
+} catch (e) {
+    console.error("Sanity fetch error:", e);
+    return Astro.redirect("/404");
+}
+
+// Find the product matching the slug AND in the correct section
+const product = allProducts.find((p) => {
+    return (
+        p.slug === slug &&
+        p.categoryPath &&
+        Array.isArray(p.categoryPath) &&
+        p.categoryPath.includes(section)
+    );
+});
+
+if (!product) {
+    console.error(
+        `Product not found: slug=${slug}, section=${section}, categoryId=${categoryId}`,
+    );
+    return Astro.redirect("/404");
+}
+
+const sectionId = section;
+const currentSection = storeSections[sectionId];
+
+// Find the category tree for this section
+const sectionCategoryTree = allCategoriesTree.find(
+    (cat: any) => cat.id === sectionId,
+);
+const categoriesToShow = sectionCategoryTree
+    ? sectionCategoryTree.children
+    : [];
+
+// Calculate back link - return to category view
+const backLink = `/store/${sectionId}/category/${categoryId}`;
+
+// For search autocomplete - all products in this section
+const sectionProducts = allProducts.filter((p) => {
+    return (
+        p.categoryPath &&
+        Array.isArray(p.categoryPath) &&
+        p.categoryPath.includes(sectionId)
+    );
+});
+
+// Get server-detected currency from middleware
+const serverCurrency = Astro.locals.currency;
+---
+
+<Layout title={`${product.name} | Visupair`}>
+    <div class="store-layout">
+        <!-- Sidebar with persistence -->
+        <div transition:persist="store-sidebar">
+            <StoreSidebar
+                categories={categoriesToShow}
+                selectedCategoryId={categoryId as string}
+                sectionId={sectionId}
+                searchProducts={sectionProducts}
+            />
+        </div>
+
+        <div class="product-wrapper" transition:name={`product-${product.id}`}>
+            <ProductDetail
+                product={product}
+                backLink={backLink}
+                serverCurrency={serverCurrency}
+            />
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .store-layout {
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        padding: 0 12px;
+        height: calc(100vh - 120px);
+    }
+
+    .product-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .store-layout {
+            flex-direction: column;
+            height: auto;
+            padding: 0 12px;
+            gap: 12px;
+        }
+    }
+</style>

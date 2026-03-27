@@ -1,0 +1,580 @@
+---
+import type { PortfolioItem } from "../lib/store-data";
+import { urlFor } from "../lib/sanity-image";
+
+interface Props {
+    item: PortfolioItem;
+    backLink?: string;
+}
+
+const { item, backLink = "/portfolio" } = Astro.props;
+
+// Helper to generate placeholder images
+const getPlaceholderImage = (text: string, seed: number = 0) => {
+    const encodedText = encodeURIComponent(text);
+    const bg = seed === 0 ? "1A1635" : seed === 1 ? "221D3A" : "151128";
+    return `https://placehold.co/1000x1200/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
+};
+
+// Use real gallery images if available, otherwise fallback to mainImage or placeholders
+// Optimization: Use urlFor to request specific sizes (e.g. 1200px width for detail view)
+const galleryImages =
+    item.gallery && item.gallery.length > 0
+        ? item.gallery.map(img => urlFor(img).width(1200).url())
+        : item.mainImage
+          ? [urlFor(item.mainImage).width(1200).url()]
+          : [0, 1, 2].map((i) => getPlaceholderImage(item.title || "Project", i));
+
+// ── CTA mapping: portfolio category → service/store page ──
+const categorySlug = (item.categorySlug || "").toLowerCase();
+
+const ctaMap: Record<string, { href: string; label: string }> = {
+    "graphic-design":  { href: "/services/logo-design",     label: "Request This Service" },
+    "logo-design":     { href: "/services/logo-design",     label: "Request This Service" },
+    "web-design":      { href: "/services/web-design",      label: "Request This Service" },
+    "brand-identity":  { href: "/services/brand-identity",  label: "Request This Service" },
+    "branding":        { href: "/services/brand-identity",  label: "Request This Service" },
+    "fashion-design":  { href: "/store/fashion-design",     label: "Explore Collection" },
+    "fashion":         { href: "/store/fashion-design",     label: "Explore Collection" },
+    "3d-design":       { href: "/store/3d-models",          label: "Explore 3D Models" },
+    "3d-models":       { href: "/store/3d-models",          label: "Explore 3D Models" },
+    "3d":              { href: "/store/3d-models",          label: "Explore 3D Models" },
+    "artworks":        { href: "/store/artworks",           label: "Explore Artworks" },
+    "art":             { href: "/store/artworks",           label: "Explore Artworks" },
+};
+
+const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Services" };
+---
+
+<div class="portfolio-detail-panel" id="portfolio-detail-panel">
+    <!-- Close Button -->
+    <a href={backLink} class="detail-close-btn" aria-label="Close">
+        <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </a>
+
+    <div class="detail-layout">
+        <!-- Left: Gallery -->
+        <div class="detail-gallery-column">
+            {
+                galleryImages.map((img, idx) => (
+                    <div class="detail-large-image" data-index={idx}>
+                        <img
+                            src={img}
+                            alt={`${item.title} view ${idx + 1}`}
+                            loading="lazy"
+                        />
+                    </div>
+                ))
+            }
+        </div>
+
+        <!-- Right: Info -->
+        <div class="detail-info-column">
+            <div class="detail-info-content">
+                <!-- Header -->
+                <div class="detail-header">
+                    <h1 class="detail-title">{item.title}</h1>
+                    <span class="detail-year">{item.year}</span>
+                </div>
+
+                <!-- Description -->
+                <p class="detail-description">{item.description}</p>
+
+                <!-- YouTube Embed -->
+                {
+                    item.youtubeUrl && (
+                        <div class="detail-video-container">
+                            <iframe
+                                src={item.youtubeUrl.replace(
+                                    "watch?v=",
+                                    "embed/",
+                                )}
+                                title="YouTube video player"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen
+                            />
+                        </div>
+                    )
+                }
+
+                <!-- Tools -->
+                {
+                    item.tools && item.tools.length > 0 && (
+                        <div class="detail-tools-section">
+                            <h3 class="detail-section-title">
+                                Tools & Technologies
+                            </h3>
+                            <div class="tools-grid">
+                                {item.tools.map((tool) => (
+                                    <div class="tool-item">{tool}</div>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                }
+
+                <!-- Details -->
+                {
+                    item.details && Object.keys(item.details).length > 0 && (
+                        <div class="detail-specs">
+                            <h3 class="detail-section-title">
+                                Project Details
+                            </h3>
+                            <div class="specs-grid">
+                                {Object.entries(item.details).map(
+                                    ([key, value]) => (
+                                        <div class="spec-row">
+                                            <span class="spec-key">{key}</span>
+                                            <span class="spec-value">
+                                                {value}
+                                            </span>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                        </div>
+                    )
+                }
+
+                <!-- Featured -->
+                {
+                    item.featured && (
+                        <div class="featured-badge">
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            Featured Project
+                        </div>
+                    )
+                }
+
+                <!-- CTA: Redirect to relevant service or store page -->
+                <div class="detail-cta">
+                    <p class="cta-message">Interested in something similar?</p>
+                    <a href={cta.href} class="cta-btn">
+                        <span>{cta.label}</span>
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .portfolio-detail-panel {
+        flex: 1;
+        height: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        position: relative;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        animation: fadeIn 0.3s ease-out;
+        pointer-events: auto;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .detail-close-btn {
+        position: sticky;
+        top: 16px;
+        align-self: flex-end;
+        margin-right: 16px;
+        margin-bottom: -36px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        border: 1px solid var(--border-subtle);
+        color: var(--foreground);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 50;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .detail-close-btn:hover {
+        background: var(--brand-violet);
+        color: white;
+        border-color: var(--brand-violet);
+        transform: rotate(90deg);
+    }
+
+    .detail-layout {
+        display: flex;
+        width: 100%;
+        min-height: min-content;
+        position: relative;
+        align-items: flex-start;
+    }
+
+    .detail-gallery-column {
+        flex: 6;
+        width: 60%;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        border-right: 1px solid var(--border-subtle);
+        overflow: visible;
+    }
+
+    .detail-large-image {
+        width: 100%;
+        height: auto;
+        background: var(--surface-muted);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border-subtle);
+        flex-shrink: 0;
+        cursor: zoom-in;
+        transition: transform 0.2s;
+    }
+
+    .detail-large-image:hover {
+        transform: scale(1.01);
+    }
+
+    .detail-large-image img {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+
+    .detail-info-column {
+        flex: 4;
+        width: 40%;
+        position: sticky;
+        top: 0;
+        height: auto;
+        align-self: flex-start;
+        overflow: visible;
+        background: var(--surface);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .detail-info-content {
+        padding: 32px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        height: auto;
+        overflow: visible;
+    }
+
+    .detail-header {
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 20px;
+        padding-right: 40px;
+    }
+
+    .detail-title {
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 8px;
+        color: var(--foreground);
+    }
+
+    .detail-year {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--brand-lime);
+    }
+
+    .detail-description {
+        font-size: 15px;
+        line-height: 1.6;
+        opacity: 0.8;
+        color: var(--foreground);
+    }
+
+        color: var(--foreground);
+    }
+
+    .detail-video-container {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+        height: 0;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-bottom: 24px;
+        background: black;
+    }
+
+    .detail-video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .detail-section-title {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.5;
+        margin-bottom: 12px;
+        color: var(--foreground);
+    }
+
+    .detail-tools-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .tools-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: var(--surface-muted);
+        padding: 16px;
+        border-radius: var(--radius-lg);
+    }
+
+    .tool-item {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--foreground);
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--border-subtle);
+    }
+
+    .tool-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .detail-specs {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .specs-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: var(--surface-muted);
+        padding: 16px;
+        border-radius: var(--radius-lg);
+    }
+
+    .spec-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        border-bottom: 1px dashed var(--border-subtle);
+        padding-bottom: 8px;
+        color: var(--foreground);
+    }
+
+    .spec-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .spec-key {
+        opacity: 0.6;
+    }
+
+    .spec-value {
+        font-weight: 600;
+    }
+
+    .featured-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--brand-lime), transparent 90%),
+            color-mix(in srgb, var(--brand-lime), transparent 95%)
+        );
+        border: 1px solid color-mix(in srgb, var(--brand-lime), transparent 80%);
+        border-radius: var(--radius-md);
+        color: var(--brand-lime);
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 8px;
+    }
+
+    .featured-badge svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* ── CTA Section ── */
+    .detail-cta {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 20px;
+        background: var(--surface-muted);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
+    }
+
+    .cta-message {
+        font-size: 14px;
+        color: var(--foreground);
+        opacity: 0.7;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .cta-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 14px;
+        background: var(--brand-violet);
+        color: #ffffff;
+        border: none;
+        border-radius: var(--radius-md);
+        font-family: var(--font-family);
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+            transform 0.2s,
+            background-color 0.2s,
+            box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    }
+
+    .cta-btn:hover {
+        background: #9d9aff;
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .cta-btn:active {
+        transform: translateY(0);
+    }
+
+    .cta-btn svg {
+        flex-shrink: 0;
+        transition: transform 0.2s ease;
+    }
+
+    .cta-btn:hover svg {
+        transform: translateX(3px);
+    }
+
+    @media (max-width: 968px) {
+        .detail-layout {
+            flex-direction: column;
+        }
+
+        .detail-gallery-column {
+            width: 100%;
+            padding: 0;
+            gap: 0;
+            border-right: none;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .detail-large-image {
+            border-radius: 0;
+            border: none;
+        }
+
+        .detail-info-column {
+            flex: auto;
+            width: 100%;
+            position: static;
+        }
+    }
+</style>
+
+<script>
+    const initPortfolioDetail = () => {
+        const galleryImages = document.querySelectorAll(".detail-large-image");
+
+        if (!galleryImages.length) return;
+
+        // Get Image URLs from DOM
+        const galleryImageUrls = Array.from(galleryImages).map((div) => {
+            const img = div.querySelector("img");
+            return img ? img.src : "";
+        });
+
+        const projectTitle =
+            document.querySelector(".detail-title")?.textContent || "Gallery";
+
+        // Image Gallery Click -> Dispatch event to global Fullscreen component
+        galleryImages.forEach((imgDiv, idx) => {
+            imgDiv.addEventListener("click", () => {
+                window.dispatchEvent(
+                    new CustomEvent("open-fullscreen-gallery", {
+                        detail: {
+                            images: galleryImageUrls,
+                            startIndex: idx,
+                            projectName: projectTitle,
+                        },
+                    }),
+                );
+            });
+        });
+    };
+
+    // Run on every page navigation
+    document.addEventListener("astro:page-load", initPortfolioDetail);
+</script>
