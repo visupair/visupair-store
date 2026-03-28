@@ -5,53 +5,69 @@ import Layout from "../layouts/Layout.astro";
 <Layout title="Cart - Visupair">
   <main class="cart-page">
     <div class="cart-container">
-      <!-- Empty State -->
-      <div class="cart-empty" id="cart-empty">
-        <svg viewBox="0 -960 960 960" fill="currentColor">
-          <path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"></path>
-        </svg>
-        <h2>Your cart is empty</h2>
-        <p>Add some products to get started.</p>
-        <a href="/store/fashion-design" class="btn-browse">Browse Products</a>
-      </div>
-
-      <!-- Cart Content -->
-      <div class="cart-content" id="cart-content" style="display: none;">
-        <div class="cart-header">
-          <h1 class="cart-title">Cart</h1>
-          <button class="btn-clear" id="clear-cart-btn">Clear Cart</button>
+      <div class="cart-inner">
+        <!-- Empty State -->
+        <div class="cart-empty" id="cart-empty">
+          <svg viewBox="0 -960 960 960" fill="currentColor">
+            <path
+              d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"
+            ></path>
+          </svg>
+          <h2>Your cart is empty</h2>
+          <p>Add some products to get started.</p>
+          <a href="/store/fashion-design" class="btn-browse">Browse Products</a>
         </div>
 
-        <div class="cart-layout">
-          <div class="cart-items" id="cart-items-list"></div>
+        <!-- Cart Content -->
+        <div class="cart-content" id="cart-content" style="display: none;">
+          <div class="cart-header">
+            <h1 class="cart-title">Cart</h1>
+            <button class="btn-clear" id="clear-cart-btn">Clear Cart</button>
+          </div>
 
-          <aside class="cart-summary">
-            <div class="summary-card">
-              <h3>Order Summary</h3>
-              <div class="summary-rows">
-                <div class="summary-row">
-                  <span>Subtotal</span>
-                  <span id="cart-subtotal">€0</span>
+          <div class="cart-layout">
+            <div class="cart-items" id="cart-items-list"></div>
+
+            <aside class="cart-summary">
+              <div class="summary-card">
+                <h3>Order Summary</h3>
+                <div class="summary-rows">
+                  <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">€0</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Shipping</span>
+                    <span class="text-muted">Calculated at checkout</span>
+                  </div>
                 </div>
-                <div class="summary-row">
-                  <span>Shipping</span>
-                  <span class="text-muted">Calculated at checkout</span>
+                <div class="summary-total">
+                  <span>Total</span>
+                  <span id="cart-total">€0</span>
                 </div>
+                <button class="btn-checkout" id="checkout-btn"
+                  >Proceed to Checkout</button
+                >
+                <p class="secure-note">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"
+                    ></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Secure checkout powered by Stripe
+                </p>
               </div>
-              <div class="summary-total">
-                <span>Total</span>
-                <span id="cart-total">€0</span>
-              </div>
-              <button class="btn-checkout" id="checkout-btn">Proceed to Checkout</button>
-              <p class="secure-note">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Secure checkout powered by Stripe
-              </p>
-            </div>
-          </aside>
+            </aside>
+          </div>
         </div>
       </div>
     </div>
@@ -59,60 +75,69 @@ import Layout from "../layouts/Layout.astro";
 </Layout>
 
 <script>
-  import { cartStore, removeFromCart, clearCart, initCart, hasPhysicalItems } from '../lib/cartStore';
-  import type { CartItem } from '../lib/cartStore';
+  import {
+    cartStore,
+    removeFromCart,
+    clearCart,
+    initCart,
+    hasPhysicalItems,
+  } from "../lib/cartStore";
+  import type { CartItem } from "../lib/cartStore";
 
   function initCartPage() {
     initCart();
 
-    const emptyEl = document.getElementById('cart-empty');
-    const contentEl = document.getElementById('cart-content');
-    const itemsList = document.getElementById('cart-items-list');
-    const subtotalEl = document.getElementById('cart-subtotal');
-    const totalEl = document.getElementById('cart-total');
-    const clearBtn = document.getElementById('clear-cart-btn');
-    const checkoutBtn = document.getElementById('checkout-btn');
+    const emptyEl = document.getElementById("cart-empty");
+    const contentEl = document.getElementById("cart-content");
+    const itemsList = document.getElementById("cart-items-list");
+    const subtotalEl = document.getElementById("cart-subtotal");
+    const totalEl = document.getElementById("cart-total");
+    const clearBtn = document.getElementById("clear-cart-btn");
+    const checkoutBtn = document.getElementById("checkout-btn");
 
     if (!emptyEl || !contentEl || !itemsList) return;
 
-    function detectUserCurrency(): 'EUR' | 'PLN' {
+    function detectUserCurrency(): "EUR" | "PLN" {
       const urlParams = new URLSearchParams(window.location.search);
-      const debugCurrency = urlParams.get('currency');
-      if (debugCurrency === 'EUR' || debugCurrency === 'PLN') return debugCurrency;
+      const debugCurrency = urlParams.get("currency");
+      if (debugCurrency === "EUR" || debugCurrency === "PLN")
+        return debugCurrency;
       try {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (tz && (tz.includes('Warsaw') || tz === 'Europe/Warsaw')) return 'PLN';
+        if (tz && (tz.includes("Warsaw") || tz === "Europe/Warsaw"))
+          return "PLN";
       } catch {}
       const locale = navigator.language || (navigator as any).userLanguage;
-      if (locale && locale.toLowerCase().startsWith('pl')) return 'PLN';
-      return 'EUR';
+      if (locale && locale.toLowerCase().startsWith("pl")) return "PLN";
+      return "EUR";
     }
 
     const currency = detectUserCurrency();
 
     function formatPrice(eur: number, pln: number): string {
-      return currency === 'PLN' ? `${pln.toFixed(2)} zł` : `€${eur.toFixed(2)}`;
+      return currency === "PLN" ? `${pln.toFixed(2)} zł` : `€${eur.toFixed(2)}`;
     }
 
     function renderCart(items: CartItem[]) {
       if (items.length === 0) {
-        emptyEl!.style.display = '';
-        contentEl!.style.display = 'none';
+        emptyEl!.style.display = "";
+        contentEl!.style.display = "none";
         return;
       }
 
-      emptyEl!.style.display = 'none';
-      contentEl!.style.display = '';
+      emptyEl!.style.display = "none";
+      contentEl!.style.display = "";
 
       let subtotalEur = 0;
       let subtotalPln = 0;
 
-      itemsList!.innerHTML = items.map((item) => {
-        subtotalEur += item.price;
-        subtotalPln += item.pricePLN;
+      itemsList!.innerHTML = items
+        .map((item) => {
+          subtotalEur += item.price;
+          subtotalPln += item.pricePLN;
 
-        return `
-          <div class="cart-item" data-product-id="${item.productId}" data-size="${item.selectedSize || ''}">
+          return `
+          <div class="cart-item" data-product-id="${item.productId}" data-size="${item.selectedSize || ""}">
             <div class="cart-item-image">
               <img src="${item.image}" alt="${item.name}" loading="lazy" />
             </div>
@@ -120,8 +145,8 @@ import Layout from "../layouts/Layout.astro";
               <div class="cart-item-top">
                 <div class="cart-item-info">
                   <h4 class="cart-item-name">${item.name}</h4>
-                  ${item.selectedSize ? `<span class="cart-item-variant">Size: ${item.selectedSize}</span>` : ''}
-                  <span class="cart-item-type">${item.productType === 'digital' ? 'Digital' : 'Physical'}</span>
+                  ${item.selectedSize ? `<span class="cart-item-variant">Size: ${item.selectedSize}</span>` : ""}
+                  <span class="cart-item-type">${item.productType === "digital" ? "Digital" : "Physical"}</span>
                 </div>
                 <button class="cart-item-remove" aria-label="Remove item">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -136,15 +161,17 @@ import Layout from "../layouts/Layout.astro";
             </div>
           </div>
         `;
-      }).join('');
+        })
+        .join("");
 
-      if (subtotalEl) subtotalEl.textContent = formatPrice(subtotalEur, subtotalPln);
+      if (subtotalEl)
+        subtotalEl.textContent = formatPrice(subtotalEur, subtotalPln);
       if (totalEl) totalEl.textContent = formatPrice(subtotalEur, subtotalPln);
 
-      itemsList!.querySelectorAll('.cart-item').forEach((el) => {
+      itemsList!.querySelectorAll(".cart-item").forEach((el) => {
         const productId = (el as HTMLElement).dataset.productId!;
         const size = (el as HTMLElement).dataset.size || undefined;
-        el.querySelector('.cart-item-remove')?.addEventListener('click', () => {
+        el.querySelector(".cart-item-remove")?.addEventListener("click", () => {
           removeFromCart(productId, size);
         });
       });
@@ -153,45 +180,45 @@ import Layout from "../layouts/Layout.astro";
     cartStore.subscribe((items) => renderCart(items as CartItem[]));
     renderCart(cartStore.get() as CartItem[]);
 
-    clearBtn?.addEventListener('click', () => {
+    clearBtn?.addEventListener("click", () => {
       clearCart();
     });
 
-    checkoutBtn?.addEventListener('click', async () => {
+    checkoutBtn?.addEventListener("click", async () => {
       const items = cartStore.get();
       if (items.length === 0) return;
 
-      checkoutBtn!.textContent = 'Checking session...';
+      checkoutBtn!.textContent = "Checking session...";
       (checkoutBtn as HTMLButtonElement).disabled = true;
 
       try {
-        const { authClient } = await import('../lib/auth-client');
+        const { authClient } = await import("../lib/auth-client");
         const session = await authClient.getSession();
 
         if (!session.data?.user) {
-          window.location.href = `/login?redirect=${encodeURIComponent('/cart')}`;
+          window.location.href = `/login?redirect=${encodeURIComponent("/cart")}`;
           return;
         }
 
         const hasPhysical = hasPhysicalItems();
 
         if (hasPhysical) {
-          window.location.href = '/cart/checkout';
+          window.location.href = "/cart/checkout";
         } else {
-          checkoutBtn!.textContent = 'Redirecting to payment...';
+          checkoutBtn!.textContent = "Redirecting to payment...";
 
           const cartItems = items.map((i) => ({
             productId: i.productId,
             name: i.name,
-            price: currency === 'PLN' ? i.pricePLN : i.price,
+            price: currency === "PLN" ? i.pricePLN : i.price,
             quantity: 1,
             productType: i.productType,
             selectedSize: i.selectedSize,
           }));
 
-          const res = await fetch('/api/cart-checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const res = await fetch("/api/cart-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               items: cartItems,
               currency,
@@ -203,32 +230,43 @@ import Layout from "../layouts/Layout.astro";
           if (data.url) {
             window.location.href = data.url;
           } else {
-            alert(data.error || 'Failed to start checkout');
-            checkoutBtn!.textContent = 'Proceed to Checkout';
+            alert(data.error || "Failed to start checkout");
+            checkoutBtn!.textContent = "Proceed to Checkout";
             (checkoutBtn as HTMLButtonElement).disabled = false;
           }
         }
       } catch (err) {
-        console.error('Checkout error:', err);
-        checkoutBtn!.textContent = 'Proceed to Checkout';
+        console.error("Checkout error:", err);
+        checkoutBtn!.textContent = "Proceed to Checkout";
         (checkoutBtn as HTMLButtonElement).disabled = false;
       }
     });
   }
 
   initCartPage();
-  document.addEventListener('astro:after-swap', initCartPage);
+  document.addEventListener("astro:after-swap", initCartPage);
 </script>
 
 <!-- Static elements: scoped styles -->
 <style>
   .cart-page {
-    padding: 24px 12px;
+    padding: 0px 12px;
     margin: 0 auto;
-    max-width: 1100px;
-    min-height: calc(100vh - 200px);
   }
-  .cart-container { width: 100%; }
+  .cart-container {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    min-height: calc(100vh - 420px);
+    padding: 40px;
+    box-sizing: border-box;
+  }
+  .cart-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
 
   .cart-empty {
     display: flex;
@@ -237,54 +275,188 @@ import Layout from "../layouts/Layout.astro";
     text-align: center;
     padding: 120px 24px;
   }
-  .cart-empty svg { width: 72px; height: 72px; opacity: 0.2; margin-bottom: 24px; color: var(--foreground); }
-  .cart-empty h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: var(--foreground); }
-  .cart-empty p { font-size: 15px; opacity: 0.6; margin-bottom: 28px; color: var(--foreground); }
+  .cart-empty svg {
+    width: 72px;
+    height: 72px;
+    opacity: 0.2;
+    margin-bottom: 24px;
+    color: var(--foreground);
+  }
+  .cart-empty h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--foreground);
+  }
+  .cart-empty p {
+    font-size: 15px;
+    opacity: 0.6;
+    margin-bottom: 28px;
+    color: var(--foreground);
+  }
 
   .btn-browse {
-    display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px;
-    background: var(--brand-violet); color: white; border: none; border-radius: var(--radius-lg);
-    font-family: var(--font-family); font-size: 15px; font-weight: 600; text-decoration: none;
-    transition: all 0.2s; box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: var(--brand-violet);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
   }
-  .btn-browse:hover { background: #9d9aff; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5); }
+  .btn-browse:hover {
+    background: #9d9aff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+  }
 
-  .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
-  .cart-title { font-size: 28px; font-weight: 700; color: var(--foreground); }
+  .cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .cart-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--foreground);
+  }
 
   .btn-clear {
-    padding: 8px 16px; background: transparent; border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md); color: var(--foreground); font-family: var(--font-family);
-    font-size: 13px; font-weight: 500; cursor: pointer; opacity: 0.6; transition: all 0.2s;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-family: var(--font-family);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s;
   }
-  .btn-clear:hover { opacity: 1; border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+  .btn-clear:hover {
+    opacity: 1;
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+  }
 
-  .cart-layout { display: grid; grid-template-columns: 1fr 360px; gap: 32px; align-items: start; }
+  .cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 32px;
+    align-items: start;
+  }
 
-  .cart-summary { position: sticky; top: 100px; }
-  .summary-card { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px; }
-  .summary-card h3 { font-size: 18px; font-weight: 700; margin: 0 0 20px 0; color: var(--foreground); }
-  .summary-rows { display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 20px; }
-  .summary-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--foreground); }
-  .text-muted { opacity: 0.5; font-size: 13px; }
-  .summary-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: 700; color: var(--foreground); margin-bottom: 24px; }
+  .cart-summary {
+    position: sticky;
+    top: 100px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+  }
+  .summary-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    color: var(--foreground);
+  }
+  .summary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 20px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--foreground);
+  }
+  .text-muted {
+    opacity: 0.5;
+    font-size: 13px;
+  }
+  .summary-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 24px;
+  }
 
   .btn-checkout {
-    width: 100%; padding: 16px; background: var(--brand-violet); color: white; border: none;
-    border-radius: var(--radius-lg); font-family: var(--font-family); font-weight: 600; font-size: 16px;
-    cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    width: 100%;
+    padding: 16px;
+    background: var(--brand-violet);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
   }
-  .btn-checkout:hover { background: #9d9aff; box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5); transform: translateY(-1px); }
-  .btn-checkout:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-  .secure-note { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; opacity: 0.4; margin-top: 16px; color: var(--foreground); }
+  .btn-checkout:hover {
+    background: #9d9aff;
+    box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+    transform: translateY(-1px);
+  }
+  .btn-checkout:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .secure-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.4;
+    margin-top: 16px;
+    color: var(--foreground);
+  }
 
   @media (max-width: 768px) {
-    .cart-layout { grid-template-columns: 1fr; gap: 24px; }
-    .cart-summary { position: static; }
-    .cart-title { font-size: 22px; }
+    .cart-layout {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .cart-summary {
+      position: static;
+    }
+    .cart-title {
+      font-size: 22px;
+    }
+    .cart-container {
+      padding: 24px;
+    }
   }
   @media (max-width: 480px) {
-    .cart-page { padding: 16px 8px; }
+    .cart-page {
+      padding: 16px 8px;
+    }
+    .cart-container {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+    }
   }
 </style>
 
@@ -307,7 +479,11 @@ import Layout from "../layouts/Layout.astro";
   }
 
   .cart-item:hover {
-    border-color: color-mix(in srgb, var(--border-subtle), var(--foreground) 15%);
+    border-color: color-mix(
+      in srgb,
+      var(--border-subtle),
+      var(--foreground) 15%
+    );
   }
 
   .cart-item-image {
@@ -406,12 +582,25 @@ import Layout from "../layouts/Layout.astro";
   }
 
   @media (max-width: 768px) {
-    .cart-item { gap: 14px; padding: 16px; }
-    .cart-item-image { width: 80px; height: 80px; }
+    .cart-item {
+      gap: 14px;
+      padding: 16px;
+    }
+    .cart-item-image {
+      width: 80px;
+      height: 80px;
+    }
   }
   @media (max-width: 480px) {
-    .cart-item-image { width: 64px; height: 64px; }
-    .cart-item-name { font-size: 14px; }
-    .cart-item-price { font-size: 14px; }
+    .cart-item-image {
+      width: 64px;
+      height: 64px;
+    }
+    .cart-item-name {
+      font-size: 14px;
+    }
+    .cart-item-price {
+      font-size: 14px;
+    }
   }
 </style>

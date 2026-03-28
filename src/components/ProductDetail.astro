@@ -10,15 +10,15 @@ import { review } from "../lib/auth-schema";
 import { eq } from "drizzle-orm";
 
 interface Props {
-    product: Product;
-    backLink?: string;
-    serverCurrency?: Currency;
+  product: Product;
+  backLink?: string;
+  serverCurrency?: Currency;
 }
 
 const {
-    product,
-    backLink = "/store/fashion-design",
-    serverCurrency,
+  product,
+  backLink = "/store/fashion-design",
+  serverCurrency,
 } = Astro.props;
 // Extract section ID from product category path or backLink logic
 const sectionId = product.categoryPath[0] || "fashion-design";
@@ -28,34 +28,38 @@ const productUrl = `${Astro.url.origin}/store/${sectionId}/${product.slug || pro
 
 // Select appropriate price to display
 const displayPrice =
-    serverCurrency === "PLN" && product.pricePLN
-        ? `${product.pricePLN}zł`
-        : `€${product.price}`;
+  serverCurrency === "PLN" && product.pricePLN
+    ? `${product.pricePLN}zł`
+    : `€${product.price}`;
 
 // Helper to generate placeholder image
 const getPlaceholderImage = (text: string, seed: number = 0) => {
-    const encodedText = encodeURIComponent(text);
-    const bg = seed === 0 ? "1A1635" : seed === 1 ? "221D3A" : "151128";
-    return `https://placehold.co/1000x1200/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
+  const encodedText = encodeURIComponent(text);
+  const bg = seed === 0 ? "1A1635" : seed === 1 ? "221D3A" : "151128";
+  return `https://placehold.co/1000x1200/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
 };
 
 // Use gallery images from Sanity or fallback to main image
 // Optimization: Prefer raw 'gallery' objects to request specific 1200px width
 const galleryImages =
-    product.gallery && product.gallery.length > 0
-        ? product.gallery.map((img: any) => urlFor(img).width(1200).url())
-        : product.images && product.images.length > 0
-          ? product.images
-          : product.image
-            ? [product.image]
-            : [getPlaceholderImage(product.name)];
+  product.gallery && product.gallery.length > 0
+    ? product.gallery.map((img: any) => urlFor(img).width(1200).url())
+    : product.images && product.images.length > 0
+      ? product.images
+      : product.image
+        ? [product.image]
+        : [getPlaceholderImage(product.name)];
 
 // Product Details (Specifications)
 const productDetails = product.details || {};
 
 // Sizes
 const productSizes = product.sizes || [];
-const inStock = product.inStock !== false && (product.stock === undefined || product.stock === null || (product.stock as number) > 0);
+const inStock =
+  product.inStock !== false &&
+  (product.stock === undefined ||
+    product.stock === null ||
+    (product.stock as number) > 0);
 const stockCount = product.stock ?? 1;
 
 // Digital Twin Visibility
@@ -68,1522 +72,1511 @@ let averageRating = 0;
 let reviewCount = 0;
 
 try {
-    // @ts-ignore
-    const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({
-        env: {},
-    }));
-    let dbBinding = cfEnv?.visupair_store;
+  // @ts-ignore
+  const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({
+    env: {},
+  }));
+  let dbBinding = cfEnv?.visupair_store;
 
-    try {
-        if (
-            !dbBinding &&
-            Astro.locals.runtime &&
-            typeof Astro.locals.runtime === "object"
-        ) {
-            const descriptor = Object.getOwnPropertyDescriptor(
-                Astro.locals.runtime,
-                "env",
-            );
-            if (descriptor && typeof descriptor.get !== "function") {
-                dbBinding = (Astro.locals.runtime as any).env?.visupair_store;
-            }
-        }
-    } catch (e) {}
-    if (dbBinding) {
-        const db = drizzle(dbBinding);
-        const productReviews = await db
-            .select({ rating: review.rating })
-            .from(review)
-            .where(eq(review.productId, product.id));
-
-        if (productReviews.length > 0) {
-            const total = productReviews.reduce((acc, r) => acc + r.rating, 0);
-            averageRating = total / productReviews.length;
-            reviewCount = productReviews.length;
-        }
+  try {
+    if (
+      !dbBinding &&
+      Astro.locals.runtime &&
+      typeof Astro.locals.runtime === "object"
+    ) {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        Astro.locals.runtime,
+        "env",
+      );
+      if (descriptor && typeof descriptor.get !== "function") {
+        dbBinding = (Astro.locals.runtime as any).env?.visupair_store;
+      }
     }
+  } catch (e) {}
+  if (dbBinding) {
+    const db = drizzle(dbBinding);
+    const productReviews = await db
+      .select({ rating: review.rating })
+      .from(review)
+      .where(eq(review.productId, product.id));
+
+    if (productReviews.length > 0) {
+      const total = productReviews.reduce((acc, r) => acc + r.rating, 0);
+      averageRating = total / productReviews.length;
+      reviewCount = productReviews.length;
+    }
+  }
 } catch (error) {
-    console.warn("Failed to fetch reviews:", error);
+  console.warn("Failed to fetch reviews:", error);
 }
 ---
 
 <div class="product-detail-panel" id="product-detail-panel">
-    <!-- Close Button (Top Right, Sticky) -->
-    <a
-        href={backLink}
-        class="detail-close-btn"
-        id="close-detail-btn"
-        aria-label="Close"
+  <!-- Close Button (Top Right, Sticky) -->
+  <a
+    href={backLink}
+    class="detail-close-btn"
+    id="close-detail-btn"
+    aria-label="Close"
+  >
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
     >
-        <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-    </a>
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </a>
 
-    <div class="detail-layout">
-        <!-- Left Column: Vertical Gallery (Desktop) / Horizontal Slider (Mobile) -->
-        <div class="detail-gallery-column" id="detail-gallery">
-            {
-                galleryImages.map((img, idx) => (
-                    <div class="detail-large-image" data-image-index={idx}>
-                        <img
-                            src={img}
-                            alt={`${product.name} view ${idx + 1}`}
-                            loading="lazy"
-                        />
-                    </div>
-                ))
-            }
-            {
-                /* Clo 3D Viewer Embed - Only if URL is present (Digital Fashion) */
-            }
-            {
-                product.clo3dEmbedUrl && (
-                    <div
-                        class="detail-3d-wrapper"
-                        id="clo3d-wrapper"
-                        data-embed-url={product.clo3dEmbedUrl}
-                    >
-                        <div class="clo3d-placeholder">
-                            <button class="btn-load-3d" id="btn-load-3d">
-                                <svg
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
-                                    <path d="M12 12l8-4.5" />
-                                    <path d="M12 12v9" />
-                                    <path d="M12 12L4 7.5" />
-                                </svg>
-                                <span>Load 3D Viewer</span>
-                            </button>
-                        </div>
-                    </div>
-                )
-            }
-        </div>
-
-        <!-- Mobile Pagination Dots -->
-        <div class="mobile-pagination" id="mobile-pagination">
-            {
-                galleryImages.map((_, idx) => (
-                    <div class="pagination-dot" data-dot-index={idx} />
-                ))
-            }
-        </div>
-
-        <!-- Right Column: Product Info (Sticky on Desktop) -->
-        <div class="detail-info-column">
-            <div class="detail-info-content">
-                <!-- Header: Title & Price -->
-                <div class="detail-header">
-                    <h1 class="detail-title">{product.name}</h1>
-                    <span
-                        class="detail-price product-price-dynamic"
-                        data-price-eur={product.price.toFixed(2)}
-                        data-price-pln={(
-                            product.pricePLN || Math.round(product.price * 4.3)
-                        ).toFixed(2)}
-                        data-server-currency={serverCurrency || ""}
-                    >
-                        €{product.price.toFixed(2)}
-                    </span>
-                </div>
-
-                <!-- Star Rating -->
-                <!-- Star Rating -->
-                <div
-                    class="detail-rating-summary rating-scroll-trigger"
-                    style="cursor: pointer;"
+  <div class="detail-layout">
+    <!-- Left Column: Vertical Gallery (Desktop) / Horizontal Slider (Mobile) -->
+    <div class="detail-gallery-column" id="detail-gallery">
+      {
+        galleryImages.map((img, idx) => (
+          <div class="detail-large-image" data-image-index={idx}>
+            <img
+              src={img}
+              alt={`${product.name} view ${idx + 1}`}
+              loading="lazy"
+            />
+          </div>
+        ))
+      }
+      {/* Clo 3D Viewer Embed - Only if URL is present (Digital Fashion) */}
+      {
+        product.clo3dEmbedUrl && (
+          <div
+            class="detail-3d-wrapper"
+            id="clo3d-wrapper"
+            data-embed-url={product.clo3dEmbedUrl}
+          >
+            <div class="clo3d-placeholder">
+              <button class="btn-load-3d" id="btn-load-3d">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
-                    <StarRating
-                        rating={averageRating}
-                        size={18}
-                        interactive={true}
-                        name="header-rating"
-                    />
-                    <span class="rating-count">
-                        ({reviewCount} review{reviewCount !== 1 ? "s" : ""})
-                    </span>
-                </div>
-
-                <!-- Stock Status -->
-                <div class="detail-stock">
-                    <span
-                        class={`stock-indicator ${inStock ? "in-stock" : "out-of-stock"}`}
-                    >
-                        {inStock
-                            ? (stockCount <= 3 ? "Only " + stockCount + " left" : "In Stock")
-                            : "Sold Out"}
-                    </span>
-                </div>
-
-                <!-- Description -->
-                <p class="detail-description">{product.description}</p>
-
-                <!-- Specifications (Conditional by Product Type) -->
-                {
-                    Object.keys(productDetails).length > 0 && (
-                        <div class="detail-specs">
-                            <h3 class="detail-section-title">Specifications</h3>
-                            <div class="specs-grid">
-                                {Object.entries(productDetails).map(
-                                    ([key, value]) => (
-                                        <div class="spec-row">
-                                            <span class="spec-key">{key}</span>
-                                            <span class="spec-value">
-                                                {String(value)}
-                                            </span>
-                                        </div>
-                                    ),
-                                )}
-                            </div>
-                        </div>
-                    )
-                }
-
-                <!-- Size Selector (Only for Physical Fashion) -->
-                {
-                    productSizes.length > 0 && (
-                        <div class="detail-selector-section">
-                            <h3 class="detail-section-title">Select Size</h3>
-                            <div class="size-options" id="size-options">
-                                {productSizes.map((size) => (
-                                    <button class="size-btn" data-size={size}>
-                                        {size}
-                                    </button>
-                                ))}
-                            </div>
-                            <p
-                                id="size-error"
-                                class="error-text"
-                                style="display: none; color: #ef4444; font-size: 14px; margin-top: 8px;"
-                            >
-                                Please select a size
-                            </p>
-                        </div>
-                    )
-                }
-
-                <!-- Action Buttons: Conditional based on stock status -->
-                {
-                    inStock ? (
-                        <div class="detail-actions-row">
-                            <button
-                                class="btn-brand btn-equal"
-                                id="add-to-cart-btn"
-                                data-product-id={product.id}
-                                data-product-name={product.name}
-                                data-product-type={product.productType}
-                                data-price-eur={product.price}
-                                data-price-pln={
-                                    product.pricePLN ||
-                                    (product.price * 4.3).toFixed(2)
-                                }
-                                data-product-image={product.mainImage ? urlFor(product.mainImage).width(400).url() : product.image || ''}
-                                data-shipping-weight={product.shipping?.weight || ''}
-                                data-shipping-length={product.shipping?.length || ''}
-                                data-shipping-width={product.shipping?.width || ''}
-                                data-shipping-height={product.shipping?.height || ''}
-                                style="display: flex; align-items: center; justify-content: center; gap: 8px;"
-                            >
-                                <svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor" stroke="none">
-                                    <path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"></path>
-                                </svg>
-                                Add to Cart
-                            </button>
-                            <button
-                                class="btn-brand-outline btn-equal"
-                                id="wishlist-btn"
-                                data-product-id={product.id}
-                            >
-                                <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                </svg>
-                                Wish List
-                            </button>
-                        </div>
-                    ) : (
-                        <div class="restock-notification-section">
-                            <h3 class="restock-title">
-                                Get Notified When Back in Stock
-                            </h3>
-                            <p class="restock-description">
-                                This item is currently out of stock. Enter your
-                                email below and we'll notify you when it becomes
-                                available again.
-                            </p>
-                            <form
-                                class="restock-form"
-                                id="restock-form"
-                                data-product-id={product.id}
-                                data-product-name={product.name}
-                                data-product-url={productUrl}
-                            >
-                                <div class="restock-input-group">
-                                    <input
-                                        type="email"
-                                        id="restock-email"
-                                        name="email"
-                                        placeholder="Enter your email address"
-                                        required
-                                        class="restock-email-input"
-                                    />
-                                    <button
-                                        type="submit"
-                                        class="btn-brand btn-restock"
-                                    >
-                                        <svg
-                                            width="18"
-                                            height="18"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                        >
-                                            <path d="M22 2L11 13" />
-                                            <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-                                        </svg>
-                                        Notify Me
-                                    </button>
-                                </div>
-                                <div
-                                    class="restock-message"
-                                    id="restock-message"
-                                    style="display: none;"
-                                />
-                            </form>
-                        </div>
-                    )
-                }
-
-                <!-- Digital Twin Card (Conditional) -->
-                {
-                    hasTwin && showTwinLink && twinProduct && (
-                        <a
-                            href={`/store/${sectionId}/${twinProduct.slug}`}
-                            class="digital-twin-card interactive"
-                            style="text-decoration: none;"
-                        >
-                            <div class="twin-image">
-                                <img
-                                    src={
-                                        twinProduct.image ||
-                                        getPlaceholderImage(
-                                            twinProduct.productType ===
-                                                "digital"
-                                                ? "Digital Twin"
-                                                : "Physical Twin",
-                                            3,
-                                        )
-                                    }
-                                    alt="Twin Asset"
-                                />
-                            </div>
-                            <div class="twin-info">
-                                <span class="twin-tag">
-                                    View{" "}
-                                    {twinProduct.productType === "digital"
-                                        ? "Digital Twin"
-                                        : "Physical Twin"}
-                                </span>
-                                <h4>{twinProduct.name}</h4>
-                            </div>
-                            <div class="twin-arrow">
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <path d="M5 12h14" />
-                                    <path d="M12 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </a>
-                    )
-                }
-
-                <!-- Conditional: Shipping & Returns OR License & Usage -->
-                {
-                    product.productType === "digital" ? (
-                        <details class="detail-accordion-section">
-                            <summary class="accordion-header">
-                                <span>License & Usage</span>
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    class="accordion-chevron"
-                                >
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
-                            </summary>
-                            <div class="accordion-content">
-                                <p>
-                                    <strong>File Formats:</strong> This digital
-                                    product includes industry-standard formats
-                                    (.blend, .fbx, .obj, .gltf) compatible with
-                                    Blender, Maya, Cinema 4D, and Unreal Engine.
-                                </p>
-                                <p style="margin-top: 8px;">
-                                    <strong>License:</strong> Personal and
-                                    commercial use allowed. You may not
-                                    redistribute, resell, or share the source
-                                    files. Final renders and integrated works
-                                    are unrestricted.
-                                </p>
-                                <p style="margin-top: 8px;">
-                                    <strong>Download:</strong> Instant access
-                                    upon purchase. Files are available in your
-                                    account dashboard with lifetime download
-                                    access.
-                                </p>
-                            </div>
-                        </details>
-                    ) : (
-                        <details class="detail-accordion-section">
-                            <summary class="accordion-header">
-                                <span>Shipping & Returns</span>
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    class="accordion-chevron"
-                                >
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
-                            </summary>
-                            <div class="accordion-content">
-                                <p>
-                                    <strong>Shipping:</strong> Free standard
-                                    shipping on all orders over $200. Standard
-                                    delivery takes 3-5 business days. Express
-                                    shipping options available at checkout.
-                                </p>
-                                <p style="margin-top: 8px;">
-                                    <strong>Returns:</strong> We accept returns
-                                    within 14 days of delivery. Items must be
-                                    unworn, unwashed, and in original packaging
-                                    with tags attached.
-                                </p>
-                            </div>
-                        </details>
-                    )
-                }
+                  <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+                  <path d="M12 12l8-4.5" />
+                  <path d="M12 12v9" />
+                  <path d="M12 12L4 7.5" />
+                </svg>
+                <span>Load 3D Viewer</span>
+              </button>
             </div>
-
-            <!-- Customer Reviews Section -->
-            <ReviewSection productId={product.id} />
-        </div>
+          </div>
+        )
+      }
     </div>
+
+    <!-- Mobile Pagination Dots -->
+    <div class="mobile-pagination" id="mobile-pagination">
+      {
+        galleryImages.map((_, idx) => (
+          <div class="pagination-dot" data-dot-index={idx} />
+        ))
+      }
+    </div>
+
+    <!-- Right Column: Product Info (Sticky on Desktop) -->
+    <div class="detail-info-column">
+      <div class="detail-info-content">
+        <!-- Header: Title & Price -->
+        <div class="detail-header">
+          <h1 class="detail-title">{product.name}</h1>
+          <span
+            class="detail-price product-price-dynamic"
+            data-price-eur={product.price.toFixed(2)}
+            data-price-pln={(
+              product.pricePLN || Math.round(product.price * 4.3)
+            ).toFixed(2)}
+            data-server-currency={serverCurrency || ""}
+          >
+            €{product.price.toFixed(2)}
+          </span>
+        </div>
+
+        <!-- Star Rating -->
+        <!-- Star Rating -->
+        <div
+          class="detail-rating-summary rating-scroll-trigger"
+          style="cursor: pointer;"
+        >
+          <StarRating
+            rating={averageRating}
+            size={18}
+            interactive={true}
+            name="header-rating"
+          />
+          <span class="rating-count">
+            ({reviewCount} review{reviewCount !== 1 ? "s" : ""})
+          </span>
+        </div>
+
+        <!-- Stock Status -->
+        <div class="detail-stock">
+          <span
+            class={`stock-indicator ${inStock ? "in-stock" : "out-of-stock"}`}
+          >
+            {
+              inStock
+                ? stockCount < 4
+                  ? "Only " + stockCount + " left"
+                  : "In Stock"
+                : "Sold Out"
+            }
+          </span>
+        </div>
+
+        <!-- Description -->
+        <p class="detail-description">{product.description}</p>
+
+        <!-- Specifications (Conditional by Product Type) -->
+        {
+          Object.keys(productDetails).length > 0 && (
+            <div class="detail-specs">
+              <h3 class="detail-section-title">Specifications</h3>
+              <div class="specs-grid">
+                {Object.entries(productDetails).map(([key, value]) => (
+                  <div class="spec-row">
+                    <span class="spec-key">{key}</span>
+                    <span class="spec-value">{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        }
+
+        <!-- Size Selector (Only for Physical Fashion) -->
+        {
+          productSizes.length > 0 && (
+            <div class="detail-selector-section">
+              <h3 class="detail-section-title">Select Size</h3>
+              <div class="size-options" id="size-options">
+                {productSizes.map((size) => (
+                  <button class="size-btn" data-size={size}>
+                    {size}
+                  </button>
+                ))}
+              </div>
+              <p
+                id="size-error"
+                class="error-text"
+                style="display: none; color: #ef4444; font-size: 14px; margin-top: 8px;"
+              >
+                Please select a size
+              </p>
+            </div>
+          )
+        }
+
+        <!-- Action Buttons: Conditional based on stock status -->
+        {
+          inStock ? (
+            <div class="detail-actions-row">
+              <button
+                class="btn-brand btn-equal"
+                id="add-to-cart-btn"
+                data-product-id={product.id}
+                data-product-name={product.name}
+                data-product-type={product.productType}
+                data-price-eur={product.price}
+                data-price-pln={
+                  product.pricePLN || (product.price * 4.3).toFixed(2)
+                }
+                data-product-image={
+                  product.mainImage
+                    ? urlFor(product.mainImage).width(400).url()
+                    : product.image || ""
+                }
+                data-shipping-weight={product.shipping?.weight || ""}
+                data-shipping-length={product.shipping?.length || ""}
+                data-shipping-width={product.shipping?.width || ""}
+                data-shipping-height={product.shipping?.height || ""}
+                style="display: flex; align-items: center; justify-content: center; gap: 8px;"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 -960 960 960"
+                  fill="currentColor"
+                  stroke="none"
+                >
+                  <path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z" />
+                </svg>
+                Add to Cart
+              </button>
+              <button
+                class="btn-brand-outline btn-equal"
+                id="wishlist-btn"
+                data-product-id={product.id}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                Wish List
+              </button>
+            </div>
+          ) : (
+            <div class="restock-notification-section">
+              <h3 class="restock-title">Get Notified When Back in Stock</h3>
+              <p class="restock-description">
+                This item is currently out of stock. Enter your email below and
+                we'll notify you when it becomes available again.
+              </p>
+              <form
+                class="restock-form"
+                id="restock-form"
+                data-product-id={product.id}
+                data-product-name={product.name}
+                data-product-url={productUrl}
+              >
+                <div class="restock-input-group">
+                  <input
+                    type="email"
+                    id="restock-email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    required
+                    class="restock-email-input"
+                  />
+                  <button type="submit" class="btn-brand btn-restock">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path d="M22 2L11 13" />
+                      <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                    </svg>
+                    Notify Me
+                  </button>
+                </div>
+                <div
+                  class="restock-message"
+                  id="restock-message"
+                  style="display: none;"
+                />
+              </form>
+            </div>
+          )
+        }
+
+        <!-- Digital Twin Card (Conditional) -->
+        {
+          hasTwin && showTwinLink && twinProduct && (
+            <a
+              href={`/store/${sectionId}/${twinProduct.slug}`}
+              class="digital-twin-card interactive"
+              style="text-decoration: none;"
+            >
+              <div class="twin-image">
+                <img
+                  src={
+                    twinProduct.image ||
+                    getPlaceholderImage(
+                      twinProduct.productType === "digital"
+                        ? "Digital Twin"
+                        : "Physical Twin",
+                      3,
+                    )
+                  }
+                  alt="Twin Asset"
+                />
+              </div>
+              <div class="twin-info">
+                <span class="twin-tag">
+                  View{" "}
+                  {twinProduct.productType === "digital"
+                    ? "Digital Twin"
+                    : "Physical Twin"}
+                </span>
+                <h4>{twinProduct.name}</h4>
+              </div>
+              <div class="twin-arrow">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M5 12h14" />
+                  <path d="M12 5l7 7-7 7" />
+                </svg>
+              </div>
+            </a>
+          )
+        }
+
+        <!-- Conditional: Shipping & Returns OR License & Usage -->
+        {
+          product.productType === "digital" ? (
+            <details class="detail-accordion-section">
+              <summary class="accordion-header">
+                <span>License & Usage</span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="accordion-chevron"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </summary>
+              <div class="accordion-content">
+                <p>
+                  <strong>File Formats:</strong> This digital product includes
+                  industry-standard formats (.blend, .fbx, .obj, .gltf)
+                  compatible with Blender, Maya, Cinema 4D, and Unreal Engine.
+                </p>
+                <p style="margin-top: 8px;">
+                  <strong>License:</strong> Personal and commercial use allowed.
+                  You may not redistribute, resell, or share the source files.
+                  Final renders and integrated works are unrestricted.
+                </p>
+                <p style="margin-top: 8px;">
+                  <strong>Download:</strong> Instant access upon purchase. Files
+                  are available in your account dashboard with lifetime download
+                  access.
+                </p>
+              </div>
+            </details>
+          ) : (
+            <details class="detail-accordion-section">
+              <summary class="accordion-header">
+                <span>Shipping & Returns</span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="accordion-chevron"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </summary>
+              <div class="accordion-content">
+                <p>
+                  <strong>Shipping:</strong> Free standard shipping on all
+                  orders over $200. Standard delivery takes 3-5 business days.
+                  Express shipping options available at checkout.
+                </p>
+                <p style="margin-top: 8px;">
+                  <strong>Returns:</strong> We accept returns within 14 days of
+                  delivery. Items must be unworn, unwashed, and in original
+                  packaging with tags attached.
+                </p>
+              </div>
+            </details>
+          )
+        }
+      </div>
+
+      <!-- Customer Reviews Section -->
+      <ReviewSection productId={product.id} />
+    </div>
+  </div>
 </div>
 
 <ShippingForm
-    product={{
-        name: product.name,
-        price: product.price, // Uses defaults, but Form component handles display logic if passed props
-        image: urlFor(product.mainImage).width(200).url(),
-        shipping: product.shipping, // Pass shipping specs
-    }}
-    currency={serverCurrency || "EUR"}
+  product={{
+    name: product.name,
+    price: product.price, // Uses defaults, but Form component handles display logic if passed props
+    image: urlFor(product.mainImage).width(200).url(),
+    shipping: product.shipping, // Pass shipping specs
+  }}
+  currency={serverCurrency || "EUR"}
 />
 
 <!-- Stripe Checkout is handled on the server (redirect) -->
 
 <style>
-    /* ===============================
+  /* ===============================
        PRODUCT DETAIL VIEW
        =============================== */
 
-    /* Main Container: The ONLY scrollable element */
-    .product-detail-panel {
-        flex: 1;
-        height: 100%;
-        background: var(--surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-md);
-        position: relative;
-
-        /* Vertical Scroll for the whole page/panel */
-        overflow-y: auto;
-        overflow-x: hidden;
-
-        display: flex;
-        flex-direction: column;
-        animation: fadeIn 0.3s ease-out;
-
-        /* Allow clicks to pass through to fixed elements like AccountSidebar */
-        pointer-events: auto;
-    }
-
-    /* Re-enable pointer events for interactive elements */
-    .product-detail-panel a,
-    .product-detail-panel button,
-    .product-detail-panel input,
-    .product-detail-panel textarea,
-    .product-detail-panel [role="button"],
-    .product-detail-panel details,
-    .product-detail-panel summary {
-        pointer-events: auto;
-    }
-
-    /* Scrollbar Styling - Thin & Subtle */
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .animate-spin {
-        animation: spin 1s linear infinite;
-    }
-
-    /* Close Button at Top Right (FIXED: Sticky) */
-    .detail-close-btn {
-        position: sticky;
-        top: 16px;
-
-        align-self: flex-end;
-        margin-right: 16px;
-        margin-bottom: -36px;
-
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        min-height: 36px;
-        border-radius: 50%;
-        background: var(--surface-hover);
-        border: 1px solid var(--border-subtle);
-        color: var(--foreground);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 50;
-        transition: all 0.2s;
-        flex-shrink: 0;
-    }
-
-    .detail-close-btn:hover {
-        background: var(--brand-violet);
-        color: white;
-        border-color: var(--brand-violet);
-        transform: rotate(90deg);
-    }
-
-    /* Inner Layout */
-    .detail-layout {
-        display: flex;
-        width: 100%;
-        min-height: min-content;
-        position: relative;
-        align-items: flex-start;
-    }
-
-    /* Left: Gallery Column */
-    .detail-gallery-column {
-        flex: 6;
-        width: 60%;
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        border-right: 1px solid var(--border-subtle);
-        overflow: visible;
-    }
-
-    .detail-large-image {
-        width: 100%;
-        height: auto;
-        background: var(--surface-muted);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        border: 1px solid var(--border-subtle);
-        flex-shrink: 0;
-        cursor: zoom-in;
-        transition: transform 0.2s;
-    }
-
-    .detail-large-image:hover {
-        transform: scale(1.01);
-    }
-
-    .detail-large-image img {
-        display: block;
-        width: 100%;
-        height: auto;
-        object-fit: cover;
-    }
-
-    /* Right: Info Column (Sticky) */
-    .detail-info-column {
-        flex: 4;
-        width: 40%;
-
-        position: sticky;
-        top: 0;
-
-        height: auto;
-        align-self: flex-start;
-        overflow: visible;
-
-        background: var(--surface);
-        display: flex;
-        flex-direction: column;
-    }
-
-    .detail-info-content {
-        padding: 32px 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        height: auto;
-        overflow: visible;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-
-    /* Info Typography */
-    .detail-header {
-        border-bottom: 1px solid var(--border-subtle);
-        padding-bottom: 20px;
-        padding-right: 40px;
-    }
-
-    .detail-title {
-        font-size: 32px;
-        font-weight: 700;
-        line-height: 1.1;
-        margin-bottom: 8px;
-        color: var(--foreground);
-    }
-
-    .detail-price {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--brand-violet);
-    }
-
-    /* Stock */
-    .detail-rating-summary {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px; /* Space before stock */
-    }
-
-    .rating-count {
-        font-size: 13px;
-        color: var(--foreground);
-        opacity: 0.7;
-        text-decoration: none;
-    }
-
-    .rating-count:hover {
-        text-decoration: underline;
-        color: var(--brand-violet);
-    }
-
-    .detail-stock {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .stock-indicator {
-        font-size: 13px;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: var(--radius-pill);
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .stock-indicator::before {
-        content: "";
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: currentColor;
-    }
-
-    .stock-indicator.in-stock {
-        background: color-mix(in srgb, var(--brand-lime), transparent 80%);
-        color: var(--brand-lime);
-    }
-
-    /* Keep it subtle in Dark Mode */
-    :global([data-theme="dark"]) .stock-indicator.in-stock {
-        background: color-mix(in srgb, var(--brand-lime), transparent 90%);
-    }
-
-    .stock-indicator.out-of-stock {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-    }
-
-    .detail-description {
-        font-size: 15px;
-        line-height: 1.6;
-        opacity: 0.8;
-        color: var(--foreground);
-    }
-
-    /* Specs & Sizes */
-    .detail-section-title {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        opacity: 0.5;
-        margin-bottom: 12px;
-        color: var(--foreground);
-    }
-
-    .specs-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        background: var(--surface-muted);
-        padding: 16px;
-        border-radius: var(--radius-lg);
-    }
-
-    .spec-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 14px;
-        border-bottom: 1px dashed var(--border-subtle);
-        padding-bottom: 8px;
-        color: var(--foreground);
-    }
-
-    .spec-row:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-
-    .spec-key {
-        opacity: 0.6;
-    }
-
-    .spec-value {
-        font-weight: 600;
-    }
-
-    .size-options {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .size-btn {
-        min-width: 48px;
-        height: 40px;
-        padding: 0 12px;
-        background: var(--surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-sm);
-        color: var(--foreground);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-family: var(--font-family);
-    }
-
-    .size-btn:hover {
-        border-color: var(--brand-violet);
-    }
-
-    .size-btn.active {
-        background: var(--foreground);
-        color: var(--page-bg);
-        border-color: var(--foreground);
-    }
-
-    /* Error State for Size Selector */
-    .size-options.error {
-        animation: shake 0.4s ease-in-out;
-    }
-
-    .size-options.error .size-btn {
-        border-color: #ef4444;
-        background-color: rgba(239, 68, 68, 0.05);
-        color: #ef4444;
-    }
-
-    @keyframes shake {
-        0%,
-        100% {
-            transform: translateX(0);
-        }
-        25% {
-            transform: translateX(-4px);
-        }
-        75% {
-            transform: translateX(4px);
-        }
-    }
-
-    /* Actions: Equal Sized Buttons */
-    .detail-actions-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-top: 8px;
-    }
-
-    .btn-equal {
-        flex: 1;
-
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        margin: 0;
-        padding: 0 24px;
-    }
-
-    .btn-brand {
-        width: 100%;
-        padding: 14px;
-        background: var(--brand-violet);
-        color: #ffffff;
-        border: none;
-        border-radius: var(--radius-md);
-        font-family: var(--font-family);
-        font-weight: 600;
-        font-size: 16px;
-        cursor: pointer;
-        transition:
-            transform 0.2s,
-            background-color 0.2s,
-            box-shadow 0.2s;
-        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3); /* Added initial shadow to match others */
-    }
-
-    .btn-brand:hover {
-        background: #9d9aff;
-        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
-        transform: translateY(-2px);
-    }
-
-    .btn-brand.added {
-        background: #10b981;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-brand.go-to-cart {
-        background: var(--foreground);
-        color: var(--page-bg);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-brand.go-to-cart:hover {
-        opacity: 0.85;
-        transform: translateY(-2px);
-    }
-
-    .btn-brand-outline {
-        width: 100%;
-        padding: 14px;
-        background: transparent;
-        color: var(--foreground);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-md);
-        font-family: var(--font-family);
-        font-weight: 600;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .btn-brand-outline:hover {
-        background: var(--surface-hover);
-    }
-
-    /* Restock Notification Section */
-    .restock-notification-section {
-        background: var(--surface-muted);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-lg);
-        padding: 16px;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        overflow: hidden;
-    }
-
-    .restock-title {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--foreground);
-        margin: 0 0 6px 0;
-    }
-
-    .restock-description {
-        font-size: 13px;
-        color: var(--foreground);
-        opacity: 0.7;
-        margin: 0 0 14px 0;
-        line-height: 1.4;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }
-
-    .restock-form {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .restock-input-group {
-        display: flex;
-        gap: 8px;
-        width: 100%;
-        max-width: 100%;
-    }
-
-    .restock-email-input {
-        flex: 1;
-        min-width: 0;
-        padding: 12px 14px;
-        background: var(--surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-md);
-        font-family: var(--font-family);
-        font-size: 13px;
-        color: var(--foreground);
-        transition:
-            border-color 0.2s,
-            box-shadow 0.2s;
-        box-sizing: border-box;
-    }
-
-    .restock-email-input:focus {
-        outline: none;
-        border-color: var(--brand-violet);
-        box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
-    }
-
-    .restock-email-input::placeholder {
-        color: var(--foreground);
-        opacity: 0.4;
-    }
-
-    .btn-restock {
-        padding: 12px 20px;
-        background: var(--brand-violet);
-        color: #ffffff;
-        border: none;
-        border-radius: var(--radius-md);
-        font-family: var(--font-family);
-        font-weight: 600;
-        font-size: 13px;
-        cursor: pointer;
-        transition:
-            background-color 0.2s,
-            transform 0.2s,
-            box-shadow 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        white-space: nowrap;
-        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
-        max-width: 140px;
-        box-sizing: border-box;
-        flex-shrink: 0;
-    }
-
-    .btn-restock:hover {
-        background: #9d9aff;
-        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
-        transform: translateY(-2px);
-    }
-
-    .btn-restock:active {
-        transform: translateY(0);
-    }
-
-    .restock-message {
-        padding: 12px 16px;
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        font-weight: 500;
-        text-align: center;
-    }
-
-    .restock-message.success {
-        background: rgba(203, 255, 98, 0.1);
-        color: var(--brand-lime);
-        border: 1px solid rgba(203, 255, 98, 0.3);
-    }
-
-    .restock-message.error {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    /* Digital Twin Card */
-    .digital-twin-card {
-        background: linear-gradient(
-            135deg,
-            rgba(132, 128, 255, 0.05),
-            rgba(132, 128, 255, 0.02)
-        );
-        border: 1px solid rgba(132, 128, 255, 0.1);
-        border-radius: var(--radius-lg);
-        padding: 12px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-top: 8px;
-        transition: all 0.2s;
-        cursor: default;
-    }
-
-    .digital-twin-card.interactive {
-        cursor: pointer;
-        border: 1px solid rgba(132, 128, 255, 0.3);
-    }
-
-    .digital-twin-card.interactive:hover {
-        background: rgba(132, 128, 255, 0.08);
-        transform: translateY(-1px);
-    }
-
-    .twin-image {
-        width: 48px;
-        height: 48px;
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        background: var(--surface-muted);
-        flex-shrink: 0;
-    }
-
-    .twin-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .twin-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .twin-tag {
-        font-size: 10px;
-        text-transform: uppercase;
-        font-weight: 700;
-        color: var(--brand-lime);
-        letter-spacing: 0.05em;
-    }
-
-    .twin-info h4 {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--foreground);
-        margin: 0;
-    }
-
-    .twin-arrow {
-        opacity: 0.5;
-        color: var(--brand-violet);
-    }
-
-    /* Accordion Section (Native <details>) */
-    .detail-accordion-section {
-        border-top: 1px solid var(--border-subtle);
-        padding-top: 16px;
-        margin-top: 8px;
-    }
-
-    .accordion-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-family: var(--font-family);
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--foreground);
-        cursor: pointer;
-        opacity: 0.9;
-        list-style: none;
-        padding: 0;
-    }
-
-    .accordion-header::-webkit-details-marker {
-        display: none;
-    }
-
-    .accordion-header:hover {
-        opacity: 1;
-        color: var(--brand-violet);
-    }
-
-    .accordion-chevron {
-        transition: transform 0.2s ease;
-    }
-
-    details[open] .accordion-chevron {
-        transform: rotate(180deg);
-    }
-
-    .accordion-content {
-        padding-top: 12px;
-        font-size: 14px;
-        line-height: 1.5;
-        opacity: 0.7;
-        color: var(--foreground);
-    }
-
-    /* Mobile Pagination */
-    .mobile-pagination {
-        display: none;
-    }
-
-    /* ===============================
+  /* Main Container: The ONLY scrollable element */
+  .product-detail-panel {
+    flex: 1;
+    height: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    position: relative;
+
+    /* Vertical Scroll for the whole page/panel */
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease-out;
+
+    /* Allow clicks to pass through to fixed elements like AccountSidebar */
+    pointer-events: auto;
+  }
+
+  /* Re-enable pointer events for interactive elements */
+  .product-detail-panel a,
+  .product-detail-panel button,
+  .product-detail-panel input,
+  .product-detail-panel textarea,
+  .product-detail-panel [role="button"],
+  .product-detail-panel details,
+  .product-detail-panel summary {
+    pointer-events: auto;
+  }
+
+  /* Scrollbar Styling - Thin & Subtle */
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Close Button at Top Right (FIXED: Sticky) */
+  .detail-close-btn {
+    position: sticky;
+    top: 16px;
+
+    align-self: flex-end;
+    margin-right: 16px;
+    margin-bottom: -36px;
+
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 50%;
+    background: var(--surface-hover);
+    border: 1px solid var(--border-subtle);
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .detail-close-btn:hover {
+    background: var(--brand-violet);
+    color: white;
+    border-color: var(--brand-violet);
+    transform: rotate(90deg);
+  }
+
+  /* Inner Layout */
+  .detail-layout {
+    display: flex;
+    width: 100%;
+    min-height: min-content;
+    position: relative;
+    align-items: flex-start;
+  }
+
+  /* Left: Gallery Column */
+  .detail-gallery-column {
+    flex: 6;
+    width: 60%;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    border-right: 1px solid var(--border-subtle);
+    overflow: visible;
+  }
+
+  .detail-large-image {
+    width: 100%;
+    height: auto;
+    background: var(--surface-muted);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    cursor: zoom-in;
+    transition: transform 0.2s;
+  }
+
+  .detail-large-image:hover {
+    transform: scale(1.01);
+  }
+
+  .detail-large-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  /* Right: Info Column (Sticky) */
+  .detail-info-column {
+    flex: 4;
+    width: 40%;
+
+    position: sticky;
+    top: 0;
+
+    height: auto;
+    align-self: flex-start;
+    overflow: visible;
+
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-info-content {
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: auto;
+    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Info Typography */
+  .detail-header {
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 20px;
+    padding-right: 40px;
+  }
+
+  .detail-title {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    color: var(--foreground);
+  }
+
+  .detail-price {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--brand-violet);
+  }
+
+  /* Stock */
+  .detail-rating-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px; /* Space before stock */
+  }
+
+  .rating-count {
+    font-size: 13px;
+    color: var(--foreground);
+    opacity: 0.7;
+    text-decoration: none;
+  }
+
+  .rating-count:hover {
+    text-decoration: underline;
+    color: var(--brand-violet);
+  }
+
+  .detail-stock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stock-indicator {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stock-indicator::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .stock-indicator.in-stock {
+    background: color-mix(in srgb, var(--brand-lime), transparent 80%);
+    color: var(--brand-lime);
+  }
+
+  /* Keep it subtle in Dark Mode */
+  :global([data-theme="dark"]) .stock-indicator.in-stock {
+    background: color-mix(in srgb, var(--brand-lime), transparent 90%);
+  }
+
+  .stock-indicator.out-of-stock {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+
+  .detail-description {
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: 0.8;
+    color: var(--foreground);
+  }
+
+  /* Specs & Sizes */
+  .detail-section-title {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    margin-bottom: 12px;
+    color: var(--foreground);
+  }
+
+  .specs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--surface-muted);
+    padding: 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    border-bottom: 1px dashed var(--border-subtle);
+    padding-bottom: 8px;
+    color: var(--foreground);
+  }
+
+  .spec-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .spec-key {
+    opacity: 0.6;
+  }
+
+  .spec-value {
+    font-weight: 600;
+  }
+
+  .size-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .size-btn {
+    min-width: 48px;
+    height: 40px;
+    padding: 0 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+  }
+
+  .size-btn:hover {
+    border-color: var(--brand-violet);
+  }
+
+  .size-btn.active {
+    background: var(--foreground);
+    color: var(--page-bg);
+    border-color: var(--foreground);
+  }
+
+  /* Error State for Size Selector */
+  .size-options.error {
+    animation: shake 0.4s ease-in-out;
+  }
+
+  .size-options.error .size-btn {
+    border-color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.05);
+    color: #ef4444;
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+
+  /* Actions: Equal Sized Buttons */
+  .detail-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .btn-equal {
+    flex: 1;
+
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0 24px;
+  }
+
+  .btn-brand {
+    width: 100%;
+    padding: 14px;
+    background: var(--brand-violet);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition:
+      transform 0.2s,
+      background-color 0.2s,
+      box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3); /* Added initial shadow to match others */
+  }
+
+  .btn-brand:hover {
+    background: #9d9aff;
+    box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .btn-brand.added {
+    background: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-brand.go-to-cart {
+    background: var(--foreground);
+    color: var(--page-bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-brand.go-to-cart:hover {
+    opacity: 0.85;
+    transform: translateY(-2px);
+  }
+
+  .btn-brand-outline {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-brand-outline:hover {
+    background: var(--surface-hover);
+  }
+
+  /* Restock Notification Section */
+  .restock-notification-section {
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .restock-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0 0 6px 0;
+  }
+
+  .restock-description {
+    font-size: 13px;
+    color: var(--foreground);
+    opacity: 0.7;
+    margin: 0 0 14px 0;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .restock-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .restock-input-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .restock-email-input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--foreground);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  .restock-email-input:focus {
+    outline: none;
+    border-color: var(--brand-violet);
+    box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
+  }
+
+  .restock-email-input::placeholder {
+    color: var(--foreground);
+    opacity: 0.4;
+  }
+
+  .btn-restock {
+    padding: 12px 20px;
+    background: var(--brand-violet);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    max-width: 140px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .btn-restock:hover {
+    background: #9d9aff;
+    box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .btn-restock:active {
+    transform: translateY(0);
+  }
+
+  .restock-message {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .restock-message.success {
+    background: rgba(203, 255, 98, 0.1);
+    color: var(--brand-lime);
+    border: 1px solid rgba(203, 255, 98, 0.3);
+  }
+
+  .restock-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  /* Digital Twin Card */
+  .digital-twin-card {
+    background: linear-gradient(
+      135deg,
+      rgba(132, 128, 255, 0.05),
+      rgba(132, 128, 255, 0.02)
+    );
+    border: 1px solid rgba(132, 128, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .digital-twin-card.interactive {
+    cursor: pointer;
+    border: 1px solid rgba(132, 128, 255, 0.3);
+  }
+
+  .digital-twin-card.interactive:hover {
+    background: rgba(132, 128, 255, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .twin-image {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface-muted);
+    flex-shrink: 0;
+  }
+
+  .twin-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .twin-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .twin-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--brand-lime);
+    letter-spacing: 0.05em;
+  }
+
+  .twin-info h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0;
+  }
+
+  .twin-arrow {
+    opacity: 0.5;
+    color: var(--brand-violet);
+  }
+
+  /* Accordion Section (Native <details>) */
+  .detail-accordion-section {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 16px;
+    margin-top: 8px;
+  }
+
+  .accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--foreground);
+    cursor: pointer;
+    opacity: 0.9;
+    list-style: none;
+    padding: 0;
+  }
+
+  .accordion-header::-webkit-details-marker {
+    display: none;
+  }
+
+  .accordion-header:hover {
+    opacity: 1;
+    color: var(--brand-violet);
+  }
+
+  .accordion-chevron {
+    transition: transform 0.2s ease;
+  }
+
+  details[open] .accordion-chevron {
+    transform: rotate(180deg);
+  }
+
+  .accordion-content {
+    padding-top: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.7;
+    color: var(--foreground);
+  }
+
+  /* Mobile Pagination */
+  .mobile-pagination {
+    display: none;
+  }
+
+  /* ===============================
        MOBILE RESPONSIVE
        =============================== */
 
-    @media (max-width: 1024px) {
-        .detail-layout {
-            flex-direction: column;
-        }
-
-        /* Mobile Image Slider: Horizontal Swipe */
-        .detail-gallery-column {
-            display: flex;
-            flex-direction: row;
-            width: 100%;
-            height: auto;
-            aspect-ratio: 1/1;
-
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-snap-type: x mandatory;
-
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-
-            padding: 0;
-            gap: 0;
-            border-right: none;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .detail-gallery-column::-webkit-scrollbar {
-            display: none;
-        }
-
-        .detail-large-image {
-            min-width: 100%;
-            width: 100%;
-            height: 100%;
-            flex-shrink: 0;
-            scroll-snap-align: start;
-            border-radius: 0;
-            border: none;
-        }
-
-        .detail-large-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .detail-info-column {
-            flex: column;
-            width: 100%;
-            position: static;
-            height: auto;
-            overflow: visible;
-        }
-
-        .product-detail-panel {
-            overflow-y: auto;
-        }
-
-        .detail-info-content {
-            padding: 20px 16px;
-        }
-
-        /* Pagination Dots */
-        .mobile-pagination {
-            display: flex;
-            width: 100%;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            padding: 16px 0;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border-subtle);
-            position: relative;
-            z-index: 2;
-        }
-
-        .pagination-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--border-subtle);
-            transition: all 0.2s;
-        }
-
-        .pagination-dot.active {
-            background: var(--brand-violet);
-            transform: scale(1.4);
-        }
-
-        /* Restock Notification Form - Tablet */
-        .restock-input-group {
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .btn-restock {
-            max-width: 100%;
-            width: 100%;
-            justify-content: center;
-        }
+  @media (max-width: 1024px) {
+    .detail-layout {
+      flex-direction: column;
     }
 
-    /* Mobile - Extra compact */
-    @media (max-width: 768px) {
-        .restock-notification-section {
-            padding: 12px;
-            margin-left: 0;
-            margin-right: 0;
-        }
+    /* Mobile Image Slider: Horizontal Swipe */
+    .detail-gallery-column {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1/1;
 
-        .restock-title {
-            font-size: 14px;
-        }
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
 
-        .restock-description {
-            font-size: 12px;
-            margin-bottom: 12px;
-        }
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
 
-        .restock-email-input {
-            font-size: 12px;
-            padding: 10px 12px;
-        }
-
-        .btn-restock {
-            font-size: 12px;
-            padding: 10px 16px;
-        }
+      padding: 0;
+      gap: 0;
+      border-right: none;
+      border-bottom: 1px solid var(--border-subtle);
     }
-    /* 3D Viewer Wrapper */
+
+    .detail-gallery-column::-webkit-scrollbar {
+      display: none;
+    }
+
+    .detail-large-image {
+      min-width: 100%;
+      width: 100%;
+      height: 100%;
+      flex-shrink: 0;
+      scroll-snap-align: start;
+      border-radius: 0;
+      border: none;
+    }
+
+    .detail-large-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .detail-info-column {
+      flex: column;
+      width: 100%;
+      position: static;
+      height: auto;
+      overflow: visible;
+    }
+
+    .product-detail-panel {
+      overflow-y: auto;
+    }
+
+    .detail-info-content {
+      padding: 20px 16px;
+    }
+
+    /* Pagination Dots */
+    .mobile-pagination {
+      display: flex;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+      z-index: 2;
+    }
+
+    .pagination-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border-subtle);
+      transition: all 0.2s;
+    }
+
+    .pagination-dot.active {
+      background: var(--brand-violet);
+      transform: scale(1.4);
+    }
+
+    /* Restock Notification Form - Tablet */
+    .restock-input-group {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-restock {
+      max-width: 100%;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Mobile - Extra compact */
+  @media (max-width: 768px) {
+    .restock-notification-section {
+      padding: 12px;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .restock-title {
+      font-size: 14px;
+    }
+
+    .restock-description {
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .restock-email-input {
+      font-size: 12px;
+      padding: 10px 12px;
+    }
+
+    .btn-restock {
+      font-size: 12px;
+      padding: 10px 16px;
+    }
+  }
+  /* 3D Viewer Wrapper */
+  .detail-3d-wrapper {
+    width: 100%;
+    height: 600px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    /* Ensure dynamic content is handled correctly */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Target dynamic iframe specifically */
+  .detail-3d-wrapper :global(iframe) {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .clo3d-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #898a8f 0%, #f2f2f7 100%);
+    gap: 12px;
+  }
+
+  .btn-load-3d {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: color-mix(in srgb, var(--surface), transparent 50%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px; /* XL Radius: 10px */
+    color: var(--foreground);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-load-3d:hover {
+    background: var(--brand-violet);
+    color: white;
+    border-color: var(--brand-violet);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(132, 128, 255, 0.3);
+  }
+
+  .clo3d-note {
+    font-size: 13px;
+    opacity: 0.6;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
     .detail-3d-wrapper {
-        width: 100%;
-        height: 600px;
-        background: var(--surface-muted);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        border: 1px solid var(--border-subtle);
-        flex-shrink: 0;
-        /* Ensure dynamic content is handled correctly */
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      height: 450px;
     }
+  }
 
-    /* Target dynamic iframe specifically */
-    .detail-3d-wrapper :global(iframe) {
-        width: 100%;
-        height: 100%;
-        border: none;
-        display: block;
-        animation: fadeIn 0.5s ease-out;
-    }
+  /* Checkout Modal Styles */
+  .checkout-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2147483647; /* Max Safe Integer to be always on top */
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    overflow: hidden; /* Prevent background scroll interaction */
+  }
 
-    .clo3d-placeholder {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #898a8f 0%, #f2f2f7 100%);
-        gap: 12px;
-    }
-
-    .btn-load-3d {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 24px;
-        background: color-mix(in srgb, var(--surface), transparent 50%);
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px; /* XL Radius: 10px */
-        color: var(--foreground);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-
-    .btn-load-3d:hover {
-        background: var(--brand-violet);
-        color: white;
-        border-color: var(--brand-violet);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(132, 128, 255, 0.3);
-    }
-
-    .clo3d-note {
-        font-size: 13px;
-        opacity: 0.6;
-        margin: 0;
-    }
-
-    @media (max-width: 768px) {
-        .detail-3d-wrapper {
-            height: 450px;
-        }
-    }
-
-    /* Checkout Modal Styles */
+  @media (max-width: 1024px) {
     .checkout-modal {
-        display: none; /* Hidden by default */
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        z-index: 2147483647; /* Max Safe Integer to be always on top */
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        overflow: hidden; /* Prevent background scroll interaction */
+      align-items: flex-end; /* Bottom Sheet style */
+      padding: 0;
     }
-
-    @media (max-width: 1024px) {
-        .checkout-modal {
-            align-items: flex-end; /* Bottom Sheet style */
-            padding: 0;
-        }
-        .checkout-container {
-            width: 100% !important;
-            height: auto !important;
-            min-height: 50vh; /* Ensure meaningful height */
-            max-height: 95vh !important; /* Leave little space on top */
-            max-width: none !important;
-            border-radius: 20px 20px 0 0 !important;
-            border: none !important;
-            display: flex;
-            flex-direction: column;
-        }
-        .close-checkout-btn {
-            top: 16px;
-            right: 16px;
-            z-index: 2147483648;
-            background: rgba(
-                255,
-                255,
-                255,
-                0.1
-            ); /* Better visibility on overlay */
-            color: white;
-            border: none;
-        }
-    }
-
-    .checkout-modal.active {
-        display: flex;
-        opacity: 1;
-    }
-
     .checkout-container {
-        position: relative;
-        width: 100%;
-        max-width: 1200px;
-        min-height: 400px; /* Prevent collapse during load */
-        height: auto;
-        max-height: 90vh;
-        /* background: var(--surface); */
-        /* border: 1px solid var(--border-subtle); */
-        /* box-shadow: var(--shadow-xl); */
-        background: transparent;
-        border: none;
-        box-shadow: none;
-        overflow-y: auto;
-        animation: slideUp 0.3s ease-out;
-        display: flex;
-        flex-direction: column;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 50vh; /* Ensure meaningful height */
+      max-height: 95vh !important; /* Leave little space on top */
+      max-width: none !important;
+      border-radius: 20px 20px 0 0 !important;
+      border: none !important;
+      display: flex;
+      flex-direction: column;
     }
+    .close-checkout-btn {
+      top: 16px;
+      right: 16px;
+      z-index: 2147483648;
+      background: rgba(255, 255, 255, 0.1); /* Better visibility on overlay */
+      color: white;
+      border: none;
+    }
+  }
 
-    @keyframes slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
+  .checkout-modal.active {
+    display: flex;
+    opacity: 1;
+  }
 
-    .checkout-loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        color: var(--text-muted);
-        z-index: 1; /* Below iframe when loaded? */
-    }
+  .checkout-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    min-height: 400px; /* Prevent collapse during load */
+    height: auto;
+    max-height: 90vh;
+    /* background: var(--surface); */
+    /* border: 1px solid var(--border-subtle); */
+    /* box-shadow: var(--shadow-xl); */
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+  }
 
-    #checkout-iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-        position: relative;
-        z-index: 2; /* Cover loading spinner */
-        background: transparent;
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
     }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .checkout-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    z-index: 1; /* Below iframe when loaded? */
+  }
+
+  #checkout-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    position: relative;
+    z-index: 2; /* Cover loading spinner */
+    background: transparent;
+  }
 </style>
 
 <script>
-    import { authClient } from "../lib/auth-client";
-    import {
-        favoritesStore,
-        toggleFavorite,
-        initFavorites,
-    } from "../lib/favoritesStore";
+  import { authClient } from "../lib/auth-client";
+  import {
+    favoritesStore,
+    toggleFavorite,
+    initFavorites,
+  } from "../lib/favoritesStore";
 
-    // ==========================================
-    // WISHLIST / FAVORITES LOGIC
-    // ==========================================
+  // ==========================================
+  // WISHLIST / FAVORITES LOGIC
+  // ==========================================
 
-    function updateWishlistBtn(favorites: readonly string[]) {
-        const btn = document.getElementById(
-            "wishlist-btn",
-        ) as HTMLButtonElement | null;
-        if (!btn) return;
-        const productId = btn.getAttribute("data-product-id");
-        if (!productId) return;
+  function updateWishlistBtn(favorites: readonly string[]) {
+    const btn = document.getElementById(
+      "wishlist-btn",
+    ) as HTMLButtonElement | null;
+    if (!btn) return;
+    const productId = btn.getAttribute("data-product-id");
+    if (!productId) return;
 
-        const svg = btn.querySelector("svg");
-        const isFav = favorites.includes(productId);
+    const svg = btn.querySelector("svg");
+    const isFav = favorites.includes(productId);
 
-        if (isFav) {
-            svg?.setAttribute("fill", "currentColor");
-            btn.classList.add("active");
-            btn.setAttribute("aria-pressed", "true");
-        } else {
-            svg?.setAttribute("fill", "none");
-            btn.classList.remove("active");
-            btn.setAttribute("aria-pressed", "false");
-        }
+    if (isFav) {
+      svg?.setAttribute("fill", "currentColor");
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+    } else {
+      svg?.setAttribute("fill", "none");
+      btn.classList.remove("active");
+      btn.setAttribute("aria-pressed", "false");
     }
+  }
 
-    function handleWishlistClick(e: Event) {
-        e.preventDefault();
-        e.stopPropagation();
-        const btn = document.getElementById("wishlist-btn");
-        const productId = btn?.getAttribute("data-product-id");
-        if (productId) {
-            toggleFavorite(productId);
-        }
+  function handleWishlistClick(e: Event) {
+    e.preventDefault();
+    e.stopPropagation();
+    const btn = document.getElementById("wishlist-btn");
+    const productId = btn?.getAttribute("data-product-id");
+    if (productId) {
+      toggleFavorite(productId);
     }
+  }
 
-    // Subscribe once — keeps button in sync whenever store changes
-    favoritesStore.subscribe(updateWishlistBtn);
+  // Subscribe once — keeps button in sync whenever store changes
+  favoritesStore.subscribe(updateWishlistBtn);
 
-    // Define interface for Shipping Data
-    interface ShippingData {
-        email: string;
-        firstName: string;
-        lastName: string;
-        address: string;
-        city: string;
-        postalCode: string;
-        country: string;
-        phone?: string;
-    }
-    // ==========================================
-    // ==========================================
-    // CLIENT-SIDE INTERACTIVITY
-    // ==========================================
+  // Define interface for Shipping Data
+  interface ShippingData {
+    email: string;
+    firstName: string;
+    lastName: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    country: string;
+    phone?: string;
+  }
+  // ==========================================
+  // ==========================================
+  // CLIENT-SIDE INTERACTIVITY
+  // ==========================================
 
-    // ── Checkout Error Toast ─────────────────────────────────────────────────
-    // Shows a polished, theme-aware notification instead of a raw browser alert.
-    function showCheckoutToast(message: string) {
-        // Remove any existing toast first
-        document.getElementById("vs-checkout-toast")?.remove();
+  // ── Checkout Error Toast ─────────────────────────────────────────────────
+  // Shows a polished, theme-aware notification instead of a raw browser alert.
+  function showCheckoutToast(message: string) {
+    // Remove any existing toast first
+    document.getElementById("vs-checkout-toast")?.remove();
 
-        // Inject styles once
-        if (!document.getElementById("vs-toast-styles")) {
-            const s = document.createElement("style");
-            s.id = "vs-toast-styles";
-            s.textContent = `
+    // Inject styles once
+    if (!document.getElementById("vs-toast-styles")) {
+      const s = document.createElement("style");
+      s.id = "vs-toast-styles";
+      s.textContent = `
                 #vs-checkout-toast {
                     position: fixed;
                     bottom: 28px;
@@ -1654,14 +1647,14 @@ try {
                     #vs-checkout-toast { bottom: 20px; right: 16px; left: 16px; width: auto; }
                 }
             `;
-            document.head.appendChild(s);
-        }
+      document.head.appendChild(s);
+    }
 
-        const toast = document.createElement("div");
-        toast.id = "vs-checkout-toast";
-        toast.setAttribute("role", "alert");
-        toast.setAttribute("aria-live", "assertive");
-        toast.innerHTML = `
+    const toast = document.createElement("div");
+    toast.id = "vs-checkout-toast";
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "assertive");
+    toast.innerHTML = `
             <div class="vs-toast-inner">
                 <div class="vs-toast-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -1684,681 +1677,686 @@ try {
                 </button>
             </div>
         `;
-        document.body.appendChild(toast);
-
-        const dismiss = () => {
-            toast.style.opacity = "0";
-            setTimeout(() => toast.remove(), 220);
-        };
-        toast.querySelector(".vs-toast-close")?.addEventListener("click", dismiss);
-        setTimeout(dismiss, 7000);
-    }
-
-    // Currency detection
-    type Currency = "EUR" | "PLN";
-
-    function detectUserCurrency(): Currency {
-        // PRIORITY 0: Check URL params (for testing/overriding)
-        const urlParams = new URLSearchParams(window.location.search);
-        const debugCurrency = urlParams.get("currency");
-        if (debugCurrency === "EUR" || debugCurrency === "PLN") {
-            return debugCurrency;
-        }
-
-        // PRIORITY 1: Server-detected currency (Cloudflare)
-        const priceElement = document.querySelector("[data-server-currency]");
-        const serverCurrency = priceElement?.getAttribute(
-            "data-server-currency",
-        );
-
-        if (
-            serverCurrency &&
-            (serverCurrency === "EUR" || serverCurrency === "PLN")
-        ) {
-            return serverCurrency as Currency;
-        }
-
-        // FALLBACK 1: Check timezone
-        try {
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            if (
-                timezone &&
-                (timezone.includes("Warsaw") ||
-                    timezone === "Europe/Warsaw" ||
-                    timezone === "Poland")
-            ) {
-                return "PLN";
-            }
-        } catch (e) {}
-
-        // FALLBACK 2: Check browser language
-        const locale = navigator.language || (navigator as any).userLanguage;
-        if (locale && locale.toLowerCase().startsWith("pl")) {
-            return "PLN";
-        }
-
-        return "EUR";
-    }
-
-    function updateProductPrices() {
-        const userCurrency = detectUserCurrency();
-        console.log("Client-side currency detected:", userCurrency);
-
-        const buyBtn = document.getElementById("buy-btn");
-        if (!buyBtn) return;
-
-        const priceEur = parseFloat(
-            buyBtn.getAttribute("data-price-eur") || "0",
-        );
-        const pricePln = parseFloat(
-            buyBtn.getAttribute("data-price-pln") || "0",
-        );
-
-        // --- UPDATE SHIPPING MODAL CURRENCY ---
-        const modalTotal = document.getElementById("total-amount-display");
-        const modalProductPrice = document.querySelector(
-            ".shipping-modal .product-price",
-        );
-        const modalSubtotal = document.querySelector(
-            ".shipping-modal .cost-row span:last-child",
-        ); // Subtotal value
-        const modalCostBreakdownSubtotal = document.querySelector(
-            ".cost-breakdown .cost-row:first-child span:last-child",
-        );
-
-        if (modalTotal && modalProductPrice) {
-            const newPrice = userCurrency === "PLN" ? pricePln : priceEur;
-            const symbol = userCurrency === "PLN" ? "zł" : "€";
-            const formattedPrice =
-                userCurrency === "PLN"
-                    ? `${newPrice.toFixed(2)} zł`
-                    : `€${newPrice.toFixed(2)}`;
-
-            // Update Total Label data attributes for shipping calculator
-            modalTotal.dataset.currencySymbol = symbol;
-            modalTotal.innerHTML = `<span class="currency-code">${userCurrency}</span> ${formattedPrice}`;
-
-            // Update Base Price for calculation
-            // @ts-ignore
-            modalProductPrice.dataset.basePrice = newPrice;
-            modalProductPrice.textContent = formattedPrice;
-
-            // Update Subtotal in breakdown
-            if (modalCostBreakdownSubtotal) {
-                modalCostBreakdownSubtotal.textContent = formattedPrice;
-            }
-
-            console.log(
-                "Updated shipping modal to:",
-                userCurrency,
-                formattedPrice,
-            );
-        }
-        const priceElements = document.querySelectorAll(
-            ".product-price-dynamic[data-price-eur][data-price-pln]",
-        );
-
-        priceElements.forEach((element) => {
-            const priceEUR = element.getAttribute("data-price-eur");
-            const pricePLN = element.getAttribute("data-price-pln");
-
-            if (!priceEUR || !pricePLN) return;
-
-            if (userCurrency === "PLN") {
-                element.textContent = `${pricePLN} zł`;
-            } else {
-                element.textContent = `€${priceEUR}`;
-            }
-        });
-    }
-
-    // Run currency detection on load
-    updateProductPrices();
-
-    const initProductDetail = () => {
-        // Check if product detail panel exists on this page
-        const productDetailPanel = document.querySelector(
-            "#product-detail-panel",
-        );
-        if (!productDetailPanel) {
-            return;
-        }
-
-        console.log("Initializing Product Detail interactions...");
-
-        const galleryImages = document.querySelectorAll(".detail-large-image");
-        const sizeBtns = document.querySelectorAll(".size-btn");
-        const galleryColumn = document.querySelector(".detail-gallery-column");
-        const paginationDots = document.querySelectorAll(".pagination-dot");
-        const productNameElement = document.querySelector(".detail-title");
-        const productName = productNameElement
-            ? productNameElement.textContent
-            : "Product";
-
-        if (!galleryImages.length) {
-            console.log("No gallery images found, skipping initialization.");
-            return;
-        }
-
-        let currentMobileIndex = 0;
-
-        // Get Image URLs from DOM
-        const galleryImageUrls = Array.from(galleryImages).map((div) => {
-            const img = div.querySelector("img");
-            return img ? img.src : "";
-        });
-
-        // Size Selection
-        sizeBtns.forEach((btn) => {
-            btn.addEventListener("click", () => {
-                sizeBtns.forEach((b) => b.classList.remove("active"));
-                btn.classList.add("active");
-
-                // Hide error if visible
-                const err = document.getElementById("size-error");
-                const sizeOptions = document.getElementById("size-options");
-
-                if (err) err.style.display = "none";
-                if (sizeOptions) sizeOptions.classList.remove("error");
-            });
-        });
-
-        // Image Gallery Click -> Dispatch event to global Fullscreen component
-        galleryImages.forEach((imgDiv, idx) => {
-            imgDiv.addEventListener("click", () => {
-                window.dispatchEvent(
-                    new CustomEvent("open-fullscreen-gallery", {
-                        detail: {
-                            images: galleryImageUrls,
-                            startIndex: idx,
-                            productName: productName,
-                        },
-                    }),
-                );
-            });
-        });
-
-        // Mobile Gallery: Scroll Detection
-        galleryColumn?.addEventListener("scroll", () => {
-            // @ts-ignore
-            const scrollLeft = galleryColumn.scrollLeft;
-            // @ts-ignore
-            const clientWidth = galleryColumn.clientWidth;
-            const newIndex = Math.round(scrollLeft / clientWidth);
-
-            if (newIndex !== currentMobileIndex) {
-                currentMobileIndex = newIndex;
-                updatePaginationDots();
-            }
-        });
-
-        function updatePaginationDots() {
-            paginationDots.forEach((dot, idx) => {
-                if (idx === currentMobileIndex) {
-                    dot.classList.add("active");
-                } else {
-                    dot.classList.remove("active");
-                }
-            });
-        }
-
-        // Restock Notification Form Handler
-        const restockForm = document.getElementById("restock-form");
-        if (restockForm) {
-            restockForm.addEventListener("submit", async (e) => {
-                e.preventDefault();
-
-                const formElement = e.target as HTMLFormElement;
-                const emailInput = formElement.querySelector(
-                    "#restock-email",
-                ) as HTMLInputElement;
-                const submitBtn = formElement.querySelector(
-                    ".btn-restock",
-                ) as HTMLButtonElement;
-                const messageDiv = document.getElementById(
-                    "restock-message",
-                ) as HTMLDivElement;
-                const productId = formElement.dataset.productId;
-                const productName = formElement.dataset.productName;
-                const productUrl = formElement.dataset.productUrl;
-
-                if (!emailInput || !submitBtn || !messageDiv) return;
-
-                const email = emailInput.value.trim();
-                if (!email) return;
-
-                // Disable button and show loading state
-                submitBtn.disabled = true;
-                const originalBtnText = submitBtn.innerHTML;
-                submitBtn.innerHTML =
-                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin"><circle cx="12" cy="12" r="10" opacity="0.25"></circle><path d="M4 12a8 8 0 018-8" opacity="0.75"></path></svg> Sending...';
-
-                try {
-                    const response = await fetch("/api/restock-notification", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            email,
-                            productId,
-                            productName,
-                            productUrl,
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        messageDiv.className = "restock-message success";
-                        messageDiv.textContent =
-                            "✓ Thank you! We'll notify you when this item is back in stock.";
-                        messageDiv.style.display = "block";
-                        emailInput.value = "";
-                    } else {
-                        throw new Error(data.error || "Failed to submit");
-                    }
-                } catch (error) {
-                    console.error("Restock notification error:", error);
-                    messageDiv.className = "restock-message error";
-                    messageDiv.textContent =
-                        "✗ Something went wrong. Please try again.";
-                    messageDiv.style.display = "block";
-                } finally {
-                    // Re-enable button
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalBtnText;
-
-                    // Hide message after 5 seconds
-                    setTimeout(() => {
-                        messageDiv.style.display = "none";
-                    }, 5000);
-                }
-            });
-        }
-
-        if (paginationDots.length > 0) {
-            paginationDots[0].classList.add("active");
-        }
-
-        // define load3dViewer globally to handle re-initialization if needed, but primarily here
-        const btnLoad3d = document.getElementById("btn-load-3d");
-        const wrapper3d = document.getElementById("clo3d-wrapper");
-
-        if (btnLoad3d && wrapper3d) {
-            btnLoad3d.addEventListener("click", () => {
-                const url = wrapper3d.dataset.embedUrl;
-                if (!url) return;
-
-                // Create iframe
-                const iframe = document.createElement("iframe");
-                iframe.src = url;
-                iframe.allowFullscreen = true;
-                iframe.title = "3D Viewer";
-
-                // Clear placeholder and append iframe
-                wrapper3d.innerHTML = "";
-                wrapper3d.appendChild(iframe);
-            });
-        }
-
-        // --- NEW: Scroll to Reviews Handler ---
-        // --- NEW: Scroll to Reviews Handler ---
-        const reviewTriggers = productDetailPanel.querySelectorAll(
-            ".rating-scroll-trigger",
-        );
-        const reviewsSection = productDetailPanel.querySelector("#reviews");
-
-        if (reviewsSection && reviewTriggers.length > 0) {
-            reviewTriggers.forEach((trigger) => {
-                trigger.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    // Don't stop propagation completely if clicking interactive elements inside,
-                    // but we want scroll behavior on the container click.
-                    // However, clicking label inside StarRating triggers input change and bubbles click.
-
-                    // Simple and robust: Scroll to the very bottom of the panel.
-                    productDetailPanel.scrollTo({
-                        top: productDetailPanel.scrollHeight,
-                        behavior: "smooth",
-                    });
-                });
-            });
-        }
-
-        // --- Add to Cart Handler ---
-        const addToCartBtn = document.getElementById("add-to-cart-btn");
-
-        if (addToCartBtn) {
-            (async () => {
-            const { addToCart, isInCart, initCart: initCartStore } = await import("../lib/cartStore");
-            initCartStore();
-
-            const cartBtnEl = addToCartBtn as HTMLElement;
-            const cartProductId = cartBtnEl.dataset.productId || "";
-
-            function getSelectedSize(): string | undefined {
-                const active = document.querySelector(".size-btn.active") as HTMLElement | null;
-                return active?.dataset.size;
-            }
-
-            function switchToGoToCart() {
-                addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor" stroke="none"><path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"></path></svg> Go to Cart`;
-                addToCartBtn!.classList.remove("added");
-                addToCartBtn!.classList.add("go-to-cart");
-                addToCartBtn!.removeEventListener("click", handleAddToCart);
-                addToCartBtn!.addEventListener("click", () => { window.location.href = "/cart"; });
-            }
-
-            function checkIfInCart() {
-                const size = getSelectedSize();
-                const sizeBtns = document.querySelectorAll(".size-btn");
-                if (sizeBtns.length > 0 && !size) return;
-                if (isInCart(cartProductId, size)) {
-                    switchToGoToCart();
-                }
-            }
-
-            // Re-check when size changes
-            document.querySelectorAll(".size-btn").forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    setTimeout(checkIfInCart, 50);
-                });
-            });
-
-            async function handleAddToCart() {
-                const currentSizeBtns = document.querySelectorAll(".size-btn");
-                let selectedSize: string | undefined;
-
-                if (currentSizeBtns.length > 0) {
-                    let hasSelection = false;
-                    currentSizeBtns.forEach((btn) => {
-                        if (btn.classList.contains("active")) {
-                            hasSelection = true;
-                            selectedSize = (btn as HTMLElement).dataset.size;
-                        }
-                    });
-
-                    if (!hasSelection) {
-                        const err = document.getElementById("size-error");
-                        const sizeOptions = document.getElementById("size-options");
-                        if (sizeOptions) sizeOptions.classList.add("error");
-                        if (err) { err.style.display = "block"; err.textContent = "Please select a size"; }
-                        return;
-                    }
-                }
-
-                const productType = (cartBtnEl.dataset.productType || "physical") as "physical" | "digital";
-                const shippingWeight = parseFloat(cartBtnEl.dataset.shippingWeight || "0");
-                const shippingLength = parseFloat(cartBtnEl.dataset.shippingLength || "0");
-                const shippingWidth = parseFloat(cartBtnEl.dataset.shippingWidth || "0");
-                const shippingHeight = parseFloat(cartBtnEl.dataset.shippingHeight || "0");
-                const hasShipping = shippingWeight > 0 && shippingLength > 0 && shippingWidth > 0 && shippingHeight > 0;
-
-                const added = addToCart({
-                    productId: cartBtnEl.dataset.productId || "",
-                    name: cartBtnEl.dataset.productName || "",
-                    price: parseFloat(cartBtnEl.dataset.priceEur || "0"),
-                    pricePLN: parseFloat(cartBtnEl.dataset.pricePln || "0"),
-                    image: cartBtnEl.dataset.productImage || "",
-                    productType,
-                    selectedSize,
-                    shipping: hasShipping ? { weight: shippingWeight, length: shippingLength, width: shippingWidth, height: shippingHeight } : undefined,
-                });
-
-                if (added) {
-                    addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Added!`;
-                    addToCartBtn!.classList.add("added");
-                    setTimeout(() => switchToGoToCart(), 1200);
-                } else {
-                    switchToGoToCart();
-                }
-            }
-
-            addToCartBtn.addEventListener("click", handleAddToCart);
-            checkIfInCart();
-            })();
-        }
-
-        // --- Shipping Form Handler ---
-        const shippingModal = document.getElementById("shipping-modal");
-        const closeShippingBtn = document.getElementById("close-shipping");
-        const shippingForm = document.getElementById("shipping-form");
-
-        // Move Shipping Modal to Body to avoid z-index/stacking context issues with Sidebar/Navbar
-        if (shippingModal && document.body) {
-            document.body.appendChild(shippingModal);
-        }
-
-        // Cleanup Shipping Modal on page swap
-        document.addEventListener("astro:before-swap", () => {
-            if (shippingModal && document.body.contains(shippingModal)) {
-                shippingModal.remove();
-            }
-        });
-
-        if (shippingModal && closeShippingBtn && shippingForm) {
-            // Close Modal
-            closeShippingBtn.addEventListener("click", () => {
-                shippingModal.classList.remove("active");
-                document.body.style.overflow = "";
-            });
-
-            // Close on click outside (Optional, user might lose data)
-            // shippingModal.addEventListener('click', (e) => {
-            //     if (e.target === shippingModal) {
-            //         shippingModal.classList.remove('active');
-            //         document.body.style.overflow = '';
-            //     }
-            // });
-
-            // Handle Form Submission
-            shippingForm.addEventListener("submit", async (e) => {
-                e.preventDefault();
-
-                const submitBtn = shippingForm.querySelector(
-                    'button[type="submit"]',
-                );
-                const originalText = submitBtn
-                    ? submitBtn.textContent
-                    : "Continue";
-
-                // === CRITICAL VALIDATION: Check if shipping service is selected ===
-                const selectedShippingId = (
-                    document.getElementById(
-                        "selected-shipping-id",
-                    ) as HTMLInputElement
-                )?.value;
-                const selectedShippingAmount = (
-                    document.getElementById(
-                        "selected-shipping-amount",
-                    ) as HTMLInputElement
-                )?.value;
-
-                // Check if product has shipping dimensions (for physical products)
-                const buyBtn = document.getElementById("buy-btn");
-                const productType = buyBtn?.dataset.productType;
-
-                if (productType === "physical") {
-                    const specsEl = document.getElementById(
-                        "product-shipping-specs",
-                    );
-                    const weight = specsEl?.dataset.weight;
-                    const length = specsEl?.dataset.length;
-                    const width = specsEl?.dataset.width;
-                    const height = specsEl?.dataset.height;
-
-                    // Validate shipping dimensions exist
-                    if (!weight || !length || !width || !height) {
-                        alert(
-                            "⚠️ This product is missing shipping dimensions in the database. Please contact support.",
-                        );
-                        console.error("Missing shipping dimensions:", {
-                            weight,
-                            length,
-                            width,
-                            height,
-                        });
-                        return;
-                    }
-
-                    // Validate shipping service is selected
-                    if (!selectedShippingId || !selectedShippingAmount) {
-                        alert(
-                            "⚠️ Please select a shipping method before proceeding to payment.",
-                        );
-                        return;
-                    }
-                }
-
-                if (submitBtn) {
-                    submitBtn.textContent = "Processing...";
-                    // @ts-ignore
-                    submitBtn.disabled = true;
-                }
-
-                // Collect Form Data
-                const formData = new FormData(shippingForm as HTMLFormElement);
-                const shippingData = Object.fromEntries(formData.entries());
-
-                // Get Product Data from the Buy Button
-                const productId = buyBtn?.dataset.productId;
-
-                if (!productId || !productType) {
-                    alert("Product ID missing");
-                    if (submitBtn) {
-                        submitBtn.textContent = originalText;
-                        // @ts-ignore
-                        submitBtn.disabled = false;
-                    }
-                    return;
-                }
-
-                try {
-                    // Check session again to be sure
-                    const session = await authClient.getSession();
-                    const userEmail =
-                        session.data?.user.email ||
-                        (shippingData.email as string);
-                    const userName = `${shippingData.firstName} ${shippingData.lastName}`;
-
-                    // Call Checkout API with Shipping Data
-                    await initiateCheckout(
-                        productId,
-                        productType,
-                        userEmail,
-                        userName,
-                        shippingData as unknown as ShippingData,
-                    );
-
-                    // Note: initiateCheckout handles the UI transition to Stripe
-                    // We just need to close the shipping modal
-                    shippingModal.classList.remove("active");
-                } catch (err: any) {
-                    console.error("Shipping submission error:", err);
-                    alert("Error proceeding to payment: " + err.message);
-                    if (submitBtn) {
-                        submitBtn.textContent = originalText;
-                        // @ts-ignore
-                        submitBtn.disabled = false;
-                    }
-                }
-            });
-        }
-
-        // Reusable Checkout Function for Stripe
-        async function initiateCheckout(
-            productId: string | undefined,
-            productType: string | undefined,
-            userEmail: string,
-            userName: string,
-            shippingAddress?: ShippingData,
-        ) {
-            console.log("initiateCheckout called", {
-                productId,
-                productType,
-                userEmail,
-            });
-
-            const button = document.getElementById("buy-btn");
-            if (button) button.textContent = "Redirecting to Checkout...";
-
-            if (!productId) {
-                console.error("No productId provided to initiateCheckout");
-                return;
-            }
-
-            const stripePriceId = button?.dataset.stripePriceId;
-            const priceEur = parseFloat(button?.dataset.priceEur || "0");
-            const pricePln = parseFloat(button?.dataset.pricePln || "0");
-
-            // Use the same currency detection used for UI display
-            const userCurrency = detectUserCurrency();
-            const selectedPrice = userCurrency === "PLN" ? pricePln : priceEur;
-
-            const shippingAmtInput = document.getElementById(
-                "selected-shipping-amount",
-            ) as HTMLInputElement;
-            const selectedShippingId = (
-                document.getElementById(
-                    "selected-shipping-id",
-                ) as HTMLInputElement
-            )?.value;
-            const shippingAmount = shippingAmtInput?.value || "0";
-
-            try {
-                const response = await fetch("/api/create-checkout", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        productId,
-                        priceId: stripePriceId || undefined,
-                        productName:
-                            document.querySelector(".detail-product-name")
-                                ?.textContent || "Product",
-                        productType,
-                        userEmail,
-                        price: selectedPrice,
-                        currency: userCurrency,
-                        shippingAddress: shippingAddress || null,
-                        selectedShippingId: selectedShippingId || null,
-                        selectedShippingAmount: shippingAmount,
-                    }),
-                });
-
-                const data = await response.json();
-
-                if (!response.ok || !data.url) {
-                    throw new Error(
-                        data.error || "Failed to create checkout session",
-                    );
-                }
-
-                window.location.href = data.url;
-            } catch (err: any) {
-                console.error("Checkout error:", err);
-                showCheckoutToast(
-                    err.message || "Unable to start checkout. Please try again shortly."
-                );
-                if (button)
-                    button.textContent =
-                        button.dataset.originalText || "Buy Now";
-            }
-        }
+    document.body.appendChild(toast);
+
+    const dismiss = () => {
+      toast.style.opacity = "0";
+      setTimeout(() => toast.remove(), 220);
     };
+    toast.querySelector(".vs-toast-close")?.addEventListener("click", dismiss);
+    setTimeout(dismiss, 7000);
+  }
 
-    // Run on every page navigation
-    document.addEventListener("astro:page-load", () => {
-        initProductDetail();
+  // Currency detection
+  type Currency = "EUR" | "PLN";
 
-        // Wishlist button setup
-        initFavorites();
-        updateWishlistBtn(favoritesStore.get());
+  function detectUserCurrency(): Currency {
+    // PRIORITY 0: Check URL params (for testing/overriding)
+    const urlParams = new URLSearchParams(window.location.search);
+    const debugCurrency = urlParams.get("currency");
+    if (debugCurrency === "EUR" || debugCurrency === "PLN") {
+      return debugCurrency;
+    }
 
-        const wishlistBtn = document.getElementById("wishlist-btn");
-        if (wishlistBtn) {
-            wishlistBtn.removeEventListener("click", handleWishlistClick);
-            wishlistBtn.addEventListener("click", handleWishlistClick);
-        }
+    // PRIORITY 1: Server-detected currency (Cloudflare)
+    const priceElement = document.querySelector("[data-server-currency]");
+    const serverCurrency = priceElement?.getAttribute("data-server-currency");
+
+    if (
+      serverCurrency &&
+      (serverCurrency === "EUR" || serverCurrency === "PLN")
+    ) {
+      return serverCurrency as Currency;
+    }
+
+    // FALLBACK 1: Check timezone
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (
+        timezone &&
+        (timezone.includes("Warsaw") ||
+          timezone === "Europe/Warsaw" ||
+          timezone === "Poland")
+      ) {
+        return "PLN";
+      }
+    } catch (e) {}
+
+    // FALLBACK 2: Check browser language
+    const locale = navigator.language || (navigator as any).userLanguage;
+    if (locale && locale.toLowerCase().startsWith("pl")) {
+      return "PLN";
+    }
+
+    return "EUR";
+  }
+
+  function updateProductPrices() {
+    const userCurrency = detectUserCurrency();
+    console.log("Client-side currency detected:", userCurrency);
+
+    const buyBtn = document.getElementById("buy-btn");
+    if (!buyBtn) return;
+
+    const priceEur = parseFloat(buyBtn.getAttribute("data-price-eur") || "0");
+    const pricePln = parseFloat(buyBtn.getAttribute("data-price-pln") || "0");
+
+    // --- UPDATE SHIPPING MODAL CURRENCY ---
+    const modalTotal = document.getElementById("total-amount-display");
+    const modalProductPrice = document.querySelector(
+      ".shipping-modal .product-price",
+    );
+    const modalSubtotal = document.querySelector(
+      ".shipping-modal .cost-row span:last-child",
+    ); // Subtotal value
+    const modalCostBreakdownSubtotal = document.querySelector(
+      ".cost-breakdown .cost-row:first-child span:last-child",
+    );
+
+    if (modalTotal && modalProductPrice) {
+      const newPrice = userCurrency === "PLN" ? pricePln : priceEur;
+      const symbol = userCurrency === "PLN" ? "zł" : "€";
+      const formattedPrice =
+        userCurrency === "PLN"
+          ? `${newPrice.toFixed(2)} zł`
+          : `€${newPrice.toFixed(2)}`;
+
+      // Update Total Label data attributes for shipping calculator
+      modalTotal.dataset.currencySymbol = symbol;
+      modalTotal.innerHTML = `<span class="currency-code">${userCurrency}</span> ${formattedPrice}`;
+
+      // Update Base Price for calculation
+      // @ts-ignore
+      modalProductPrice.dataset.basePrice = newPrice;
+      modalProductPrice.textContent = formattedPrice;
+
+      // Update Subtotal in breakdown
+      if (modalCostBreakdownSubtotal) {
+        modalCostBreakdownSubtotal.textContent = formattedPrice;
+      }
+
+      console.log("Updated shipping modal to:", userCurrency, formattedPrice);
+    }
+    const priceElements = document.querySelectorAll(
+      ".product-price-dynamic[data-price-eur][data-price-pln]",
+    );
+
+    priceElements.forEach((element) => {
+      const priceEUR = element.getAttribute("data-price-eur");
+      const pricePLN = element.getAttribute("data-price-pln");
+
+      if (!priceEUR || !pricePLN) return;
+
+      if (userCurrency === "PLN") {
+        element.textContent = `${pricePLN} zł`;
+      } else {
+        element.textContent = `€${priceEUR}`;
+      }
     });
+  }
+
+  // Run currency detection on load
+  updateProductPrices();
+
+  const initProductDetail = () => {
+    // Check if product detail panel exists on this page
+    const productDetailPanel = document.querySelector("#product-detail-panel");
+    if (!productDetailPanel) {
+      return;
+    }
+
+    console.log("Initializing Product Detail interactions...");
+
+    const galleryImages = document.querySelectorAll(".detail-large-image");
+    const sizeBtns = document.querySelectorAll(".size-btn");
+    const galleryColumn = document.querySelector(".detail-gallery-column");
+    const paginationDots = document.querySelectorAll(".pagination-dot");
+    const productNameElement = document.querySelector(".detail-title");
+    const productName = productNameElement
+      ? productNameElement.textContent
+      : "Product";
+
+    if (!galleryImages.length) {
+      console.log("No gallery images found, skipping initialization.");
+      return;
+    }
+
+    let currentMobileIndex = 0;
+
+    // Get Image URLs from DOM
+    const galleryImageUrls = Array.from(galleryImages).map((div) => {
+      const img = div.querySelector("img");
+      return img ? img.src : "";
+    });
+
+    // Size Selection
+    sizeBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        sizeBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // Hide error if visible
+        const err = document.getElementById("size-error");
+        const sizeOptions = document.getElementById("size-options");
+
+        if (err) err.style.display = "none";
+        if (sizeOptions) sizeOptions.classList.remove("error");
+      });
+    });
+
+    // Image Gallery Click -> Dispatch event to global Fullscreen component
+    galleryImages.forEach((imgDiv, idx) => {
+      imgDiv.addEventListener("click", () => {
+        window.dispatchEvent(
+          new CustomEvent("open-fullscreen-gallery", {
+            detail: {
+              images: galleryImageUrls,
+              startIndex: idx,
+              productName: productName,
+            },
+          }),
+        );
+      });
+    });
+
+    // Mobile Gallery: Scroll Detection
+    galleryColumn?.addEventListener("scroll", () => {
+      // @ts-ignore
+      const scrollLeft = galleryColumn.scrollLeft;
+      // @ts-ignore
+      const clientWidth = galleryColumn.clientWidth;
+      const newIndex = Math.round(scrollLeft / clientWidth);
+
+      if (newIndex !== currentMobileIndex) {
+        currentMobileIndex = newIndex;
+        updatePaginationDots();
+      }
+    });
+
+    function updatePaginationDots() {
+      paginationDots.forEach((dot, idx) => {
+        if (idx === currentMobileIndex) {
+          dot.classList.add("active");
+        } else {
+          dot.classList.remove("active");
+        }
+      });
+    }
+
+    // Restock Notification Form Handler
+    const restockForm = document.getElementById("restock-form");
+    if (restockForm) {
+      restockForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formElement = e.target as HTMLFormElement;
+        const emailInput = formElement.querySelector(
+          "#restock-email",
+        ) as HTMLInputElement;
+        const submitBtn = formElement.querySelector(
+          ".btn-restock",
+        ) as HTMLButtonElement;
+        const messageDiv = document.getElementById(
+          "restock-message",
+        ) as HTMLDivElement;
+        const productId = formElement.dataset.productId;
+        const productName = formElement.dataset.productName;
+        const productUrl = formElement.dataset.productUrl;
+
+        if (!emailInput || !submitBtn || !messageDiv) return;
+
+        const email = emailInput.value.trim();
+        if (!email) return;
+
+        // Disable button and show loading state
+        submitBtn.disabled = true;
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML =
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin"><circle cx="12" cy="12" r="10" opacity="0.25"></circle><path d="M4 12a8 8 0 018-8" opacity="0.75"></path></svg> Sending...';
+
+        try {
+          const response = await fetch("/api/restock-notification", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              productId,
+              productName,
+              productUrl,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            messageDiv.className = "restock-message success";
+            messageDiv.textContent =
+              "✓ Thank you! We'll notify you when this item is back in stock.";
+            messageDiv.style.display = "block";
+            emailInput.value = "";
+          } else {
+            throw new Error(data.error || "Failed to submit");
+          }
+        } catch (error) {
+          console.error("Restock notification error:", error);
+          messageDiv.className = "restock-message error";
+          messageDiv.textContent = "✗ Something went wrong. Please try again.";
+          messageDiv.style.display = "block";
+        } finally {
+          // Re-enable button
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+
+          // Hide message after 5 seconds
+          setTimeout(() => {
+            messageDiv.style.display = "none";
+          }, 5000);
+        }
+      });
+    }
+
+    if (paginationDots.length > 0) {
+      paginationDots[0].classList.add("active");
+    }
+
+    // define load3dViewer globally to handle re-initialization if needed, but primarily here
+    const btnLoad3d = document.getElementById("btn-load-3d");
+    const wrapper3d = document.getElementById("clo3d-wrapper");
+
+    if (btnLoad3d && wrapper3d) {
+      btnLoad3d.addEventListener("click", () => {
+        const url = wrapper3d.dataset.embedUrl;
+        if (!url) return;
+
+        // Create iframe
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.allowFullscreen = true;
+        iframe.title = "3D Viewer";
+
+        // Clear placeholder and append iframe
+        wrapper3d.innerHTML = "";
+        wrapper3d.appendChild(iframe);
+      });
+    }
+
+    // --- NEW: Scroll to Reviews Handler ---
+    // --- NEW: Scroll to Reviews Handler ---
+    const reviewTriggers = productDetailPanel.querySelectorAll(
+      ".rating-scroll-trigger",
+    );
+    const reviewsSection = productDetailPanel.querySelector("#reviews");
+
+    if (reviewsSection && reviewTriggers.length > 0) {
+      reviewTriggers.forEach((trigger) => {
+        trigger.addEventListener("click", (e) => {
+          e.preventDefault();
+          // Don't stop propagation completely if clicking interactive elements inside,
+          // but we want scroll behavior on the container click.
+          // However, clicking label inside StarRating triggers input change and bubbles click.
+
+          // Simple and robust: Scroll to the very bottom of the panel.
+          productDetailPanel.scrollTo({
+            top: productDetailPanel.scrollHeight,
+            behavior: "smooth",
+          });
+        });
+      });
+    }
+
+    // --- Add to Cart Handler ---
+    const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+    if (addToCartBtn) {
+      (async () => {
+        const {
+          addToCart,
+          isInCart,
+          initCart: initCartStore,
+        } = await import("../lib/cartStore");
+        initCartStore();
+
+        const cartBtnEl = addToCartBtn as HTMLElement;
+        const cartProductId = cartBtnEl.dataset.productId || "";
+
+        function getSelectedSize(): string | undefined {
+          const active = document.querySelector(
+            ".size-btn.active",
+          ) as HTMLElement | null;
+          return active?.dataset.size;
+        }
+
+        function switchToGoToCart() {
+          addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor" stroke="none"><path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"></path></svg> Go to Cart`;
+          addToCartBtn!.classList.remove("added");
+          addToCartBtn!.classList.add("go-to-cart");
+          addToCartBtn!.removeEventListener("click", handleAddToCart);
+          addToCartBtn!.addEventListener("click", () => {
+            window.location.href = "/cart";
+          });
+        }
+
+        function checkIfInCart() {
+          const size = getSelectedSize();
+          const sizeBtns = document.querySelectorAll(".size-btn");
+          if (sizeBtns.length > 0 && !size) return;
+          if (isInCart(cartProductId, size)) {
+            switchToGoToCart();
+          }
+        }
+
+        // Re-check when size changes
+        document.querySelectorAll(".size-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            setTimeout(checkIfInCart, 50);
+          });
+        });
+
+        async function handleAddToCart() {
+          const currentSizeBtns = document.querySelectorAll(".size-btn");
+          let selectedSize: string | undefined;
+
+          if (currentSizeBtns.length > 0) {
+            let hasSelection = false;
+            currentSizeBtns.forEach((btn) => {
+              if (btn.classList.contains("active")) {
+                hasSelection = true;
+                selectedSize = (btn as HTMLElement).dataset.size;
+              }
+            });
+
+            if (!hasSelection) {
+              const err = document.getElementById("size-error");
+              const sizeOptions = document.getElementById("size-options");
+              if (sizeOptions) sizeOptions.classList.add("error");
+              if (err) {
+                err.style.display = "block";
+                err.textContent = "Please select a size";
+              }
+              return;
+            }
+          }
+
+          const productType = (cartBtnEl.dataset.productType || "physical") as
+            | "physical"
+            | "digital";
+          const shippingWeight = parseFloat(
+            cartBtnEl.dataset.shippingWeight || "0",
+          );
+          const shippingLength = parseFloat(
+            cartBtnEl.dataset.shippingLength || "0",
+          );
+          const shippingWidth = parseFloat(
+            cartBtnEl.dataset.shippingWidth || "0",
+          );
+          const shippingHeight = parseFloat(
+            cartBtnEl.dataset.shippingHeight || "0",
+          );
+          const hasShipping =
+            shippingWeight > 0 &&
+            shippingLength > 0 &&
+            shippingWidth > 0 &&
+            shippingHeight > 0;
+
+          const added = addToCart({
+            productId: cartBtnEl.dataset.productId || "",
+            name: cartBtnEl.dataset.productName || "",
+            price: parseFloat(cartBtnEl.dataset.priceEur || "0"),
+            pricePLN: parseFloat(cartBtnEl.dataset.pricePln || "0"),
+            image: cartBtnEl.dataset.productImage || "",
+            productType,
+            selectedSize,
+            shipping: hasShipping
+              ? {
+                  weight: shippingWeight,
+                  length: shippingLength,
+                  width: shippingWidth,
+                  height: shippingHeight,
+                }
+              : undefined,
+          });
+
+          if (added) {
+            addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Added!`;
+            addToCartBtn!.classList.add("added");
+            setTimeout(() => switchToGoToCart(), 1200);
+          } else {
+            switchToGoToCart();
+          }
+        }
+
+        addToCartBtn.addEventListener("click", handleAddToCart);
+        checkIfInCart();
+      })();
+    }
+
+    // --- Shipping Form Handler ---
+    const shippingModal = document.getElementById("shipping-modal");
+    const closeShippingBtn = document.getElementById("close-shipping");
+    const shippingForm = document.getElementById("shipping-form");
+
+    // Move Shipping Modal to Body to avoid z-index/stacking context issues with Sidebar/Navbar
+    if (shippingModal && document.body) {
+      document.body.appendChild(shippingModal);
+    }
+
+    // Cleanup Shipping Modal on page swap
+    document.addEventListener("astro:before-swap", () => {
+      if (shippingModal && document.body.contains(shippingModal)) {
+        shippingModal.remove();
+      }
+    });
+
+    if (shippingModal && closeShippingBtn && shippingForm) {
+      // Close Modal
+      closeShippingBtn.addEventListener("click", () => {
+        shippingModal.classList.remove("active");
+        document.body.style.overflow = "";
+      });
+
+      // Close on click outside (Optional, user might lose data)
+      // shippingModal.addEventListener('click', (e) => {
+      //     if (e.target === shippingModal) {
+      //         shippingModal.classList.remove('active');
+      //         document.body.style.overflow = '';
+      //     }
+      // });
+
+      // Handle Form Submission
+      shippingForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const submitBtn = shippingForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.textContent : "Continue";
+
+        // === CRITICAL VALIDATION: Check if shipping service is selected ===
+        const selectedShippingId = (
+          document.getElementById("selected-shipping-id") as HTMLInputElement
+        )?.value;
+        const selectedShippingAmount = (
+          document.getElementById(
+            "selected-shipping-amount",
+          ) as HTMLInputElement
+        )?.value;
+
+        // Check if product has shipping dimensions (for physical products)
+        const buyBtn = document.getElementById("buy-btn");
+        const productType = buyBtn?.dataset.productType;
+
+        if (productType === "physical") {
+          const specsEl = document.getElementById("product-shipping-specs");
+          const weight = specsEl?.dataset.weight;
+          const length = specsEl?.dataset.length;
+          const width = specsEl?.dataset.width;
+          const height = specsEl?.dataset.height;
+
+          // Validate shipping dimensions exist
+          if (!weight || !length || !width || !height) {
+            alert(
+              "⚠️ This product is missing shipping dimensions in the database. Please contact support.",
+            );
+            console.error("Missing shipping dimensions:", {
+              weight,
+              length,
+              width,
+              height,
+            });
+            return;
+          }
+
+          // Validate shipping service is selected
+          if (!selectedShippingId || !selectedShippingAmount) {
+            alert(
+              "⚠️ Please select a shipping method before proceeding to payment.",
+            );
+            return;
+          }
+        }
+
+        if (submitBtn) {
+          submitBtn.textContent = "Processing...";
+          // @ts-ignore
+          submitBtn.disabled = true;
+        }
+
+        // Collect Form Data
+        const formData = new FormData(shippingForm as HTMLFormElement);
+        const shippingData = Object.fromEntries(formData.entries());
+
+        // Get Product Data from the Buy Button
+        const productId = buyBtn?.dataset.productId;
+
+        if (!productId || !productType) {
+          alert("Product ID missing");
+          if (submitBtn) {
+            submitBtn.textContent = originalText;
+            // @ts-ignore
+            submitBtn.disabled = false;
+          }
+          return;
+        }
+
+        try {
+          // Check session again to be sure
+          const session = await authClient.getSession();
+          const userEmail =
+            session.data?.user.email || (shippingData.email as string);
+          const userName = `${shippingData.firstName} ${shippingData.lastName}`;
+
+          // Call Checkout API with Shipping Data
+          await initiateCheckout(
+            productId,
+            productType,
+            userEmail,
+            userName,
+            shippingData as unknown as ShippingData,
+          );
+
+          // Note: initiateCheckout handles the UI transition to Stripe
+          // We just need to close the shipping modal
+          shippingModal.classList.remove("active");
+        } catch (err: any) {
+          console.error("Shipping submission error:", err);
+          alert("Error proceeding to payment: " + err.message);
+          if (submitBtn) {
+            submitBtn.textContent = originalText;
+            // @ts-ignore
+            submitBtn.disabled = false;
+          }
+        }
+      });
+    }
+
+    // Reusable Checkout Function for Stripe
+    async function initiateCheckout(
+      productId: string | undefined,
+      productType: string | undefined,
+      userEmail: string,
+      userName: string,
+      shippingAddress?: ShippingData,
+    ) {
+      console.log("initiateCheckout called", {
+        productId,
+        productType,
+        userEmail,
+      });
+
+      const button = document.getElementById("buy-btn");
+      if (button) button.textContent = "Redirecting to Checkout...";
+
+      if (!productId) {
+        console.error("No productId provided to initiateCheckout");
+        return;
+      }
+
+      const stripePriceId = button?.dataset.stripePriceId;
+      const priceEur = parseFloat(button?.dataset.priceEur || "0");
+      const pricePln = parseFloat(button?.dataset.pricePln || "0");
+
+      // Use the same currency detection used for UI display
+      const userCurrency = detectUserCurrency();
+      const selectedPrice = userCurrency === "PLN" ? pricePln : priceEur;
+
+      const shippingAmtInput = document.getElementById(
+        "selected-shipping-amount",
+      ) as HTMLInputElement;
+      const selectedShippingId = (
+        document.getElementById("selected-shipping-id") as HTMLInputElement
+      )?.value;
+      const shippingAmount = shippingAmtInput?.value || "0";
+
+      try {
+        const response = await fetch("/api/create-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId,
+            priceId: stripePriceId || undefined,
+            productName:
+              document.querySelector(".detail-product-name")?.textContent ||
+              "Product",
+            productType,
+            userEmail,
+            price: selectedPrice,
+            currency: userCurrency,
+            shippingAddress: shippingAddress || null,
+            selectedShippingId: selectedShippingId || null,
+            selectedShippingAmount: shippingAmount,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.url) {
+          throw new Error(data.error || "Failed to create checkout session");
+        }
+
+        window.location.href = data.url;
+      } catch (err: any) {
+        console.error("Checkout error:", err);
+        showCheckoutToast(
+          err.message || "Unable to start checkout. Please try again shortly.",
+        );
+        if (button)
+          button.textContent = button.dataset.originalText || "Buy Now";
+      }
+    }
+  };
+
+  // Run on every page navigation
+  document.addEventListener("astro:page-load", () => {
+    initProductDetail();
+
+    // Wishlist button setup
+    initFavorites();
+    updateWishlistBtn(favoritesStore.get());
+
+    const wishlistBtn = document.getElementById("wishlist-btn");
+    if (wishlistBtn) {
+      wishlistBtn.removeEventListener("click", handleWishlistClick);
+      wishlistBtn.addEventListener("click", handleWishlistClick);
+    }
+  });
 </script>

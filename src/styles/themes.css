@@ -32,7 +32,7 @@
 /* Dark Mode Switch State */
 [data-theme="dark"] .switch-knob {
   transform: translateX(26px);
-  background-color: #FFFFFF;
+  background-color: var(--foreground);
 }
 
 /* Mobile Switch knob translation adjustment */
