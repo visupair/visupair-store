@@ -30,6 +30,7 @@ export interface Product {
     images?: string[]; // Gallery images (URLs)
     gallery?: any[]; // Sanity Image Objects (Raw)
     inStock?: boolean;
+    stock?: number;
     sizes?: string[]; // For fashion items
 
     details?: Record<string, string>; // Specifications (material, dimensions, format, etc.)

@@ -1,6 +1,6 @@
 ---
 const { searchParams } = Astro.url;
-const orderId = searchParams.get("order");
+const sessionId = searchParams.get("session_id");
 ---
 
 <html lang="en">
@@ -10,7 +10,7 @@ const orderId = searchParams.get("order");
         <title>Payment Successful</title>
         <style>
             :root {
-                --background: #0f172a; /* Should match site theme */
+                --background: #0f172a;
                 --text: #f8fafc;
                 --success: #10b981;
             }
@@ -31,6 +31,7 @@ const orderId = searchParams.get("order");
             .success-container {
                 text-align: center;
                 animation: fadeIn 0.5s ease-out;
+                padding: 24px;
             }
             h2 {
                 margin: 16px 0 8px;
@@ -40,6 +41,21 @@ const orderId = searchParams.get("order");
                 margin: 0;
                 color: #94a3b8;
                 font-size: 0.875rem;
+            }
+            .success-link {
+                display: inline-block;
+                margin-top: 24px;
+                padding: 12px 28px;
+                background: #10b981;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 0.9rem;
+                transition: background 0.2s;
+            }
+            .success-link:hover {
+                background: #059669;
             }
             @keyframes fadeIn {
                 from {
@@ -69,30 +85,31 @@ const orderId = searchParams.get("order");
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
             <h2>Payment Successful!</h2>
-            <p>Finalizing your order...</p>
+            <p>Thank you for your order. You will receive a confirmation email shortly.</p>
+            <a href="/account/purchases" class="success-link">View My Purchases</a>
         </div>
 
-        <script define:vars={{ orderId }}>
+        <script define:vars={{ sessionId }}>
             try {
-                // If we are in an iframe (which we should be), message the parent
+                // Clear cart after successful payment
+                if (typeof localStorage !== "undefined") {
+                    localStorage.removeItem("visupair_cart");
+                }
+
+                // If in an iframe, notify parent
                 if (window.parent && window.parent !== window) {
-                    // Slight delay to show success animation
                     setTimeout(() => {
                         window.parent.postMessage(
                             {
                                 type: "CHECKOUT_SUCCESS",
-                                orderId: orderId,
+                                sessionId: sessionId,
                             },
-                            "*", // Allow origin flexibility for now, or use window.location.origin
+                            "*",
                         );
                     }, 1000);
-                } else {
-                    // Fallback if not in iframe: Redirect to Orders
-                    window.location.href = `/account/orders?success=true&order=${orderId}`;
                 }
             } catch (error) {
-                console.error("Redirect error:", error);
-                window.location.href = `/account/orders?success=true&order=${orderId}`;
+                console.error("Success page error:", error);
             }
         </script>
     </body>

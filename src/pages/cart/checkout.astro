@@ -1,0 +1,691 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Checkout - Visupair">
+  <main class="checkout-page">
+    <div class="checkout-container">
+      <div class="checkout-layout">
+        <!-- Left: Shipping Form -->
+        <div class="checkout-form-column">
+          <a href="/cart" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Back to Cart
+          </a>
+
+          <h1 class="checkout-title">Shipping Information</h1>
+
+          <form id="cart-shipping-form" class="shipping-form">
+            <div class="form-section">
+              <h3 class="section-title">Contact</h3>
+              <div class="form-group">
+                <input type="email" name="email" placeholder="Email" required class="form-input" />
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3 class="section-title">Delivery</h3>
+              <div class="form-row">
+                <div class="custom-select-container" id="country-custom-select">
+                  <button type="button" class="custom-select-trigger" id="country-trigger">
+                    <span class="selected-text">Poland</span>
+                    <svg class="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div class="custom-options">
+                    <div class="custom-option selected" data-value="PL">Poland</div>
+                    <div class="custom-option" data-value="DE">Germany</div>
+                    <div class="custom-option" data-value="FR">France</div>
+                    <div class="custom-option" data-value="IT">Italy</div>
+                    <div class="custom-option" data-value="ES">Spain</div>
+                    <div class="custom-option" data-value="NL">Netherlands</div>
+                    <div class="custom-option" data-value="BE">Belgium</div>
+                    <div class="custom-option" data-value="AT">Austria</div>
+                    <div class="custom-option" data-value="SE">Sweden</div>
+                    <div class="custom-option" data-value="DK">Denmark</div>
+                    <div class="custom-option" data-value="FI">Finland</div>
+                    <div class="custom-option" data-value="IE">Ireland</div>
+                    <div class="custom-option" data-value="PT">Portugal</div>
+                    <div class="custom-option" data-value="GR">Greece</div>
+                    <div class="custom-option" data-value="CZ">Czech Republic</div>
+                    <div class="custom-option" data-value="HU">Hungary</div>
+                    <div class="custom-option" data-value="RO">Romania</div>
+                    <div class="custom-option" data-value="BG">Bulgaria</div>
+                    <div class="custom-option" data-value="HR">Croatia</div>
+                    <div class="custom-option" data-value="SI">Slovenia</div>
+                    <div class="custom-option" data-value="SK">Slovakia</div>
+                    <div class="custom-option" data-value="GB">United Kingdom</div>
+                    <div class="custom-option" data-value="US">United States</div>
+                  </div>
+                  <input type="hidden" name="country" id="country-value" value="PL" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row two-col">
+              <input type="text" name="firstName" placeholder="First name" required class="form-input" />
+              <input type="text" name="lastName" placeholder="Last name" required class="form-input" />
+            </div>
+
+            <div class="form-row">
+              <input type="text" name="address" placeholder="Address" required class="form-input" />
+            </div>
+
+            <div class="form-row">
+              <input type="text" name="apartment" placeholder="Apartment, suite, etc. (optional)" class="form-input" />
+            </div>
+
+            <div class="form-row two-col">
+              <input type="text" name="postalCode" placeholder="Postal code" required class="form-input" />
+              <input type="text" name="city" placeholder="City" required class="form-input" />
+            </div>
+
+            <div class="form-row">
+              <input type="tel" name="phone" placeholder="Phone (optional)" class="form-input" />
+            </div>
+
+            <!-- Shipping Method -->
+            <div class="form-section" id="shipping-options-section" style="display: none;">
+              <h3 class="section-title">Shipping Method</h3>
+              <div class="shipping-loading" id="shipping-loading" style="display: none;">
+                <div class="spinner"></div> Calculating rates...
+              </div>
+              <div class="shipping-options-list" id="shipping-result-list"></div>
+              <input type="hidden" name="shippingRateId" id="selected-shipping-id" />
+              <input type="hidden" name="shippingAmount" id="selected-shipping-amount" />
+              <input type="hidden" name="shippingLabel" id="selected-shipping-label" />
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-pay" id="pay-btn">Continue to Payment</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right: Order Summary -->
+        <aside class="checkout-summary-column">
+          <div class="summary-card">
+            <h3>Order Summary</h3>
+            <div id="checkout-items-list" class="checkout-items"></div>
+            <div class="cost-breakdown">
+              <div class="cost-row">
+                <span>Subtotal</span>
+                <span id="checkout-subtotal">€0</span>
+              </div>
+              <div class="cost-row">
+                <span>Shipping</span>
+                <span class="shipping-cost" id="checkout-shipping">Calculated below</span>
+              </div>
+            </div>
+            <div class="total-row">
+              <span>Total</span>
+              <span id="checkout-total">€0</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import { cartStore, initCart, getCombinedParcel } from '../../lib/cartStore';
+  import type { CartItem } from '../../lib/cartStore';
+
+  function initCheckoutPage() {
+    initCart();
+
+    const items = cartStore.get();
+    if (items.length === 0) {
+      window.location.href = '/cart';
+      return;
+    }
+
+    const form = document.getElementById('cart-shipping-form') as HTMLFormElement;
+    if (!form) return;
+    if ((form as any)._checkoutInit) return;
+    (form as any)._checkoutInit = true;
+
+    function detectUserCurrency(): 'EUR' | 'PLN' {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dc = urlParams.get('currency');
+      if (dc === 'EUR' || dc === 'PLN') return dc;
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz && (tz.includes('Warsaw') || tz === 'Europe/Warsaw')) return 'PLN';
+      } catch {}
+      const locale = navigator.language || (navigator as any).userLanguage;
+      if (locale && locale.toLowerCase().startsWith('pl')) return 'PLN';
+      return 'EUR';
+    }
+
+    const currency = detectUserCurrency();
+
+    function formatPrice(eur: number, pln: number): string {
+      return currency === 'PLN' ? `${pln.toFixed(2)} zł` : `€${eur.toFixed(2)}`;
+    }
+
+    function formatAmount(amount: number): string {
+      return currency === 'PLN' ? `${amount.toFixed(2)} zł` : `€${amount.toFixed(2)}`;
+    }
+
+    const itemsListEl = document.getElementById('checkout-items-list')!;
+    const subtotalEl = document.getElementById('checkout-subtotal')!;
+    const totalEl = document.getElementById('checkout-total')!;
+    const shippingCostEl = document.getElementById('checkout-shipping')!;
+
+    let subtotalEur = 0;
+    let subtotalPln = 0;
+
+    itemsListEl.innerHTML = items.map((item: CartItem) => {
+      subtotalEur += item.price;
+      subtotalPln += item.pricePLN;
+      return `
+        <div class="checkout-item">
+          <div class="checkout-item-thumb">
+            <img src="${item.image}" alt="${item.name}" />
+          </div>
+          <div class="checkout-item-info">
+            <h4>${item.name}</h4>
+            ${item.selectedSize ? `<p>Size: ${item.selectedSize}</p>` : ''}
+          </div>
+          <span class="checkout-item-price">${formatPrice(item.price, item.pricePLN)}</span>
+        </div>
+      `;
+    }).join('');
+
+    const subtotalDisplay = currency === 'PLN' ? subtotalPln : subtotalEur;
+    subtotalEl.textContent = formatAmount(subtotalDisplay);
+    totalEl.textContent = formatAmount(subtotalDisplay);
+
+    // Pre-fill email
+    (async () => {
+      try {
+        const { authClient } = await import('../../lib/auth-client');
+        const session = await authClient.getSession();
+        if (session.data?.user) {
+          const emailInput = form.querySelector('input[name="email"]') as HTMLInputElement;
+          if (emailInput) emailInput.value = session.data.user.email;
+          const name = session.data.user.name || '';
+          const [first, ...rest] = name.split(' ');
+          const firstInput = form.querySelector('input[name="firstName"]') as HTMLInputElement;
+          const lastInput = form.querySelector('input[name="lastName"]') as HTMLInputElement;
+          if (firstInput) firstInput.value = first || '';
+          if (lastInput) lastInput.value = rest.join(' ') || '';
+        }
+      } catch {}
+    })();
+
+    // Custom select
+    const customSelect = document.getElementById('country-custom-select')!;
+    const trigger = document.getElementById('country-trigger')!;
+    const options = customSelect.querySelectorAll('.custom-option');
+    const hiddenInput = document.getElementById('country-value') as HTMLInputElement;
+    const selectedText = trigger.querySelector('.selected-text')!;
+
+    trigger.addEventListener('click', (e) => { e.stopPropagation(); customSelect.classList.toggle('open'); });
+    options.forEach((option) => {
+      option.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedText.textContent = option.textContent;
+        hiddenInput.value = (option as HTMLElement).dataset.value || 'PL';
+        options.forEach((o) => o.classList.remove('selected'));
+        option.classList.add('selected');
+        customSelect.classList.remove('open');
+        hiddenInput.dispatchEvent(new Event('change'));
+      });
+    });
+    document.addEventListener('click', (e) => { if (!customSelect.contains(e.target as Node)) customSelect.classList.remove('open'); });
+
+    // Shipping rates
+    const optionsSection = document.getElementById('shipping-options-section')!;
+    const loading = document.getElementById('shipping-loading')!;
+    const list = document.getElementById('shipping-result-list')!;
+    const rateInputs = form.querySelectorAll('input[name="address"], input[name="city"], input[name="postalCode"], input[name="country"]');
+    let rateTimeout: any;
+
+    rateInputs.forEach((input) => {
+      input.addEventListener('change', fetchRates);
+      input.addEventListener('blur', fetchRates);
+    });
+
+    let currentShippingAmount = 0;
+
+    async function fetchRates() {
+      clearTimeout(rateTimeout);
+      rateTimeout = setTimeout(async () => {
+        const country = (form.querySelector('[name="country"]') as HTMLInputElement).value;
+        const city = (form.querySelector('[name="city"]') as HTMLInputElement).value;
+        const postalCode = (form.querySelector('[name="postalCode"]') as HTMLInputElement).value;
+        const address = (form.querySelector('[name="address"]') as HTMLInputElement).value;
+
+        if (!country || !city || !postalCode || !address) return;
+
+        const parcel = getCombinedParcel();
+        if (!parcel) return;
+
+        optionsSection.style.display = 'block';
+        loading.style.display = 'flex';
+        list.innerHTML = '';
+
+        try {
+          const res = await fetch('/api/shipping/rates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ country, city, postalCode, address, parcel }),
+          });
+          const data = await res.json();
+          loading.style.display = 'none';
+
+          if (data.error || !data.rates || data.rates.length === 0) {
+            list.innerHTML = '<div class="error-msg">No shipping options available for this address.</div>';
+            return;
+          }
+
+          list.innerHTML = data.rates.map((rate: any, index: number) => {
+            const logoHtml = rate.provider_image_75
+              ? `<img src="${rate.provider_image_75}" alt="${rate.provider}" class="carrier-logo-img" />`
+              : `<span class="carrier-logo-fallback">${rate.provider}</span>`;
+
+            return `
+              <label class="shipping-option-row${index === 0 ? ' selected' : ''}">
+                <input type="radio" name="shipping_option" value="${rate.id}"
+                  data-amount="${rate.amount}"
+                  data-currency="${rate.currency}"
+                  data-label="${rate.provider}"
+                  ${index === 0 ? 'checked' : ''} />
+                <div class="carrier-logo-wrapper">${logoHtml}</div>
+                <div class="option-details">
+                  <span class="provider-name">${rate.provider}</span>
+                  ${rate.estimated_days ? `<span class="delivery-estimate">${rate.estimated_days} days</span>` : ''}
+                </div>
+                <span class="option-price">${rate.currency} ${rate.amount}</span>
+              </label>
+            `;
+          }).join('');
+
+          list.querySelectorAll('input[type="radio"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+              list.querySelectorAll('.shipping-option-row').forEach(r => r.classList.remove('selected'));
+              (radio as HTMLInputElement).closest('.shipping-option-row')?.classList.add('selected');
+              updateShippingSelection(radio as HTMLInputElement);
+            });
+          });
+
+          const first = list.querySelector('input[type="radio"]') as HTMLInputElement;
+          if (first) updateShippingSelection(first);
+        } catch (e) {
+          console.error(e);
+          loading.style.display = 'none';
+          list.innerHTML = '<div class="error-msg">Failed to load rates.</div>';
+        }
+      }, 500);
+    }
+
+    const exchangeCache: Record<string, number> = {};
+
+    async function getExchangeRate(from: string, to: string): Promise<number> {
+      if (from === to) return 1;
+      const key = `${from}_${to}`;
+      if (exchangeCache[key]) return exchangeCache[key];
+      try {
+        const res = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+        const data = await res.json();
+        if (data?.rates?.[to]) { exchangeCache[key] = data.rates[to]; return data.rates[to]; }
+      } catch {}
+      const fallbacks: Record<string, number> = { EUR_PLN: 4.3, PLN_EUR: 0.23 };
+      return fallbacks[key] || 1;
+    }
+
+    async function updateShippingSelection(radio: HTMLInputElement) {
+      const originalAmount = parseFloat(radio.dataset.amount || '0');
+      const rateCurrency = radio.dataset.currency || 'PLN';
+      const label = radio.dataset.label || '';
+
+      let amount = originalAmount;
+      if (rateCurrency !== currency) {
+        const rate = await getExchangeRate(rateCurrency, currency);
+        amount = originalAmount * rate;
+      }
+
+      (document.getElementById('selected-shipping-id') as HTMLInputElement).value = radio.value;
+      (document.getElementById('selected-shipping-amount') as HTMLInputElement).value = amount.toFixed(2);
+      (document.getElementById('selected-shipping-label') as HTMLInputElement).value = label;
+
+      currentShippingAmount = amount;
+      shippingCostEl.textContent = formatAmount(amount);
+      totalEl.textContent = formatAmount(subtotalDisplay + amount);
+    }
+
+    // Form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const selectedShippingId = (document.getElementById('selected-shipping-id') as HTMLInputElement).value;
+      const selectedShippingAmount = (document.getElementById('selected-shipping-amount') as HTMLInputElement).value;
+      const selectedShippingLabel = (document.getElementById('selected-shipping-label') as HTMLInputElement).value;
+
+      if (!selectedShippingId || !selectedShippingAmount || parseFloat(selectedShippingAmount) <= 0) {
+        alert('Please select a shipping method before proceeding.');
+        return;
+      }
+
+      const payBtn = document.getElementById('pay-btn')!;
+      payBtn.textContent = 'Redirecting to payment...';
+      (payBtn as HTMLButtonElement).disabled = true;
+
+      try {
+        const { authClient } = await import('../../lib/auth-client');
+        const session = await authClient.getSession();
+        const userEmail = session.data?.user?.email || (form.querySelector('[name="email"]') as HTMLInputElement).value;
+
+        const cartItems = items.map((i: CartItem) => ({
+          productId: i.productId,
+          name: i.name,
+          price: currency === 'PLN' ? i.pricePLN : i.price,
+          quantity: 1,
+          productType: i.productType,
+          selectedSize: i.selectedSize,
+        }));
+
+        const res = await fetch('/api/cart-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: cartItems,
+            currency,
+            userEmail,
+            selectedShippingId,
+            selectedShippingAmount,
+            selectedShippingLabel,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert(data.error || 'Failed to start checkout');
+          payBtn.textContent = 'Continue to Payment';
+          (payBtn as HTMLButtonElement).disabled = false;
+        }
+      } catch (err) {
+        console.error('Checkout error:', err);
+        payBtn.textContent = 'Continue to Payment';
+        (payBtn as HTMLButtonElement).disabled = false;
+      }
+    });
+  }
+
+  initCheckoutPage();
+  document.addEventListener('astro:after-swap', initCheckoutPage);
+</script>
+
+<!-- Static elements: scoped styles -->
+<style>
+  .checkout-page { padding: 24px 12px; margin: 0 auto; max-width: 1100px; min-height: calc(100vh - 200px); }
+  .checkout-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px; color: var(--foreground);
+    text-decoration: none; font-size: 14px; opacity: 0.6; margin-bottom: 24px; transition: opacity 0.2s;
+  }
+  .back-link:hover { opacity: 1; color: var(--brand-violet); }
+
+  .checkout-title { font-size: 24px; font-weight: 700; margin-bottom: 28px; color: var(--foreground); }
+
+  .form-section { margin-bottom: 24px; }
+  .section-title { font-size: 16px; font-weight: 600; margin-bottom: 14px; color: var(--foreground); }
+  .form-group, .form-row { margin-bottom: 12px; }
+  .two-col { display: flex; gap: 12px; }
+
+  .form-input {
+    width: 100%; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); color: var(--foreground); font-family: inherit; font-size: 14px;
+    box-sizing: border-box; transition: border-color 0.2s;
+  }
+  .form-input:hover { border-color: color-mix(in srgb, var(--border-subtle), var(--foreground) 20%); }
+  .form-input:focus { outline: none; border-color: var(--brand-violet); box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1); }
+
+  .custom-select-container { position: relative; width: 100%; user-select: none; }
+  .custom-select-trigger {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    padding: 12px 14px; background: var(--surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); color: var(--foreground); font-family: inherit;
+    font-size: 14px; cursor: pointer; transition: all 0.2s;
+  }
+  .custom-select-trigger:hover { border-color: color-mix(in srgb, var(--border-subtle), var(--foreground) 20%); }
+  .custom-select-container.open .custom-select-trigger { border-color: var(--brand-violet); box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
+  .arrow-icon { color: var(--text-muted, #888); transition: transform 0.3s; }
+  .custom-select-container.open .arrow-icon { transform: rotate(180deg); color: var(--brand-violet); }
+
+  .custom-options {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 100; display: none; max-height: 240px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--border-subtle) transparent;
+  }
+  .custom-select-container.open .custom-options { display: block; }
+  .custom-option { padding: 10px 14px; font-size: 14px; color: var(--foreground); cursor: pointer; transition: background 0.15s; }
+  .custom-option:hover { background: var(--surface-hover); color: var(--brand-violet); }
+  .custom-option.selected { background: rgba(139, 92, 246, 0.1); color: var(--brand-violet); font-weight: 500; }
+
+  .form-actions { margin-top: 24px; }
+  .btn-pay {
+    width: 100%; padding: 16px; background: var(--brand-violet); color: white; border: none;
+    border-radius: var(--radius-lg); font-family: var(--font-family); font-weight: 600; font-size: 16px;
+    cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+  }
+  .btn-pay:hover { background: #9d9aff; box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5); }
+  .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .checkout-summary-column { position: sticky; top: 100px; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px; }
+  .summary-card h3 { font-size: 18px; font-weight: 700; margin: 0 0 20px 0; color: var(--foreground); }
+
+  .shipping-loading { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: 14px; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border-subtle); border-top-color: var(--brand-violet); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    .checkout-layout { grid-template-columns: 1fr; }
+    .checkout-summary-column { position: static; order: -1; }
+  }
+</style>
+
+<!-- Dynamic elements (rendered by JS innerHTML): MUST be is:global -->
+<style is:global>
+  .checkout-items {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .checkout-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .checkout-item-thumb {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    background: var(--surface-muted);
+  }
+
+  .checkout-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .checkout-item-info {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .checkout-item-info h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .checkout-item-info p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    opacity: 0.6;
+    color: var(--foreground);
+  }
+
+  .checkout-item-price {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--foreground);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .cost-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 16px;
+  }
+
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--foreground);
+  }
+
+  .shipping-cost {
+    font-size: 13px;
+    opacity: 0.6;
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--foreground);
+  }
+
+  .error-msg {
+    color: #ef4444;
+    font-size: 13px;
+    padding: 8px 0;
+  }
+
+  /* Shipping option rows */
+  .shipping-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .shipping-option-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 8px);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .shipping-option-row:hover {
+    border-color: color-mix(in srgb, var(--border-subtle), var(--foreground) 20%);
+  }
+
+  .shipping-option-row.selected {
+    border-color: var(--brand-violet);
+    background: rgba(139, 92, 246, 0.05);
+  }
+
+  .shipping-option-row input[type="radio"] {
+    accent-color: var(--brand-violet);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .carrier-logo-wrapper {
+    width: 48px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .carrier-logo-img {
+    max-width: 48px;
+    max-height: 32px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .carrier-logo-fallback {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--foreground);
+    opacity: 0.5;
+    text-align: center;
+  }
+
+  .option-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .provider-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .delivery-estimate {
+    font-size: 12px;
+    opacity: 0.5;
+    color: var(--foreground);
+  }
+
+  .option-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-violet);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+</style>

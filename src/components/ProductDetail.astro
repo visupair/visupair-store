@@ -55,7 +55,8 @@ const productDetails = product.details || {};
 
 // Sizes
 const productSizes = product.sizes || [];
-const inStock = product.inStock;
+const inStock = product.inStock !== false && (product.stock === undefined || product.stock === null || (product.stock as number) > 0);
+const stockCount = product.stock ?? 1;
 
 // Digital Twin Visibility
 const hasTwin = !!product.twinProduct;
@@ -223,17 +224,15 @@ try {
                 </div>
 
                 <!-- Stock Status -->
-                {
-                    inStock !== undefined && (
-                        <div class="detail-stock">
-                            <span
-                                class={`stock-indicator ${inStock ? "in-stock" : "out-of-stock"}`}
-                            >
-                                {inStock ? "In Stock" : "Out of Stock"}
-                            </span>
-                        </div>
-                    )
-                }
+                <div class="detail-stock">
+                    <span
+                        class={`stock-indicator ${inStock ? "in-stock" : "out-of-stock"}`}
+                    >
+                        {inStock
+                            ? (stockCount <= 3 ? "Only " + stockCount + " left" : "In Stock")
+                            : "Sold Out"}
+                    </span>
+                </div>
 
                 <!-- Description -->
                 <p class="detail-description">{product.description}</p>
@@ -288,18 +287,26 @@ try {
                         <div class="detail-actions-row">
                             <button
                                 class="btn-brand btn-equal"
-                                id="buy-btn"
+                                id="add-to-cart-btn"
                                 data-product-id={product.id}
-                                data-stripe-price-id={product.stripePriceId}
+                                data-product-name={product.name}
                                 data-product-type={product.productType}
                                 data-price-eur={product.price}
                                 data-price-pln={
                                     product.pricePLN ||
                                     (product.price * 4.3).toFixed(2)
                                 }
-                                style="display: flex; align-items: center; justify-content: center;"
+                                data-product-image={product.mainImage ? urlFor(product.mainImage).width(400).url() : product.image || ''}
+                                data-shipping-weight={product.shipping?.weight || ''}
+                                data-shipping-length={product.shipping?.length || ''}
+                                data-shipping-width={product.shipping?.width || ''}
+                                data-shipping-height={product.shipping?.height || ''}
+                                style="display: flex; align-items: center; justify-content: center; gap: 8px;"
                             >
-                                Buy Now
+                                <svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor" stroke="none">
+                                    <path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"></path>
+                                </svg>
+                                Add to Cart
                             </button>
                             <button
                                 class="btn-brand-outline btn-equal"
@@ -905,8 +912,24 @@ try {
     }
 
     .btn-brand:hover {
-        background: #9d9aff; /* Lighter violet for hover */
-        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5); /* Increased shadow on hover */
+        background: #9d9aff;
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .btn-brand.added {
+        background: #10b981;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-brand.go-to-cart {
+        background: var(--foreground);
+        color: var(--page-bg);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-brand.go-to-cart:hover {
+        opacity: 0.85;
         transform: translateY(-2px);
     }
 
@@ -2003,95 +2026,98 @@ try {
             });
         }
 
-        // --- Stripe Checkout Handler Setup ---
-        const buyBtn = document.getElementById("buy-btn");
+        // --- Add to Cart Handler ---
+        const addToCartBtn = document.getElementById("add-to-cart-btn");
 
-        if (buyBtn) {
-            // Store original text
-            buyBtn.dataset.originalText = buyBtn.textContent || "Buy Now";
+        if (addToCartBtn) {
+            (async () => {
+            const { addToCart, isInCart, initCart: initCartStore } = await import("../lib/cartStore");
+            initCartStore();
 
-            buyBtn.addEventListener("click", async () => {
-                const productId = buyBtn.dataset.productId;
-                const productType = buyBtn.dataset.productType; // 'physical' or 'digital'
+            const cartBtnEl = addToCartBtn as HTMLElement;
+            const cartProductId = cartBtnEl.dataset.productId || "";
 
-                // --- SIZE VALIDATION ---
-                // Try to find size buttons again to be safe, or use captured variable
+            function getSelectedSize(): string | undefined {
+                const active = document.querySelector(".size-btn.active") as HTMLElement | null;
+                return active?.dataset.size;
+            }
+
+            function switchToGoToCart() {
+                addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 -960 960 960" fill="currentColor" stroke="none"><path d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"></path></svg> Go to Cart`;
+                addToCartBtn!.classList.remove("added");
+                addToCartBtn!.classList.add("go-to-cart");
+                addToCartBtn!.removeEventListener("click", handleAddToCart);
+                addToCartBtn!.addEventListener("click", () => { window.location.href = "/cart"; });
+            }
+
+            function checkIfInCart() {
+                const size = getSelectedSize();
+                const sizeBtns = document.querySelectorAll(".size-btn");
+                if (sizeBtns.length > 0 && !size) return;
+                if (isInCart(cartProductId, size)) {
+                    switchToGoToCart();
+                }
+            }
+
+            // Re-check when size changes
+            document.querySelectorAll(".size-btn").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    setTimeout(checkIfInCart, 50);
+                });
+            });
+
+            async function handleAddToCart() {
                 const currentSizeBtns = document.querySelectorAll(".size-btn");
+                let selectedSize: string | undefined;
+
                 if (currentSizeBtns.length > 0) {
                     let hasSelection = false;
                     currentSizeBtns.forEach((btn) => {
-                        if (btn.classList.contains("active"))
+                        if (btn.classList.contains("active")) {
                             hasSelection = true;
+                            selectedSize = (btn as HTMLElement).dataset.size;
+                        }
                     });
 
                     if (!hasSelection) {
                         const err = document.getElementById("size-error");
-                        const sizeOptions =
-                            document.getElementById("size-options");
-
-                        // Add error styling to container
+                        const sizeOptions = document.getElementById("size-options");
                         if (sizeOptions) sizeOptions.classList.add("error");
-
-                        if (err) {
-                            err.style.display = "block";
-                            err.textContent = "Please select a size";
-                            // Scroll removed as per user request to avoid jarring shifts
-                        } else {
-                            alert("Please select a size");
-                        }
-                        return; // STOP HERE
+                        if (err) { err.style.display = "block"; err.textContent = "Please select a size"; }
+                        return;
                     }
                 }
 
-                // Check if user is logged in
-                const session = await authClient.getSession();
-                if (!session.data) {
-                    window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-                    return;
-                }
+                const productType = (cartBtnEl.dataset.productType || "physical") as "physical" | "digital";
+                const shippingWeight = parseFloat(cartBtnEl.dataset.shippingWeight || "0");
+                const shippingLength = parseFloat(cartBtnEl.dataset.shippingLength || "0");
+                const shippingWidth = parseFloat(cartBtnEl.dataset.shippingWidth || "0");
+                const shippingHeight = parseFloat(cartBtnEl.dataset.shippingHeight || "0");
+                const hasShipping = shippingWeight > 0 && shippingLength > 0 && shippingWidth > 0 && shippingHeight > 0;
 
-                // IF PHYSICAL PRODUCT -> OPEN SHIPPING MODAL
-                if (productType === "physical") {
-                    const shippingModal =
-                        document.getElementById("shipping-modal");
-                    if (shippingModal) {
-                        shippingModal.classList.add("active");
-                        document.body.style.overflow = "hidden";
-
-                        // Pre-fill email if available
-                        const emailInput = shippingModal.querySelector(
-                            'input[name="email"]',
-                        ) as HTMLInputElement;
-                        if (emailInput && session.data.user.email) {
-                            emailInput.value = session.data.user.email;
-                        }
-
-                        // Pre-fill name if available (split logic is naive but helpful)
-                        const name = session.data.user.name || "";
-                        const [first, ...rest] = name.split(" ");
-                        const last = rest.join(" ");
-
-                        const firstInput = shippingModal.querySelector(
-                            'input[name="firstName"]',
-                        ) as HTMLInputElement;
-                        const lastInput = shippingModal.querySelector(
-                            'input[name="lastName"]',
-                        ) as HTMLInputElement;
-
-                        if (firstInput) firstInput.value = first || "";
-                        if (lastInput) lastInput.value = last || "";
-                    }
-                    return;
-                }
-
-                // IF DIGITAL or COURSE -> PROCEED TO CHECKOUT DIRECTLY
-                initiateCheckout(
-                    productId,
+                const added = addToCart({
+                    productId: cartBtnEl.dataset.productId || "",
+                    name: cartBtnEl.dataset.productName || "",
+                    price: parseFloat(cartBtnEl.dataset.priceEur || "0"),
+                    pricePLN: parseFloat(cartBtnEl.dataset.pricePln || "0"),
+                    image: cartBtnEl.dataset.productImage || "",
                     productType,
-                    session.data.user.email,
-                    session.data.user.name,
-                );
-            });
+                    selectedSize,
+                    shipping: hasShipping ? { weight: shippingWeight, length: shippingLength, width: shippingWidth, height: shippingHeight } : undefined,
+                });
+
+                if (added) {
+                    addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Added!`;
+                    addToCartBtn!.classList.add("added");
+                    setTimeout(() => switchToGoToCart(), 1200);
+                } else {
+                    switchToGoToCart();
+                }
+            }
+
+            addToCartBtn.addEventListener("click", handleAddToCart);
+            checkIfInCart();
+            })();
         }
 
         // --- Shipping Form Handler ---

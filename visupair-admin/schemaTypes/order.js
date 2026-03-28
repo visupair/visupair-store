@@ -173,6 +173,18 @@ export default {
             }
         },
         {
+            name: 'selectedCourier',
+            title: 'Selected Courier',
+            type: 'string',
+            description: 'Courier chosen by customer at checkout (e.g. DHL, DPD, InPost)'
+        },
+        {
+            name: 'shippingAmount',
+            title: 'Shipping Cost',
+            type: 'number',
+            description: 'Shipping cost paid by customer'
+        },
+        {
             name: 'shippingTransactionId',
             title: 'Shipping Transaction ID',
             type: 'string'

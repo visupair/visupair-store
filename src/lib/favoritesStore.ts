@@ -1,7 +1,17 @@
-import { atom, map } from 'nanostores';
+import { atom } from 'nanostores';
+import { authClient } from './auth-client';
 
 export const favoritesStore = atom<string[]>([]);
 export const isLoadingFavorites = atom<boolean>(false);
+
+async function isAuthenticated(): Promise<boolean> {
+    try {
+        const { data } = await authClient.getSession();
+        return !!data?.user;
+    } catch {
+        return false;
+    }
+}
 
 export async function initFavorites() {
     isLoadingFavorites.set(true);
@@ -21,10 +31,14 @@ export async function initFavorites() {
 }
 
 export async function toggleFavorite(productId: string) {
+    if (!(await isAuthenticated())) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+    }
+
     const currentFavorites = favoritesStore.get();
     const isFavorite = currentFavorites.includes(productId);
 
-    // Optimistic update
     if (isFavorite) {
         favoritesStore.set(currentFavorites.filter(id => id !== productId));
     } else {
@@ -38,12 +52,10 @@ export async function toggleFavorite(productId: string) {
         });
 
         if (!response.ok) {
-            // Revert on failure
             favoritesStore.set(currentFavorites);
             console.error('Failed to update favorite');
         }
     } catch (error) {
-        // Revert on error
         favoritesStore.set(currentFavorites);
         console.error('Error toggling favorite:', error);
     }

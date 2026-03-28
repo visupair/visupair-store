@@ -55,6 +55,7 @@ export const PRODUCTS_QUERY = `*[_type == "product" && !(_id in path("drafts.**"
   stripePriceId,
   polarUrl,
   inStock,
+  stock,
   sizes,
 
   details,
@@ -107,7 +108,8 @@ export async function getProducts() {
       productType: doc.productType || 'physical', // Default to physical if not set
       stripePriceId: doc.stripePriceId,
       polarUrl: doc.polarUrl,
-      inStock: doc.inStock,
+      inStock: doc.inStock !== false && (doc.stock === undefined || doc.stock === null || doc.stock > 0),
+      stock: doc.stock ?? 1,
       sizes: doc.sizes,
 
       details: detailsMap,

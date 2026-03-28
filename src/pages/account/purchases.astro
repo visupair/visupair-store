@@ -17,18 +17,23 @@ if (!session.data) {
 const userEmail = session.data.user.email;
 
 // Fetch Orders from Sanity
-// We want orders that are 'paid' and belong to this user
-// We expand the products to get their details (image, name, digitalFileKey)
-const query = `*[_type == "order" && userEmail == $email && status == "paid"] | order(createdAt desc) {
+const query = `*[_type == "order" && customerEmail == $email && status == "paid"] | order(createdAt desc) {
     _id,
     orderNumber,
     createdAt,
-    totalPrice,
+    totalAmount,
     currency,
     status,
-    "products": products[] {
-        "key": _key,
-        "product": @ -> {
+    orderType,
+    selectedCourier,
+    trackingNumber,
+    items[] {
+        _key,
+        productType,
+        quantity,
+        price,
+        variant,
+        "product": product-> {
             _id,
             name,
             "image": mainImage,
@@ -98,11 +103,13 @@ const successParam = Astro.url.searchParams.get("success");
                 <div class="order-header">
                   <div class="order-meta">
                     <span class="order-date">
-                      {new Date(order.createdAt).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                        : "Date unavailable"}
                     </span>
                     <span class="order-number">
                       #{order.orderNumber || order._id.slice(-8)}
@@ -110,36 +117,54 @@ const successParam = Astro.url.searchParams.get("success");
                   </div>
                   <div class="order-total">
                     {order.currency === "PLN"
-                      ? `${order.totalPrice} zł`
-                      : `€${order.totalPrice}`}
+                      ? `${order.totalAmount} zł`
+                      : `€${order.totalAmount}`}
                   </div>
                 </div>
 
+                {order.selectedCourier && (
+                  <div class="order-courier">
+                    <span>Courier: {order.selectedCourier}</span>
+                    {order.trackingNumber && (
+                      <span class="tracking">Tracking: {order.trackingNumber}</span>
+                    )}
+                  </div>
+                )}
+
                 <div class="order-items">
-                  {order.products &&
-                    order.products.map(({ product }: any) =>
-                      product ? (
+                  {order.items &&
+                    order.items.map((item: any) => {
+                      const product = item.product;
+                      const displayName = product?.name || item.variant || "Product";
+                      const displayType = item.productType || product?.productType || "physical";
+                      const displayImage = product?.image;
+                      const digitalFileKey = product?.digitalFileKey;
+
+                      return (
                         <div class="order-item">
                           <div class="item-image">
-                            {product.image && (
+                            {displayImage && (
                               <img
-                                src={urlFor(product.image).width(200).url()}
-                                alt={product.name}
+                                src={urlFor(displayImage).width(200).url()}
+                                alt={displayName}
                               />
                             )}
                           </div>
                           <div class="item-details">
-                            <h4>{product.name}</h4>
+                            <h4>{displayName}</h4>
+                            {item.variant && product?.name && item.variant !== product.name && (
+                              <span class="item-variant">{item.variant}</span>
+                            )}
                             <span class="item-type">
-                              {product.productType === "digital"
+                              {displayType === "digital"
                                 ? "Digital Product"
                                 : "Physical Product"}
                             </span>
 
                             <div class="item-actions">
-                              {product.digitalFileKey ? (
+                              {digitalFileKey ? (
                                 <a
-                                  href={`/api/download/${product.digitalFileKey}`}
+                                  href={`/api/download/${digitalFileKey}`}
                                   class="btn-download"
                                   target="_blank"
                                   download
@@ -164,8 +189,8 @@ const successParam = Astro.url.searchParams.get("success");
                             </div>
                           </div>
                         </div>
-                      ) : null,
-                    )}
+                      );
+                    })}
                 </div>
               </div>
             ))}
@@ -251,6 +276,28 @@ const successParam = Astro.url.searchParams.get("success");
     font-weight: 700;
     font-size: 16px;
     color: var(--brand-violet);
+  }
+
+  .order-courier {
+    padding: 10px 24px;
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--foreground);
+    opacity: 0.7;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .order-courier .tracking {
+    font-family: monospace;
+    font-weight: 500;
+  }
+
+  .item-variant {
+    font-size: 12px;
+    opacity: 0.5;
+    display: block;
+    margin-bottom: 2px;
   }
 
   .order-items {

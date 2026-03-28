@@ -60,38 +60,40 @@ export default defineConfig({
                 handle: /** @type {function(any, any, any, any): void} */
                   function authDevErrorHandler(err, req, res, next) {
                     const url = req.originalUrl || req.url || '';
-                    const isAuthRoute = url.startsWith('/api/auth');
+                    const isApiRoute = url.startsWith('/api/');
                     const isFetchFailed =
                       err instanceof TypeError && err.message === 'fetch failed';
 
-                    if (isAuthRoute && isFetchFailed && !res.headersSent) {
-                      let status = 401;
-                      let message = 'Invalid email or password';
+                    if (isApiRoute && isFetchFailed && !res.headersSent) {
+                      let status = 503;
+                      let message = 'Service temporarily unavailable';
 
-                      if (url.includes('/sign-up')) {
-                        status = 422;
-                        message = 'Registration failed. Please try again.';
-                      } else if (
-                        url.includes('/forget-password') ||
-                        url.includes('/reset-password')
-                      ) {
-                        status = 503;
-                        message =
-                          'Password reset service temporarily unavailable.';
-                      } else if (!url.includes('/sign-in')) {
-                        status = 503;
-                        message =
-                          'Authentication service temporarily unavailable.';
+                      if (url.startsWith('/api/auth')) {
+                        if (url.includes('/sign-up')) {
+                          status = 422;
+                          message = 'Registration failed. Please try again.';
+                        } else if (
+                          url.includes('/forget-password') ||
+                          url.includes('/reset-password')
+                        ) {
+                          message =
+                            'Password reset service temporarily unavailable.';
+                        } else if (url.includes('/sign-in')) {
+                          status = 401;
+                          message = 'Invalid email or password';
+                        }
+                      } else if (url.startsWith('/api/favorites')) {
+                        status = 401;
+                        message = 'Authentication required';
                       }
 
                       res.writeHead(status, {
                         'Content-Type': 'application/json',
                       });
-                      res.end(JSON.stringify({ message }));
-                      return; // ← handled; Vite never sees this error
+                      res.end(JSON.stringify({ error: message }));
+                      return;
                     }
 
-                    // Not ours — forward to Vite's error handler.
                     next(err);
                   },
               };

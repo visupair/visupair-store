@@ -174,8 +174,8 @@ const showHeaders = groups.length > 1;
                                                 class={`stock-indicator ${product.inStock ? "in-stock" : "out-of-stock"}`}
                                             >
                                                 {product.inStock
-                                                    ? "In Stock"
-                                                    : "Out of Stock"}
+                                                    ? (product.stock && product.stock <= 3 ? "Only " + product.stock + " left" : "In Stock")
+                                                    : "Sold Out"}
                                             </span>
                                         )}
                                     </div>
@@ -484,6 +484,25 @@ const showHeaders = groups.length > 1;
 
         .product-grid-container {
             padding: 16px;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .product-row {
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .product-name {
+            font-size: 14px;
+        }
+
+        .product-price {
+            font-size: 14px;
+        }
+
+        .product-info {
+            padding: 12px;
         }
     }
 </style>

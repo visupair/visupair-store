@@ -87,6 +87,14 @@ export default defineType({
             initialValue: true,
         }),
         defineField({
+            name: 'stock',
+            title: 'Stock Quantity',
+            type: 'number',
+            description: 'How many pieces you have available. Automatically decreases when someone buys. Set to 0 for sold out.',
+            initialValue: 1,
+            validation: (Rule) => Rule.min(0).integer(),
+        }),
+        defineField({
             name: 'details',
             title: 'Specifications / Details',
             type: 'array',

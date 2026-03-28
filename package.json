@@ -11,8 +11,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint 'src/**/*.{js,ts,tsx,astro}'",
     "lint:fix": "eslint 'src/**/*.{js,ts,tsx,astro}' --fix",
-    "db:migrate:local": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --local",
-    "db:migrate:remote": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --remote",
+    "db:migrate:local": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --local && wrangler d1 execute visupair-store --file=migrations/002_add_favorites_table.sql --local && wrangler d1 execute visupair-store --file=migrations/003_add_reviews.sql --local",
+    "db:migrate:remote": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --remote && wrangler d1 execute visupair-store --file=migrations/002_add_favorites_table.sql --remote && wrangler d1 execute visupair-store --file=migrations/003_add_reviews.sql --remote",
     "db:query:local": "wrangler d1 execute visupair-store --local",
     "db:query:remote": "wrangler d1 execute visupair-store --remote",
     "test:auth": "bash test-auth.sh"
