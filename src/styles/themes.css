@@ -40,6 +40,17 @@
   transform: translateX(22px);
 }
 
+/* Active state in dark mode — expand knob to the LEFT (keep right edge fixed) */
+[data-theme="dark"] .theme-switch:active .switch-knob {
+  width: 28px;
+  transform: translateX(22px);
+}
+
+[data-theme="dark"] .theme-switch.mobile:active .switch-knob {
+  width: 26px;
+  transform: translateX(18px);
+}
+
 /* Active state for theme icons */
 [data-theme="dark"] .icon-moon-track {
   opacity: 1;

@@ -6,10 +6,27 @@ import Layout from "../../layouts/Layout.astro";
   <main class="checkout-page">
     <div class="checkout-container">
       <div class="checkout-inner">
+        <!-- Mobile-only: back link sits above both columns -->
+        <a href="/cart" class="back-link back-link-mobile">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Back to Cart
+        </a>
+
         <div class="checkout-layout">
           <!-- Left: Shipping Form -->
           <div class="checkout-form-column">
-            <a href="/cart" class="back-link">
+            <a href="/cart" class="back-link back-link-desktop">
               <svg
                 width="16"
                 height="16"
@@ -209,7 +226,7 @@ import Layout from "../../layouts/Layout.astro";
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="btn-pay" id="pay-btn"
+                <button type="submit" class="btn-pay btn-pay-left" id="pay-btn"
                   >Continue to Payment</button
                 >
               </div>
@@ -237,6 +254,32 @@ import Layout from "../../layouts/Layout.astro";
                 <span>Total</span>
                 <span id="checkout-total">€0</span>
               </div>
+              <div class="summary-pay-slot">
+                <button
+                  type="submit"
+                  form="cart-shipping-form"
+                  class="btn-pay"
+                  id="pay-btn-right"
+                  >Continue to Payment</button
+                >
+              </div>
+              <p class="secure-note">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"
+                  ></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Secure checkout powered by Stripe
+              </p>
             </div>
           </aside>
         </div>
@@ -551,9 +594,11 @@ import Layout from "../../layouts/Layout.astro";
         return;
       }
 
-      const payBtn = document.getElementById("pay-btn")!;
-      payBtn.textContent = "Redirecting to payment...";
-      (payBtn as HTMLButtonElement).disabled = true;
+      const allPayBtns = document.querySelectorAll<HTMLButtonElement>("#pay-btn, #pay-btn-right");
+      allPayBtns.forEach((btn) => {
+        btn.textContent = "Redirecting to payment...";
+        btn.disabled = true;
+      });
 
       try {
         const { authClient } = await import("../../lib/auth-client");
@@ -589,13 +634,17 @@ import Layout from "../../layouts/Layout.astro";
           window.location.href = data.url;
         } else {
           alert(data.error || "Failed to start checkout");
-          payBtn.textContent = "Continue to Payment";
-          (payBtn as HTMLButtonElement).disabled = false;
+          allPayBtns.forEach((btn) => {
+            btn.textContent = "Continue to Payment";
+            btn.disabled = false;
+          });
         }
       } catch (err) {
         console.error("Checkout error:", err);
-        payBtn.textContent = "Continue to Payment";
-        (payBtn as HTMLButtonElement).disabled = false;
+        allPayBtns.forEach((btn) => {
+          btn.textContent = "Continue to Payment";
+          btn.disabled = false;
+        });
       }
     });
   }
@@ -637,14 +686,34 @@ import Layout from "../../layouts/Layout.astro";
     gap: 6px;
     color: var(--foreground);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: transparent;
     opacity: 0.6;
     margin-bottom: 24px;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
   }
   .back-link:hover {
     opacity: 1;
+    border-color: var(--brand-violet);
     color: var(--brand-violet);
+    background: rgba(132, 128, 255, 0.06);
+  }
+
+  /* Mobile: show the top link, hide the one inside the form column */
+  .back-link-mobile {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    .back-link-mobile {
+      display: inline-flex;
+    }
+    .back-link-desktop {
+      display: none;
+    }
   }
 
   .checkout-title {
@@ -799,6 +868,33 @@ import Layout from "../../layouts/Layout.astro";
     cursor: not-allowed;
   }
 
+  .secure-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.4;
+    margin-top: 16px;
+    color: var(--foreground);
+  }
+
+  /* Right-side button slot: hidden by default (mobile), shown at ≥ 820px */
+  .summary-pay-slot {
+    display: none;
+    margin-top: 20px;
+  }
+
+  /* From iPad Air (820px) and above: move button to summary card */
+  @media (min-width: 820px) {
+    .btn-pay-left {
+      display: none;
+    }
+    .summary-pay-slot {
+      display: block;
+    }
+  }
+
   .checkout-summary-column {
     position: sticky;
     top: 100px;
@@ -850,12 +946,35 @@ import Layout from "../../layouts/Layout.astro";
     }
   }
   @media (max-width: 480px) {
-    .checkout-page {
-      padding: 16px 8px;
-    }
     .checkout-container {
       padding: 16px;
       border-radius: var(--radius-lg);
+    }
+  }
+
+  @media (max-width: 360px) {
+    .checkout-container {
+      padding: 12px;
+    }
+    .summary-card {
+      padding: 16px;
+    }
+    .summary-card h3 {
+      font-size: 16px;
+    }
+    .back-link {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    .checkout-title {
+      font-size: 20px;
+    }
+    .section-title {
+      font-size: 14px;
+    }
+    .two-col {
+      flex-direction: column;
+      gap: 8px;
     }
   }
 </style>
@@ -924,6 +1043,31 @@ import Layout from "../../layouts/Layout.astro";
     color: var(--foreground);
     white-space: nowrap;
     flex-shrink: 0;
+    min-width: 0;
+  }
+
+  @media (max-width: 360px) {
+    .checkout-item {
+      gap: 8px;
+    }
+    .checkout-item-thumb {
+      width: 44px;
+      height: 44px;
+    }
+    .checkout-item-price {
+      font-size: 12px;
+    }
+    .cost-row {
+      font-size: 12px;
+      gap: 8px;
+    }
+    .shipping-cost {
+      font-size: 11px;
+      text-align: right;
+    }
+    .total-row {
+      font-size: 15px;
+    }
   }
 
   .cost-breakdown {

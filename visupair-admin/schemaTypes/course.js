@@ -6,6 +6,24 @@ export default defineType({
     type: 'document',
     fields: [
         defineField({
+            name: 'pricingType',
+            title: 'Pricing Type',
+            type: 'string',
+            description: 'How students pay for this course',
+            options: {
+                list: [
+                    { title: 'Paid (Online Payment)', value: 'paid' },
+                    { title: 'Free', value: 'free' },
+                    { title: 'Donation (Free + Optional Donation)', value: 'donation' },
+                    { title: 'Pay at the Door', value: 'payAtDoor' },
+                ],
+                layout: 'radio',
+            },
+            initialValue: 'paid',
+            validation: (Rule) => Rule.required(),
+        }),
+
+        defineField({
             name: 'registrationOpen',
             title: 'Registration Open',
             type: 'boolean',
@@ -13,16 +31,15 @@ export default defineType({
             initialValue: true,
         }),
 
-        // FastSpring & R2 API Integration
         defineField({
             name: 'stripePriceId',
             title: 'Stripe Price ID',
             type: 'string',
-            description: 'The Price ID from Stripe (e.g. price_1OqXXXXXXXXXXXXX).',
-            validation: (Rule) => Rule.required(),
+            description: 'The Price ID from Stripe (e.g. price_1OqXXXXXXXXXXXXX). Only needed for Paid courses.',
+            hidden: ({ document }) => document?.pricingType !== 'paid',
         }),
         defineField({
-            name: 'digitalFileKey', // R2 Integration
+            name: 'digitalFileKey',
             title: 'Digital File Key (R2)',
             description: 'Path to the course files in Cloudflare R2 bucket (e.g. "courses/painting-essentials.zip").',
             type: 'string',
@@ -47,14 +64,32 @@ export default defineType({
             name: 'price',
             title: 'Price (EUR)',
             type: 'number',
-            validation: (Rule) => Rule.required().min(0),
+            description: 'Required for Paid and Pay at the Door courses. Leave empty for Free courses.',
+            hidden: ({ document }) => document?.pricingType === 'free' || document?.pricingType === 'donation',
+            validation: (Rule) => Rule.custom((value, context) => {
+                const pricingType = context.document?.pricingType
+                if ((pricingType === 'paid' || pricingType === 'payAtDoor') && (!value || value <= 0)) {
+                    return 'Price is required for paid courses'
+                }
+                return true
+            }),
         }),
         defineField({
             name: 'pricePLN',
             title: 'Price (PLN) - Optional',
             type: 'number',
             description: 'Leave empty for automatic conversion from EUR (1 EUR ≈ 4.3 PLN)',
+            hidden: ({ document }) => document?.pricingType === 'free' || document?.pricingType === 'donation',
             validation: (Rule) => Rule.min(0),
+        }),
+        defineField({
+            name: 'donationPresets',
+            title: 'Donation Preset Amounts (EUR)',
+            type: 'array',
+            of: [{ type: 'number' }],
+            description: 'Suggested donation amounts shown to students (e.g. 5, 25, 50)',
+            initialValue: [5, 25, 50],
+            hidden: ({ document }) => document?.pricingType !== 'donation',
         }),
         defineField({
             name: 'description',
@@ -175,11 +210,22 @@ export default defineType({
             pricePLN: 'pricePLN',
             media: 'mainImage',
             registrationOpen: 'registrationOpen',
+            pricingType: 'pricingType',
         },
-        prepare({ title, price, pricePLN, media, registrationOpen }) {
+        prepare({ title, price, pricePLN, media, registrationOpen, pricingType }) {
+            const typeLabels = {
+                paid: '💳 Paid',
+                free: '🆓 Free',
+                donation: '🎁 Donation',
+                payAtDoor: '🚪 Pay at Door',
+            }
+            const typeLabel = typeLabels[pricingType] || '💳 Paid'
+            const priceStr = pricingType === 'free' || pricingType === 'donation'
+                ? typeLabel
+                : `${typeLabel} • €${price || 0}${pricePLN ? ' / ' + pricePLN + 'zł' : ''}`
             return {
                 title: title,
-                subtitle: `€${price} / ${pricePLN}zł • ${registrationOpen ? '✅ Open' : '🔒 Closed'}`,
+                subtitle: `${priceStr} • ${registrationOpen ? '✅ Open' : '🔒 Closed'}`,
                 media: media,
             }
         },

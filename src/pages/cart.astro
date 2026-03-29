@@ -21,7 +21,21 @@ import Layout from "../layouts/Layout.astro";
         <!-- Cart Content -->
         <div class="cart-content" id="cart-content" style="display: none;">
           <div class="cart-header">
-            <h1 class="cart-title">Cart</h1>
+            <a href="/store/fashion-design" class="back-to-store-link">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              Back to Store
+            </a>
             <button class="btn-clear" id="clear-cart-btn">Clear Cart</button>
           </div>
 
@@ -323,10 +337,26 @@ import Layout from "../layouts/Layout.astro";
     align-items: center;
     margin-bottom: 32px;
   }
-  .cart-title {
-    font-size: 28px;
-    font-weight: 700;
+  .back-to-store-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--foreground);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: transparent;
+    opacity: 0.6;
+    transition: all 0.2s;
+  }
+  .back-to-store-link:hover {
+    opacity: 1;
+    border-color: var(--brand-violet);
+    color: var(--brand-violet);
+    background: rgba(132, 128, 255, 0.06);
   }
 
   .btn-clear {
@@ -442,17 +472,11 @@ import Layout from "../layouts/Layout.astro";
     .cart-summary {
       position: static;
     }
-    .cart-title {
-      font-size: 22px;
-    }
     .cart-container {
       padding: 24px;
     }
   }
   @media (max-width: 480px) {
-    .cart-page {
-      padding: 16px 8px;
-    }
     .cart-container {
       padding: 16px;
       border-radius: var(--radius-lg);

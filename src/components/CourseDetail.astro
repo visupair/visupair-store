@@ -5,12 +5,11 @@ import type { Currency } from "../lib/server-currency";
 interface Props {
     course: Course;
     onClose: () => void;
-    serverCurrency?: Currency; // Currency detected on server (from Cloudflare)
+    serverCurrency?: Currency;
 }
 
 const { course, onClose, serverCurrency } = Astro.props;
 
-// Helper to generate placeholder image
 const getPlaceholderImage = (text: string, seed: number = 0) => {
     const encodedText = encodeURIComponent(text);
     const bg = seed === 0 ? "151128" : seed === 1 ? "1a1635" : "221d3a";
@@ -20,256 +19,321 @@ const getPlaceholderImage = (text: string, seed: number = 0) => {
 const details = course.details || {};
 const instructor = course.instructor || { name: "Instructor", title: "Expert" };
 const curriculum = course.curriculum || [];
-const courseImage =
-    course.mainImage || course.image || getPlaceholderImage(course.name);
+const courseImage = course.mainImage || course.image || getPlaceholderImage(course.name);
 const registrationOpen = course.registrationOpen !== false;
+const pricingType = (course as any).pricingType || "paid";
+const donationPresets = (course as any).donationPresets || [5, 25, 50];
 
-// Select appropriate price to display
 const displayPrice =
     serverCurrency === "PLN" && course.pricePLN
         ? `${course.pricePLN}zł`
         : `€${course.price}`;
 
-// Helper function to get initials for avatar
 const getInitials = (name: string) => {
     return name.split(" ").map((word) => word[0]);
 };
+
+const pricingLabels: Record<string, string> = {
+    paid: "/ lifetime access",
+    payAtDoor: "/ pay at the door",
+    free: "",
+    donation: "",
+};
 ---
 
-<div class="course-detail-panel">
-    <!-- Close Button -->
+<div class="course-detail-panel" data-pricing-type={pricingType}>
     <button
         class="detail-close-btn"
         onclick="window.history.back()"
         aria-label="Close"
     >
-        <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
     </button>
 
-    <div class="course-detail-layout">
-        <!-- LEFT: Image & Instructor (Aligned via Flex) -->
-        <div class="detail-gallery-column">
-            <div class="detail-large-image">
-                <img src={courseImage} alt={course.name} loading="lazy" />
-            </div>
+    <!-- COURSE DETAIL VIEW -->
+    <div class="course-detail-view" id="course-detail-view">
+        <div class="course-detail-layout">
+            <!-- LEFT: Image & Instructor -->
+            <div class="detail-gallery-column">
+                <div class="detail-large-image">
+                    <img src={courseImage} alt={course.name} loading="lazy" />
+                </div>
 
-            <!-- Instructor Card -->
-            <div class="instructor-card">
-                {
-                    instructor.avatar ? (
-                        <img
-                            src={instructor.avatar}
-                            alt={instructor.name}
-                            class="instructor-avatar-large-img"
-                        />
+                <div class="instructor-card">
+                    {instructor.avatar ? (
+                        <img src={instructor.avatar} alt={instructor.name} class="instructor-avatar-large-img" />
                     ) : (
-                        <div class="instructor-avatar-large">
-                            {getInitials(instructor.name)}
+                        <div class="instructor-avatar-large">{getInitials(instructor.name)}</div>
+                    )}
+                    <div class="instructor-info">
+                        <div class="instructor-label">Instructed By</div>
+                        <div class="instructor-name">{instructor.name}</div>
+                        <div class="instructor-title">{instructor.title}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Content & Actions -->
+            <div class="detail-info-column">
+                <div class="detail-header-block">
+                    <div class="badge-row">
+                        <span class={`course-badge ${registrationOpen ? "open" : "closed"}`}>
+                            {registrationOpen ? "Registration Open" : "Registration Closed"}
+                        </span>
+                        {pricingType === "free" && <span class="pricing-type-badge free-badge">Free</span>}
+                        {pricingType === "donation" && <span class="pricing-type-badge donation-badge">Donation</span>}
+                        {pricingType === "payAtDoor" && <span class="pricing-type-badge door-badge">Pay at Door</span>}
+                    </div>
+                    <h1 class="detail-title">{course.name}</h1>
+
+                    <!-- PRICING DISPLAY: varies by type -->
+                    {pricingType === "paid" && (
+                        <div class="price-tag">
+                            <span class="price-amount"
+                                data-price-eur={course.price}
+                                data-price-pln={course.pricePLN || Math.round(course.price * 4.3)}
+                                data-server-currency={serverCurrency || ""}>
+                                €{course.price}
+                            </span>
+                            <span class="price-sub">{pricingLabels.paid}</span>
                         </div>
-                    )
-                }
-                <div class="instructor-info">
-                    <div class="instructor-label">Instructed By</div>
-                    <div class="instructor-name">{instructor.name}</div>
-                    <div class="instructor-title">{instructor.title}</div>
-                </div>
-            </div>
-        </div>
+                    )}
 
-        <!-- RIGHT: Content & Actions -->
-        <div class="detail-info-column">
-            <div class="detail-header-block">
-                <span
-                    class={`course-badge ${registrationOpen ? "open" : "closed"}`}
-                >
-                    {
-                        registrationOpen
-                            ? "Registration Open"
-                            : "Registration Closed"
-                    }
-                </span>
-                <h1 class="detail-title">{course.name}</h1>
-                <div class="price-tag">
-                    <span
-                        class="price-amount"
-                        data-price-eur={course.price}
-                        data-price-pln={course.pricePLN ||
-                            Math.round(course.price * 4.3)}
-                        data-server-currency={serverCurrency || ""}
-                    >
-                        €{course.price}
-                    </span>
-                    <span class="price-sub">/ lifetime access</span>
-                </div>
-            </div>
+                    {pricingType === "payAtDoor" && (
+                        <div class="price-tag door-price">
+                            <span class="price-amount"
+                                data-price-eur={course.price}
+                                data-price-pln={course.pricePLN || Math.round(course.price * 4.3)}
+                                data-server-currency={serverCurrency || ""}>
+                                €{course.price}
+                            </span>
+                            <span class="price-sub">{pricingLabels.payAtDoor}</span>
+                        </div>
+                    )}
 
-            <!-- Stats Grid -->
-            <div class="stats-container">
-                <div class="stat-box">
-                    <span class="stat-label">Duration</span>
-                    <span class="stat-value">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        {
-                            details.duration ||
-                                (details as any)["Duration"] ||
-                                "Self-Paced"
-                        }
-                    </span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Level</span>
-                    <span class="stat-value">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
-                        </svg>
-                        {
-                            details.level ||
-                                (details as any)["Level"] ||
-                                "All Levels"
-                        }
-                    </span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Tools</span>
-                    <span class="stat-value">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <polygon points="12 2 2 7 12 12 22 7 12 2"
-                            ></polygon>
-                            <polyline points="2 17 12 22 22 17"></polyline>
-                            <polyline points="2 12 12 17 22 12"></polyline>
-                        </svg>
-                        {
-                            details.software ||
-                                (details as any)["Software"] ||
-                                (details as any)["Format"] ||
-                                "Standard"
-                        }
-                    </span>
-                </div>
-            </div>
+                    {pricingType === "free" && (
+                        <div class="price-tag free-price">
+                            <span class="price-amount free-label">Free</span>
+                            <span class="price-sub">Just register to attend</span>
+                        </div>
+                    )}
 
-            <p class="detail-desc">{course.description}</p>
+                    {pricingType === "donation" && (
+                        <div class="price-tag donation-price">
+                            <span class="price-amount donation-label">Free to attend</span>
+                            <span class="price-sub">Optional donation welcome</span>
+                        </div>
+                    )}
+                </div>
 
-            <!-- Curriculum Section -->
-            {
-                curriculum.length > 0 && (
+                <!-- Stats Grid -->
+                <div class="stats-container">
+                    <div class="stat-box">
+                        <span class="stat-label">Duration</span>
+                        <span class="stat-value">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            {details.duration || (details as any)["Duration"] || "Self-Paced"}
+                        </span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Level</span>
+                        <span class="stat-value">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                            </svg>
+                            {details.level || (details as any)["Level"] || "All Levels"}
+                        </span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Tools</span>
+                        <span class="stat-value">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                <polyline points="2 17 12 22 22 17"></polyline>
+                                <polyline points="2 12 12 17 22 12"></polyline>
+                            </svg>
+                            {details.software || (details as any)["Software"] || (details as any)["Format"] || "Standard"}
+                        </span>
+                    </div>
+                </div>
+
+                <p class="detail-desc">{course.description}</p>
+
+                <!-- Curriculum Section -->
+                {curriculum.length > 0 && (
                     <div>
                         <details style={{ width: "100%" }} open>
                             <summary class="accordion-header">
                                 <span>Curriculum & Schedule</span>
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="6 9 12 15 18 9" />
                                 </svg>
                             </summary>
                             <div class="curriculum-list">
-                                {curriculum.map((item) => (
+                                {curriculum.map((item: { week: string; title: string }) => (
                                     <div class="curriculum-item">
-                                        <span class="curr-week">
-                                            {item.week}
-                                        </span>
-                                        <span class="curr-title">
-                                            {item.title}
-                                        </span>
+                                        <span class="curr-week">{item.week}</span>
+                                        <span class="curr-title">{item.title}</span>
                                     </div>
                                 ))}
                             </div>
                         </details>
                     </div>
-                )
-            }
+                )}
 
-            <!-- Enroll Button -->
-            {
-                (course.price || course.pricePLN) && registrationOpen ? (
-                    <button
-                        id="enroll-btn"
-                        class="btn-enroll"
-                        data-product-id={course._id}
-                        data-stripe-price-id={course.stripePriceId}
-                        data-product-type="course"
-                        data-enroll-eur={course.price}
-                        data-enroll-pln={
-                            course.pricePLN || Math.round(course.price * 4.3)
-                        }
-                        data-server-currency={serverCurrency || ""}
-                    >
-                        <span>Enroll Now for {displayPrice}</span>
-                        <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                            <polyline points="12 5 19 12 12 19" />
-                        </svg>
-                    </button>
+                <!-- ACTION BUTTON: varies by pricing type -->
+                {registrationOpen ? (
+                    pricingType === "paid" ? (
+                        <button
+                            id="enroll-btn"
+                            class="btn-enroll"
+                            data-product-id={course._id}
+                            data-stripe-price-id={course.stripePriceId}
+                            data-product-type="course"
+                            data-enroll-eur={course.price}
+                            data-enroll-pln={course.pricePLN || Math.round(course.price * 4.3)}
+                            data-server-currency={serverCurrency || ""}>
+                            <span>Enroll Now for {displayPrice}</span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        </button>
+                    ) : (
+                        <button
+                            id="register-btn"
+                            class={`btn-enroll ${pricingType === 'free' ? 'btn-free' : pricingType === 'donation' ? 'btn-donation' : 'btn-door'}`}
+                            data-course-id={course._id}
+                            data-course-name={course.name}
+                            data-pricing-type={pricingType}
+                            data-donation-presets={JSON.stringify(donationPresets)}>
+                            <span>
+                                {pricingType === "free" && "Register for Free"}
+                                {pricingType === "donation" && "Register — Free or Donate"}
+                                {pricingType === "payAtDoor" && `Register — ${displayPrice} at the Door`}
+                            </span>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                                <polyline points="12 5 19 12 12 19" />
+                            </svg>
+                        </button>
+                    )
                 ) : (
-                    <button
-                        class="btn-enroll"
-                        disabled
-                        style="opacity: 0.5; cursor: not-allowed;"
-                    >
-                        <span>
-                            {registrationOpen
-                                ? "Enrollment Link Coming Soon"
-                                : "Registration Closed"}
-                        </span>
+                    <button class="btn-enroll" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <span>Registration Closed</span>
                     </button>
-                )
-            }
+                )}
+            </div>
+        </div>
+    </div>
+
+    <!-- REGISTRATION FORM VIEW (replaces course detail with animation) -->
+    <div class="registration-form-view" id="registration-form-view" style="display:none;">
+        <div class="reg-form-layout">
+            <div class="reg-form-header">
+                <button class="reg-back-btn" id="reg-back-btn" aria-label="Back to course details">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Back to Course</span>
+                </button>
+                <h2 class="reg-form-title">Register for this Course</h2>
+                <p class="reg-form-course-name">{course.name}</p>
+            </div>
+
+            <!-- Donation Section (only for donation type) -->
+            {pricingType === "donation" && (
+                <div class="donation-section" id="donation-section">
+                    <h3 class="donation-heading">Would you like to support this course?</h3>
+                    <p class="donation-subtext">Your donation helps us create more courses. Attendance is free regardless.</p>
+                    <div class="donation-options">
+                        <button type="button" class="donation-chip" data-amount="0">
+                            <span>Free</span>
+                        </button>
+                        {donationPresets.map((amount: number) => (
+                            <button type="button" class="donation-chip" data-amount={amount}>
+                                <span>€{amount}</span>
+                            </button>
+                        ))}
+                        <div class="donation-custom-wrap">
+                            <span class="donation-custom-currency">€</span>
+                            <input
+                                type="number"
+                                class="donation-custom-input"
+                                id="donation-custom-input"
+                                placeholder="Other"
+                                min="0"
+                                step="1"
+                            />
+                        </div>
+                    </div>
+                    <input type="hidden" id="selected-donation" value="0" />
+                </div>
+            )}
+
+            <form class="reg-form" id="course-reg-form">
+                <div class="reg-form-row">
+                    <div class="reg-field">
+                        <label for="reg-firstName">First Name <span class="required">*</span></label>
+                        <input type="text" id="reg-firstName" name="firstName" required autocomplete="given-name" placeholder="Your first name" />
+                    </div>
+                    <div class="reg-field">
+                        <label for="reg-lastName">Last Name <span class="required">*</span></label>
+                        <input type="text" id="reg-lastName" name="lastName" required autocomplete="family-name" placeholder="Your last name" />
+                    </div>
+                </div>
+                <div class="reg-field">
+                    <label for="reg-email">Email <span class="required">*</span></label>
+                    <input type="email" id="reg-email" name="email" required autocomplete="email" placeholder="your@email.com" />
+                </div>
+                <div class="reg-field">
+                    <label for="reg-phone">Phone <span class="optional-tag">optional</span></label>
+                    <input type="tel" id="reg-phone" name="phone" autocomplete="tel" placeholder="+49 123 456 789" />
+                </div>
+
+                <input type="hidden" id="reg-courseId" value={course._id} />
+                <input type="hidden" id="reg-courseName" value={course.name} />
+                <input type="hidden" id="reg-pricingType" value={pricingType} />
+
+                <button type="submit" class={`btn-enroll btn-register-submit ${pricingType === 'free' ? 'btn-free' : pricingType === 'donation' ? 'btn-donation' : pricingType === 'payAtDoor' ? 'btn-door' : ''}`} id="reg-submit-btn">
+                    <span id="reg-submit-text">
+                        {pricingType === "free" && "Complete Registration"}
+                        {pricingType === "donation" && "Register & Donate"}
+                        {pricingType === "payAtDoor" && "Confirm Registration"}
+                        {pricingType === "paid" && "Complete Registration"}
+                    </span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- Success State -->
+            <div class="reg-success" id="reg-success" style="display:none;">
+                <div class="success-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                </div>
+                <h3 class="success-title">You're Registered!</h3>
+                <p class="success-text" id="success-text">We'll send you a confirmation to your email.</p>
+                <button class="btn-enroll btn-back-to-course" id="btn-back-to-course">
+                    <span>Back to Course Details</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
-
-<!-- Stripe Checkout is handled on the server (redirect) -->
 
 <style>
     .course-detail-panel {
@@ -277,20 +341,25 @@ const getInitials = (name: string) => {
         height: 100%;
         display: flex;
         flex-direction: column;
-        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         position: relative;
         min-height: calc(100vh - 520px);
     }
 
+    /* Detail / Form views share the same space */
+    .course-detail-view,
+    .registration-form-view {
+        width: 100%;
+        animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
     @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to   { opacity: 0; transform: translateY(-10px); }
     }
 
     .course-detail-layout {
@@ -372,6 +441,13 @@ const getInitials = (name: string) => {
         padding-bottom: 8px;
     }
 
+    .badge-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
     .course-badge {
         display: inline-block;
         width: fit-content;
@@ -393,6 +469,31 @@ const getInitials = (name: string) => {
         color: #ef4444;
     }
 
+    .pricing-type-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .free-badge {
+        background: color-mix(in srgb, #22c55e, transparent 85%);
+        color: #22c55e;
+    }
+
+    .donation-badge {
+        background: color-mix(in srgb, #f59e0b, transparent 85%);
+        color: #f59e0b;
+    }
+
+    .door-badge {
+        background: color-mix(in srgb, #3b82f6, transparent 85%);
+        color: #3b82f6;
+    }
+
     .detail-title {
         font-size: 42px;
         font-weight: 700;
@@ -411,9 +512,16 @@ const getInitials = (name: string) => {
         flex-wrap: wrap;
     }
 
-    .price-divider {
-        opacity: 0.4;
-        font-weight: 400;
+    .free-price .price-amount {
+        color: #22c55e;
+    }
+
+    .donation-price .price-amount {
+        color: #f59e0b;
+    }
+
+    .door-price .price-amount {
+        color: #3b82f6;
     }
 
     .price-sub {
@@ -464,9 +572,7 @@ const getInitials = (name: string) => {
         flex-shrink: 0;
     }
 
-    .instructor-info {
-        flex: 1;
-    }
+    .instructor-info { flex: 1; }
 
     .instructor-label {
         font-size: 11px;
@@ -528,9 +634,7 @@ const getInitials = (name: string) => {
         color: var(--foreground);
     }
 
-    .stat-value svg {
-        flex-shrink: 0;
-    }
+    .stat-value svg { flex-shrink: 0; }
 
     .curriculum-list {
         display: flex;
@@ -546,9 +650,7 @@ const getInitials = (name: string) => {
         border-bottom: 1px solid var(--border-subtle);
     }
 
-    .curriculum-item:last-child {
-        border-bottom: none;
-    }
+    .curriculum-item:last-child { border-bottom: none; }
 
     .curr-week {
         font-size: 11px;
@@ -582,22 +684,11 @@ const getInitials = (name: string) => {
         margin: 0;
     }
 
-    .accordion-header:hover {
-        opacity: 0.8;
-    }
+    .accordion-header:hover { opacity: 0.8; }
 
     .accordion-header svg {
         transition: transform 0.3s ease;
         flex-shrink: 0;
-    }
-
-    .accordion-header[aria-expanded="true"] svg {
-        transform: rotate(180deg);
-    }
-
-    /* Details/Accordion Animation */
-    details {
-        transition: all 0.3s ease;
     }
 
     details[open] .curriculum-list {
@@ -605,52 +696,323 @@ const getInitials = (name: string) => {
     }
 
     @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(-10px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── Buttons ────────────────────────────────────────────── */
 
     .btn-enroll {
         width: 100%;
         padding: 22px;
         background: var(--brand-violet);
-        color: white; /* Changed from var(--foreground) to white for consistency */
+        color: white;
         border: none;
         border-radius: var(--radius-xl);
         font-weight: 700;
         font-size: 18px;
         cursor: pointer;
-        transition:
-            transform 0.2s,
-            background-color 0.2s,
-            box-shadow 0.2s; /* Added background-color transition */
+        transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 12px;
         margin-top: auto;
         font-family: var(--font-family);
-        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3); /* Added initial shadow */
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
     }
 
     .btn-enroll:hover {
-        background: #9d9aff; /* Lighter violet for hover */
-        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5); /* Increased shadow on hover */
+        background: #9d9aff;
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
         transform: translateY(-2px);
     }
 
-    .btn-enroll:active {
-        transform: translateY(0);
+    .btn-enroll:active { transform: translateY(0); }
+    .btn-enroll svg { flex-shrink: 0; }
+
+    .btn-free {
+        background: #22c55e;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+    .btn-free:hover {
+        background: #16a34a;
+        box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
     }
 
-    .btn-enroll svg {
-        flex-shrink: 0;
+    .btn-donation {
+        background: #f59e0b;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        color: #1a1a2e;
     }
+    .btn-donation:hover {
+        background: #d97706;
+        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-door {
+        background: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .btn-door:hover {
+        background: #2563eb;
+        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+    }
+
+    /* ── Registration Form ──────────────────────────────────── */
+
+    .reg-form-layout {
+        max-width: 640px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        padding: 16px 0;
+    }
+
+    .reg-form-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .reg-back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: none;
+        color: var(--foreground);
+        opacity: 0.6;
+        cursor: pointer;
+        font-family: var(--font-family);
+        font-size: 14px;
+        font-weight: 500;
+        padding: 0;
+        margin-bottom: 8px;
+        transition: opacity 0.2s;
+    }
+
+    .reg-back-btn:hover { opacity: 1; }
+
+    .reg-form-title {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--foreground);
+    }
+
+    .reg-form-course-name {
+        font-size: 16px;
+        opacity: 0.6;
+        font-weight: 500;
+    }
+
+    .reg-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .reg-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .reg-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .reg-field label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--foreground);
+    }
+
+    .required { color: #ef4444; }
+
+    .optional-tag {
+        font-weight: 400;
+        opacity: 0.5;
+        font-size: 12px;
+    }
+
+    .reg-field input {
+        padding: 14px 16px;
+        background: var(--surface-muted);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        font-size: 15px;
+        font-family: var(--font-family);
+        color: var(--foreground);
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+    }
+
+    .reg-field input::placeholder {
+        color: var(--foreground);
+        opacity: 0.35;
+    }
+
+    .reg-field input:focus {
+        border-color: var(--brand-violet);
+        box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.15);
+    }
+
+    /* ── Donation Section ───────────────────────────────────── */
+
+    .donation-section {
+        background: var(--surface-muted);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .donation-heading {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--foreground);
+    }
+
+    .donation-subtext {
+        font-size: 14px;
+        opacity: 0.6;
+        line-height: 1.5;
+    }
+
+    .donation-options {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .donation-chip {
+        padding: 12px 22px;
+        border-radius: var(--radius-lg);
+        border: 2px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--foreground);
+        font-size: 15px;
+        font-weight: 600;
+        font-family: var(--font-family);
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    .donation-chip:hover {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.05);
+    }
+
+    .donation-chip.selected {
+        border-color: #f59e0b;
+        background: #f59e0b;
+        color: #1a1a2e;
+    }
+
+    .donation-custom-wrap {
+        display: flex;
+        align-items: center;
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        padding: 0 12px;
+        transition: border-color 0.2s;
+        min-width: 100px;
+    }
+
+    .donation-custom-wrap:focus-within {
+        border-color: #f59e0b;
+    }
+
+    .donation-custom-wrap.selected {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.08);
+    }
+
+    .donation-custom-currency {
+        font-size: 15px;
+        font-weight: 600;
+        opacity: 0.5;
+    }
+
+    .donation-custom-input {
+        padding: 12px 8px;
+        border: none;
+        background: transparent;
+        color: var(--foreground);
+        font-size: 15px;
+        font-weight: 600;
+        font-family: var(--font-family);
+        width: 80px;
+        outline: none;
+    }
+
+    .donation-custom-input::placeholder {
+        opacity: 0.4;
+    }
+
+    /* ── Registration Success ───────────────────────────────── */
+
+    .reg-success {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 16px;
+        padding: 40px 20px;
+        animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: color-mix(in srgb, #22c55e, transparent 85%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #22c55e;
+    }
+
+    .success-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--foreground);
+    }
+
+    .success-text {
+        font-size: 16px;
+        opacity: 0.6;
+        max-width: 400px;
+        line-height: 1.6;
+    }
+
+    .btn-back-to-course {
+        max-width: 300px;
+        margin-top: 12px;
+        background: var(--surface-muted);
+        color: var(--foreground);
+        border: 1px solid var(--border-subtle);
+        box-shadow: none;
+    }
+
+    .btn-back-to-course:hover {
+        background: var(--surface-hover);
+        box-shadow: none;
+        border-color: var(--brand-violet);
+    }
+
+    /* ── Responsive ─────────────────────────────────────────── */
 
     @media (max-width: 900px) {
         .course-detail-layout {
@@ -674,9 +1036,7 @@ const getInitials = (name: string) => {
             gap: 20px;
         }
 
-        .detail-title {
-            font-size: 32px;
-        }
+        .detail-title { font-size: 32px; }
 
         .stats-container {
             grid-template-columns: 1fr;
@@ -714,128 +1074,30 @@ const getInitials = (name: string) => {
         .detail-large-image {
             aspect-ratio: 16/9;
         }
-    }
 
-    /* Checkout Modal Styles */
-    .checkout-modal {
-        display: none; /* Hidden by default */
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        z-index: 2147483647; /* Max Safe Integer to be always on top */
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        overflow: hidden; /* Prevent background scroll interaction */
-    }
-
-    .checkout-modal.active {
-        display: flex;
-        opacity: 1;
-    }
-
-    .checkout-container {
-        position: relative;
-        width: 95%; /* Responsive width */
-        max-width: 800px; /* Bigger for desktop */
-        height: 90vh; /* Taller */
-        max-height: 900px;
-        background: var(--surface);
-        border: 1px solid var(--border-subtle);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-xl);
-        overflow: hidden;
-        animation: slideUp 0.3s ease-out;
-    }
-
-    @keyframes slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
+        .reg-form-row {
+            grid-template-columns: 1fr;
         }
-        to {
-            transform: translateY(0);
-            opacity: 1;
+
+        .reg-form-title { font-size: 26px; }
+
+        .donation-options {
+            flex-direction: column;
+            align-items: stretch;
         }
-    }
 
-    @media (max-width: 1024px) {
-        .checkout-modal {
-            align-items: flex-end; /* Bottom Sheet style or center? */
-            padding: 0;
-        }
-        .checkout-container {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: none !important;
-            max-height: none !important;
-            border-radius: 0 !important;
-            border: none !important;
-        }
-        .close-checkout-btn {
-            top: 16px;
-            right: 16px;
-            z-index: 2147483648; /* Higher than iframe */
-        }
-    }
+        .donation-chip { width: 100%; }
 
-    .close-checkout-btn {
-        position: absolute;
-        top: 45px;
-        right: 25px;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--surface-hover);
-        border: 1px solid var(--border-subtle);
-        color: var(--foreground);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 10;
-        transition: all 0.2s;
-    }
-
-    .close-checkout-btn:hover {
-        background: rgba(239, 68, 68, 0.08);
-        border-color: #ef4444;
-        color: #ef4444;
-    }
-
-    .checkout-loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        color: var(--text-muted);
-        z-index: 1;
-    }
-
-    #checkout-iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-        position: relative;
-        z-index: 2; /* Cover loading spinner */
-        background: transparent;
+        .donation-custom-wrap { width: 100%; }
+        .donation-custom-input { width: 100%; }
     }
 </style>
 
 <script>
     import { authClient } from "../lib/auth-client";
 
-    // ── Checkout Error Toast ─────────────────────────────────────────────────
-    function showCheckoutToast(message: string) {
+    // ── Toast Utility ──────────────────────────────────────────
+    function showToast(message: string, type: 'error' | 'success' = 'error') {
         document.getElementById("vs-checkout-toast")?.remove();
 
         if (!document.getElementById("vs-toast-styles")) {
@@ -843,12 +1105,8 @@ const getInitials = (name: string) => {
             s.id = "vs-toast-styles";
             s.textContent = `
                 #vs-checkout-toast {
-                    position: fixed;
-                    bottom: 28px;
-                    right: 28px;
-                    z-index: 9999;
-                    max-width: 400px;
-                    width: calc(100vw - 48px);
+                    position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+                    max-width: 400px; width: calc(100vw - 48px);
                     background: var(--surface);
                     border: 1px solid rgba(239,68,68,0.2);
                     border-left: 4px solid #ef4444;
@@ -859,12 +1117,16 @@ const getInitials = (name: string) => {
                     animation: vsToastIn 0.28s cubic-bezier(.4,0,.2,1);
                     transition: opacity 0.2s;
                 }
+                #vs-checkout-toast.toast-success {
+                    border-color: rgba(34,197,94,0.2);
+                    border-left-color: #22c55e;
+                }
                 @keyframes vsToastIn {
                     from { transform: translateY(14px) scale(0.97); opacity: 0; }
-                    to   { transform: translateY(0)    scale(1);    opacity: 1; }
+                    to   { transform: translateY(0) scale(1); opacity: 1; }
                 }
                 .vs-toast-inner { display: flex; align-items: flex-start; gap: 12px; }
-                .vs-toast-icon  { color: #ef4444; flex-shrink: 0; margin-top: 1px; line-height: 0; }
+                .vs-toast-icon  { flex-shrink: 0; margin-top: 1px; line-height: 0; }
                 .vs-toast-body  { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
                 .vs-toast-title { font-size: 14px; font-weight: 600; color: var(--foreground); line-height: 1.3; }
                 .vs-toast-msg   { font-size: 13px; color: var(--foreground); opacity: 0.65; line-height: 1.45; word-break: break-word; }
@@ -877,22 +1139,24 @@ const getInitials = (name: string) => {
             document.head.appendChild(s);
         }
 
+        const isSuccess = type === 'success';
         const toast = document.createElement("div");
         toast.id = "vs-checkout-toast";
+        if (isSuccess) toast.classList.add("toast-success");
         toast.setAttribute("role", "alert");
-        toast.setAttribute("aria-live", "assertive");
         toast.innerHTML = `
             <div class="vs-toast-inner">
-                <div class="vs-toast-icon">
+                <div class="vs-toast-icon" style="color: ${isSuccess ? '#22c55e' : '#ef4444'}">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        ${isSuccess
+                            ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+                            : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+                        }
                     </svg>
                 </div>
                 <div class="vs-toast-body">
-                    <span class="vs-toast-title">Payment failed</span>
+                    <span class="vs-toast-title">${isSuccess ? 'Success' : 'Error'}</span>
                     <span class="vs-toast-msg">${message}</span>
                 </div>
                 <button class="vs-toast-close" aria-label="Close notification">
@@ -914,184 +1178,297 @@ const getInitials = (name: string) => {
         setTimeout(dismiss, 7000);
     }
 
-    // Client-side currency detection and price updating
-    // Exchange rate: 1 EUR = 4.3 PLN (update this value periodically)
+    // ── Currency ───────────────────────────────────────────────
     type Currency = "EUR" | "PLN";
 
     function detectUserCurrency(): Currency {
-        // PRIORITY 1: Check server-detected currency (from Cloudflare CF-IPCountry header)
         const priceElement = document.querySelector("[data-server-currency]");
-        const serverCurrency = priceElement?.getAttribute(
-            "data-server-currency",
-        );
-
-        if (
-            serverCurrency &&
-            (serverCurrency === "EUR" || serverCurrency === "PLN")
-        ) {
-            console.log(
-                "Server-detected currency (Cloudflare):",
-                serverCurrency,
-            );
-            console.log("Using server currency (most reliable!)");
+        const serverCurrency = priceElement?.getAttribute("data-server-currency");
+        if (serverCurrency && (serverCurrency === "EUR" || serverCurrency === "PLN")) {
             return serverCurrency as Currency;
         }
-
-        // FALLBACK 1: Check timezone (client-side)
         try {
-            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            console.log("Client timezone:", timezone);
-
-            if (
-                timezone &&
-                (timezone.includes("Warsaw") ||
-                    timezone === "Europe/Warsaw" ||
-                    timezone === "Poland")
-            ) {
-                console.log("Currency: PLN (Poland timezone detected)");
-                return "PLN";
-            }
-        } catch (e) {
-            console.warn("Timezone detection failed:", e);
-        }
-
-        // FALLBACK 2: Check browser language
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (tz && (tz.includes("Warsaw") || tz === "Europe/Warsaw")) return "PLN";
+        } catch {}
         const locale = navigator.language || (navigator as any).userLanguage;
-        console.log("Client language:", locale);
-
-        if (locale && locale.toLowerCase().startsWith("pl")) {
-            console.log("Currency: PLN (Polish language detected)");
-            return "PLN";
-        }
-
-        // Default to EUR
-        console.log("Currency: EUR (default)");
+        if (locale && locale.toLowerCase().startsWith("pl")) return "PLN";
         return "EUR";
     }
 
     function updatePrices() {
         const currency = detectUserCurrency();
+        document.querySelectorAll("[data-price-eur][data-price-pln]").forEach((el) => {
+            const eur = el.getAttribute("data-price-eur");
+            const pln = el.getAttribute("data-price-pln");
+            if (!eur || !pln) return;
+            el.textContent = currency === "PLN" ? `${pln}zł` : `€${eur}`;
+        });
+        document.querySelectorAll("[data-enroll-eur][data-enroll-pln]").forEach((btn) => {
+            const eur = btn.getAttribute("data-enroll-eur");
+            const pln = btn.getAttribute("data-enroll-pln");
+            if (!eur || !pln) return;
+            const span = btn.querySelector("span");
+            if (span) span.textContent = currency === "PLN" ? `Enroll Now for ${pln}zł` : `Enroll Now for €${eur}`;
+        });
+    }
 
-        // Update price display
-        const priceElements = document.querySelectorAll(
-            "[data-price-eur][data-price-pln]",
-        );
+    // ── View switching (detail <-> registration form) ──────────
+    function showRegistrationForm() {
+        const detailView = document.getElementById("course-detail-view");
+        const formView = document.getElementById("registration-form-view");
+        if (!detailView || !formView) return;
 
-        priceElements.forEach((element) => {
-            const priceEUR = element.getAttribute("data-price-eur");
-            const pricePLN = element.getAttribute("data-price-pln");
+        detailView.style.animation = "fadeOut 0.25s ease forwards";
+        setTimeout(() => {
+            detailView.style.display = "none";
+            formView.style.display = "block";
+            formView.style.animation = "fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }, 250);
+    }
 
-            if (!priceEUR || !pricePLN) return;
+    function showCourseDetail() {
+        const detailView = document.getElementById("course-detail-view");
+        const formView = document.getElementById("registration-form-view");
+        const successView = document.getElementById("reg-success");
+        const regForm = document.getElementById("course-reg-form") as HTMLFormElement;
 
-            if (currency === "PLN") {
-                element.textContent = `${pricePLN}zł`;
-            } else {
-                element.textContent = `€${priceEUR}`;
+        if (!detailView || !formView) return;
+
+        formView.style.animation = "fadeOut 0.25s ease forwards";
+        setTimeout(() => {
+            formView.style.display = "none";
+            if (successView) successView.style.display = "none";
+            if (regForm) {
+                regForm.style.display = "flex";
+                regForm.reset();
             }
+            // Reset donation section
+            const donationSection = document.getElementById("donation-section");
+            if (donationSection) donationSection.style.display = "flex";
+            document.querySelectorAll(".donation-chip").forEach(c => c.classList.remove("selected"));
+            const customWrap = document.querySelector(".donation-custom-wrap");
+            if (customWrap) customWrap.classList.remove("selected");
+            const customInput = document.getElementById("donation-custom-input") as HTMLInputElement;
+            if (customInput) customInput.value = "";
+            const hiddenDonation = document.getElementById("selected-donation") as HTMLInputElement;
+            if (hiddenDonation) hiddenDonation.value = "0";
+
+            detailView.style.display = "block";
+            detailView.style.animation = "fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+        }, 250);
+    }
+
+    // ── Donation chips ─────────────────────────────────────────
+    function initDonationChips() {
+        const chips = document.querySelectorAll(".donation-chip");
+        const customInput = document.getElementById("donation-custom-input") as HTMLInputElement;
+        const customWrap = document.querySelector(".donation-custom-wrap");
+        const hiddenDonation = document.getElementById("selected-donation") as HTMLInputElement;
+
+        if (!chips.length) return;
+
+        chips.forEach(chip => {
+            chip.addEventListener("click", () => {
+                chips.forEach(c => c.classList.remove("selected"));
+                if (customWrap) customWrap.classList.remove("selected");
+                if (customInput) customInput.value = "";
+                chip.classList.add("selected");
+                if (hiddenDonation) hiddenDonation.value = chip.getAttribute("data-amount") || "0";
+                updateSubmitBtnText();
+            });
         });
 
-        // Update enroll button text
-        const enrollButtons = document.querySelectorAll(
-            "[data-enroll-eur][data-enroll-pln]",
-        );
+        if (customInput) {
+            customInput.addEventListener("focus", () => {
+                chips.forEach(c => c.classList.remove("selected"));
+                if (customWrap) customWrap.classList.add("selected");
+            });
+            customInput.addEventListener("input", () => {
+                chips.forEach(c => c.classList.remove("selected"));
+                if (customWrap) customWrap.classList.add("selected");
+                if (hiddenDonation) hiddenDonation.value = customInput.value || "0";
+                updateSubmitBtnText();
+            });
+        }
 
-        enrollButtons.forEach((button) => {
-            const priceEUR = button.getAttribute("data-enroll-eur");
-            const pricePLN = button.getAttribute("data-enroll-pln");
+        // Select "Free" by default
+        const freeChip = chips[0];
+        if (freeChip) freeChip.classList.add("selected");
+    }
 
-            if (!priceEUR || !pricePLN) return;
+    function updateSubmitBtnText() {
+        const submitText = document.getElementById("reg-submit-text");
+        const hiddenDonation = document.getElementById("selected-donation") as HTMLInputElement;
+        const pricingType = document.getElementById("reg-pricingType") as HTMLInputElement;
 
-            const span = button.querySelector("span");
-            if (span) {
-                if (currency === "PLN") {
-                    span.textContent = `Enroll Now for ${pricePLN}zł`;
-                } else {
-                    span.textContent = `Enroll Now for €${priceEUR}`;
+        if (!submitText || !pricingType || pricingType.value !== "donation") return;
+
+        const amount = parseFloat(hiddenDonation?.value || "0");
+        if (amount > 0) {
+            submitText.textContent = `Register & Donate €${amount}`;
+        } else {
+            submitText.textContent = "Register for Free";
+        }
+    }
+
+    // ── Registration form submit ───────────────────────────────
+    function initRegistrationForm() {
+        const form = document.getElementById("course-reg-form") as HTMLFormElement;
+        const submitBtn = document.getElementById("reg-submit-btn") as HTMLButtonElement;
+        const submitText = document.getElementById("reg-submit-text");
+
+        if (!form) return;
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (submitBtn) submitBtn.disabled = true;
+            if (submitText) submitText.textContent = "Registering...";
+
+            const firstName = (document.getElementById("reg-firstName") as HTMLInputElement).value;
+            const lastName = (document.getElementById("reg-lastName") as HTMLInputElement).value;
+            const email = (document.getElementById("reg-email") as HTMLInputElement).value;
+            const phone = (document.getElementById("reg-phone") as HTMLInputElement).value;
+            const courseId = (document.getElementById("reg-courseId") as HTMLInputElement).value;
+            const courseName = (document.getElementById("reg-courseName") as HTMLInputElement).value;
+            const pricingType = (document.getElementById("reg-pricingType") as HTMLInputElement).value;
+            const donationAmountStr = (document.getElementById("selected-donation") as HTMLInputElement)?.value;
+            const donationAmount = donationAmountStr ? parseFloat(donationAmountStr) : 0;
+
+            try {
+                const response = await fetch("/api/course-register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        email,
+                        phone: phone || undefined,
+                        courseId,
+                        courseName,
+                        pricingType,
+                        donationAmount: pricingType === "donation" ? donationAmount : undefined,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || "Registration failed");
+                }
+
+                // Show success
+                form.style.display = "none";
+                const donationSection = document.getElementById("donation-section");
+                if (donationSection) donationSection.style.display = "none";
+
+                const successView = document.getElementById("reg-success");
+                const successText = document.getElementById("success-text");
+                if (successView) successView.style.display = "flex";
+
+                if (successText) {
+                    if (pricingType === "donation" && donationAmount > 0) {
+                        successText.textContent = `Thank you for your €${donationAmount} donation! We'll send a confirmation to ${email}.`;
+                    } else if (pricingType === "payAtDoor") {
+                        successText.textContent = `Remember to bring payment to the venue. We'll send a confirmation to ${email}.`;
+                    } else {
+                        successText.textContent = `We'll send a confirmation to ${email}. See you at the course!`;
+                    }
+                }
+            } catch (err: any) {
+                console.error("Registration error:", err);
+                showToast(err.message || "Registration failed. Please try again.", "error");
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+                if (submitText) {
+                    const pt = (document.getElementById("reg-pricingType") as HTMLInputElement)?.value;
+                    if (pt === "free") submitText.textContent = "Complete Registration";
+                    else if (pt === "donation") updateSubmitBtnText();
+                    else if (pt === "payAtDoor") submitText.textContent = "Confirm Registration";
+                    else submitText.textContent = "Complete Registration";
                 }
             }
         });
     }
 
-    // Run on page load
-    // updatePrices(); // This line is replaced by initCourseDetail
+    // ── Paid course checkout (existing logic) ──────────────────
+    function initPaidEnroll() {
+        const enrollBtn = document.getElementById("enroll-btn");
+        if (!enrollBtn) return;
 
-    // Initialize function for course detail page
+        enrollBtn.dataset.originalText = enrollBtn.textContent || "Enroll Now";
+
+        enrollBtn.addEventListener("click", async () => {
+            const session = await authClient.getSession();
+            if (!session.data) {
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                return;
+            }
+
+            const stripePriceId = (enrollBtn as HTMLElement).dataset.stripePriceId;
+            const productId = (enrollBtn as HTMLElement).dataset.productId;
+            const priceEur = parseFloat((enrollBtn as HTMLElement).dataset.enrollEur || "0");
+
+            const span = enrollBtn.querySelector("span");
+            if (span) span.textContent = "Redirecting to Checkout...";
+
+            try {
+                const response = await fetch("/api/create-checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        productId,
+                        priceId: stripePriceId || undefined,
+                        productName: enrollBtn.closest(".course-detail-panel")?.querySelector(".detail-title")?.textContent || "Course",
+                        productType: "course",
+                        userEmail: session.data.user.email,
+                        price: priceEur,
+                        currency: "EUR",
+                    }),
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.url) {
+                    throw new Error(data.error || "Failed to create checkout session");
+                }
+                window.location.href = data.url;
+            } catch (err: any) {
+                console.error("Checkout error:", err);
+                showToast(err.message || "Unable to start checkout. Please try again.", "error");
+                if (span) span.textContent = enrollBtn.dataset.originalText || "Enroll Now";
+            }
+        });
+    }
+
+    // ── Init ───────────────────────────────────────────────────
     function initCourseDetail() {
         updatePrices();
         window.addEventListener("pageshow", updatePrices);
+
+        // Register button → show form
+        const registerBtn = document.getElementById("register-btn");
+        if (registerBtn) {
+            registerBtn.addEventListener("click", showRegistrationForm);
+        }
+
+        // Back button → show detail
+        const backBtn = document.getElementById("reg-back-btn");
+        if (backBtn) {
+            backBtn.addEventListener("click", showCourseDetail);
+        }
+
+        // Back to course from success
+        const backToCourse = document.getElementById("btn-back-to-course");
+        if (backToCourse) {
+            backToCourse.addEventListener("click", showCourseDetail);
+        }
+
+        initDonationChips();
+        initRegistrationForm();
+        initPaidEnroll();
     }
 
-    // Run initialization
     initCourseDetail();
-
-    // Re-run on View Transitions
     document.addEventListener("astro:page-load", initCourseDetail);
-
-    document.addEventListener("astro:page-load", () => {
-        const enrollBtn = document.getElementById("enroll-btn");
-        // Buy Logic
-        if (enrollBtn) {
-            // Store original text
-            enrollBtn.dataset.originalText =
-                enrollBtn.textContent || "Enroll Now";
-
-            enrollBtn.addEventListener("click", async () => {
-                // Check if user is logged in
-                const session = await authClient.getSession();
-                if (!session.data) {
-                    window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-                    return;
-                }
-
-                const stripePriceId = enrollBtn.dataset.stripePriceId;
-                const productId = enrollBtn.dataset.productId;
-                const priceEur = parseFloat(enrollBtn.dataset.enrollEur || "0");
-
-                const span = enrollBtn.querySelector("span");
-                if (span) {
-                    span.textContent = "Redirecting to Checkout...";
-                }
-
-                try {
-                    const userEmail = session.data.user.email;
-
-                    const response = await fetch("/api/create-checkout", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            productId,
-                            priceId: stripePriceId || undefined,
-                            productName:
-                                enrollBtn
-                                    .closest(".course-detail-panel")
-                                    ?.querySelector(".detail-title")
-                                    ?.textContent || "Course",
-                            productType: "course",
-                            userEmail,
-                            price: priceEur,
-                            currency: "EUR",
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (!response.ok || !data.url) {
-                        throw new Error(
-                            data.error || "Failed to create checkout session",
-                        );
-                    }
-
-                    window.location.href = data.url;
-                } catch (err: any) {
-                    console.error("Checkout error:", err);
-                    showCheckoutToast(
-                        err.message || "Unable to start checkout. Please try again shortly."
-                    );
-                    if (span)
-                        span.textContent =
-                            enrollBtn.dataset.originalText || "Enroll Now";
-                }
-            });
-        }
-    });
 </script>

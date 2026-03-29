@@ -23,8 +23,11 @@ export const GET: APIRoute = async ({ params }) => {
         _id,
         name,
         "slug": slug.current,
+        pricingType,
         price,
-
+        pricePLN,
+        stripePriceId,
+        donationPresets,
         description,
         mainImage {
           asset->{
@@ -68,6 +71,8 @@ export const GET: APIRoute = async ({ params }) => {
         // Process images with proper sizing
         const processedCourse = {
             ...course,
+            pricingType: course.pricingType || 'paid',
+            donationPresets: course.donationPresets || [5, 25, 50],
             mainImage: (course.mainImage?.asset)
                 ? urlFor(course.mainImage).width(1200).height(800).fit('crop').url()
                 : null,

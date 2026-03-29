@@ -57,17 +57,20 @@ export interface Product {
     clo3dEmbedUrl?: string;
 }
 
+export type CoursePricingType = 'paid' | 'free' | 'donation' | 'payAtDoor';
+
 export interface Course {
     _id?: string;
     name: string;
     slug?: string;
+    pricingType?: CoursePricingType;
     price: number;
     pricePLN?: number;
     stripePriceId?: string;
+    donationPresets?: number[];
     description: string;
     mainImage?: string;
     registrationOpen?: boolean;
-
 
     // Course-specific fields
     instructor?: {
