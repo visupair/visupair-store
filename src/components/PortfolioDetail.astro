@@ -9,6 +9,24 @@ interface Props {
 
 const { item, backLink = "/portfolio" } = Astro.props;
 
+// Helper to convert YouTube URLs to embed URLs
+const convertYouTubeToEmbed = (url: string): string => {
+    if (!url) return "";
+    
+    // Handle youtube.com/watch?v=ID format
+    const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (watchMatch) {
+        return `https://www.youtube.com/embed/${watchMatch[1]}`;
+    }
+    
+    // If already an embed URL or short-form, return as-is
+    if (url.includes("/embed/")) {
+        return url;
+    }
+    
+    return url;
+};
+
 // Helper to generate placeholder images
 const getPlaceholderImage = (text: string, seed: number = 0) => {
     const encodedText = encodeURIComponent(text);
@@ -16,14 +34,60 @@ const getPlaceholderImage = (text: string, seed: number = 0) => {
     return `https://placehold.co/1000x1200/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
 };
 
-// Use real gallery images if available, otherwise fallback to mainImage or placeholders
-// Optimization: Use urlFor to request specific sizes (e.g. 1200px width for detail view)
-const galleryImages =
+// Build combined gallery: videos first, then images
+interface GalleryItem {
+    type: "video";
+    url: string;
+    embedUrl: string;
+}
+
+interface ImageItem {
+    type: "image";
+    url: string;
+}
+
+type GalleryContent = GalleryItem | ImageItem;
+
+const galleryItems: GalleryContent[] = [];
+
+// Add videos first (if any)
+if (item.youtubeVideos && item.youtubeVideos.length > 0) {
+    item.youtubeVideos.forEach((video) => {
+        if (video.url) {
+            galleryItems.push({
+                type: "video",
+                url: video.url,
+                embedUrl: convertYouTubeToEmbed(video.url),
+            });
+        }
+    });
+}
+
+// Legacy support: if old youtubeUrl exists and no new videos
+if (!item.youtubeVideos || item.youtubeVideos.length === 0) {
+    if (item.youtubeUrl) {
+        galleryItems.push({
+            type: "video",
+            url: item.youtubeUrl,
+            embedUrl: convertYouTubeToEmbed(item.youtubeUrl),
+        });
+    }
+}
+
+// Add images after videos
+const images =
     item.gallery && item.gallery.length > 0
-        ? item.gallery.map(img => urlFor(img).width(1200).url())
+        ? item.gallery.map((img: any) => urlFor(img).width(1200).url())
         : item.mainImage
           ? [urlFor(item.mainImage).width(1200).url()]
           : [0, 1, 2].map((i) => getPlaceholderImage(item.title || "Project", i));
+
+images.forEach((imageUrl) => {
+    galleryItems.push({
+        type: "image",
+        url: imageUrl,
+    });
+});
 
 // ── CTA mapping: portfolio category → service/store page ──
 const categorySlug = (item.categorySlug || "").toLowerCase();
@@ -65,17 +129,32 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
     </a>
 
     <div class="detail-layout">
-        <!-- Left: Gallery -->
+        <!-- Left: Gallery (Videos + Images) -->
         <div class="detail-gallery-column">
             {
-                galleryImages.map((img, idx) => (
-                    <div class="detail-large-image" data-index={idx}>
-                        <img
-                            src={img}
-                            alt={`${item.title} view ${idx + 1}`}
-                            loading="lazy"
-                        />
-                    </div>
+                galleryItems.map((item, idx) => (
+                    item.type === "video" ? (
+                        <div class="detail-video-item">
+                            <div class="detail-video-container">
+                                <iframe
+                                    src={item.embedUrl}
+                                    title="YouTube video player"
+                                    frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                    allowfullscreen
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div class="detail-large-image" data-index={idx}>
+                            <img
+                                src={item.url}
+                                alt={`${item.type} ${idx + 1}`}
+                                loading="lazy"
+                            />
+                        </div>
+                    )
                 ))
             }
         </div>
@@ -91,25 +170,6 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
 
                 <!-- Description -->
                 <p class="detail-description">{item.description}</p>
-
-                <!-- YouTube Embed -->
-                {
-                    item.youtubeUrl && (
-                        <div class="detail-video-container">
-                            <iframe
-                                src={item.youtubeUrl.replace(
-                                    "watch?v=",
-                                    "embed/",
-                                )}
-                                title="YouTube video player"
-                                frameborder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                referrerpolicy="strict-origin-when-cross-origin"
-                                allowfullscreen
-                            />
-                        </div>
-                    )
-                }
 
                 <!-- Tools -->
                 {
@@ -338,7 +398,17 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         color: var(--foreground);
     }
 
-        color: var(--foreground);
+    /* Video Item Styling */
+    .detail-video-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        background: var(--surface-muted);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        flex-shrink: 0;
     }
 
     .detail-video-container {
@@ -346,10 +416,9 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         width: 100%;
         padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
         height: 0;
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        margin-bottom: 24px;
         background: black;
+        flex-shrink: 0;
+        margin: 0;
     }
 
     .detail-video-container iframe {
@@ -358,6 +427,7 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         left: 0;
         width: 100%;
         height: 100%;
+        border: none;
     }
 
     .detail-section-title {
@@ -550,16 +620,17 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
 
         if (!galleryImages.length) return;
 
-        // Get Image URLs from DOM
+        // Get Image URLs from DOM (excluding videos)
         const galleryImageUrls = Array.from(galleryImages).map((div) => {
             const img = div.querySelector("img");
             return img ? img.src : "";
-        });
+        }).filter(url => url); // Filter out empty URLs
 
         const projectTitle =
             document.querySelector(".detail-title")?.textContent || "Gallery";
 
         // Image Gallery Click -> Dispatch event to global Fullscreen component
+        // Only for images, not for videos
         galleryImages.forEach((imgDiv, idx) => {
             imgDiv.addEventListener("click", () => {
                 window.dispatchEvent(

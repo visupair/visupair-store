@@ -1,116 +1,518 @@
 ---
+import Layout from "../../layouts/Layout.astro";
+import Stripe from "stripe";
+import { createClient } from "@sanity/client";
+import { ensureCourseRegistrationFromStripeSession } from "../../lib/ensure-course-registration-from-stripe";
+
 const { searchParams } = Astro.url;
 const sessionId = searchParams.get("session_id");
+/** Legacy donation success URL flag; Stripe session metadata drives course handling. */
+const isCourseDonation = searchParams.get("course_donation") === "1";
+
+/**
+ * SERVER-SIDE: course registration (Stripe courses) or store order before the user leaves.
+ * Safety net if the webhook is delayed or unavailable.
+ */
+let orderSaved = false;
+let courseRegistrationSaved = false;
+let orderError = "";
+
+if (sessionId) {
+    try {
+        const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
+        const sanity = createClient({
+            projectId: "sovnyov1",
+            dataset: "production",
+            useCdn: false,
+            apiVersion: "2024-03-01",
+            token: import.meta.env.SANITY_API_TOKEN,
+        });
+
+        // 1. Retrieve the full Checkout Session from Stripe
+        // Only expandable Checkout Session fields (e.g. line_items, payment_intent).
+        // `shipping_details` is embedded on the session — expanding it makes Stripe throw.
+        const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ["line_items"],
+        });
+
+        if (session && session.payment_status === "paid") {
+            const courseOutcome =
+                await ensureCourseRegistrationFromStripeSession(
+                    session,
+                    sanity,
+                );
+
+            if (courseOutcome.action === "registered") {
+                courseRegistrationSaved = true;
+                orderSaved = true;
+            } else if (courseOutcome.action === "stop") {
+                orderError =
+                    "We received your payment. If your course enrollment does not appear under My Purchases within a few minutes, please contact support with your receipt.";
+            } else {
+                const pid = session.payment_intent?.toString() || session.id;
+
+                const existing = await sanity.fetch(
+                    `*[_type == "order" && stripePaymentIntentId == $pid][0]{ _id }`,
+                    { pid },
+                );
+
+                if (existing) {
+                    orderSaved = true;
+                } else {
+                const meta = session.metadata || {};
+                const isCart = meta.checkoutType === "cart";
+
+                // ── Shipping address (from our checkout form, stored in Stripe metadata) ──
+                let shippingAddress = null;
+                if (
+                    meta.shippingName ||
+                    meta.shippingStreet ||
+                    meta.shippingCity
+                ) {
+                    shippingAddress = {
+                        name:
+                            meta.shippingName ||
+                            session.customer_details?.name ||
+                            "",
+                        street: meta.shippingStreet || "",
+                        city: meta.shippingCity || "",
+                        zip: meta.shippingZip || "",
+                        country: meta.shippingCountry || "",
+                    };
+                }
+
+                // ── Order items ──
+                let orderItems: any[] = [];
+                let orderType =
+                    meta.orderType || meta.productType || "physical";
+
+                if (isCart && meta.cartItems) {
+                    try {
+                        const cartItems = JSON.parse(meta.cartItems);
+                        orderItems = cartItems.map((item: any) => ({
+                            _key: crypto.randomUUID(),
+                            product: item.id
+                                ? { _type: "reference", _ref: item.id }
+                                : undefined,
+                            productType: item.type || "physical",
+                            quantity: item.qty || 1,
+                            price: item.price || 0,
+                            variant: item.size
+                                ? `Size: ${item.size}`
+                                : item.name || "",
+                        }));
+                    } catch {
+                        /* ignore parse errors */
+                    }
+                }
+
+                // Fallback: single-product checkout
+                if (orderItems.length === 0 && session.line_items?.data) {
+                    orderItems = session.line_items.data
+                        .filter((li) => li.description !== "Shipping")
+                        .map((li) => ({
+                            _key: crypto.randomUUID(),
+                            product: meta.productId
+                                ? { _type: "reference", _ref: meta.productId }
+                                : undefined,
+                            productType: meta.productType || "physical",
+                            quantity: li.quantity || 1,
+                            price: (li.amount_total || 0) / 100,
+                            variant: li.description || "",
+                        }));
+                }
+
+                // Customer name
+                let customerName = session.customer_details?.name || "";
+                if (meta.firstName) {
+                    const combined = [meta.firstName, meta.lastName]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim();
+                    if (combined) customerName = combined;
+                }
+
+                const customerEmail = (
+                    meta.userEmail ||
+                    session.customer_details?.email ||
+                    (session as any).customer_email ||
+                    ""
+                ).trim();
+                const selectedCourier = meta.selectedShippingLabel || "";
+
+                // 4. Create order in Sanity (matches simplified schema)
+                const order: any = {
+                    _type: "order",
+                    createdAt: new Date().toISOString(),
+                    orderNumber: pid,
+                    orderType,
+                    status: "paid",
+                    shippingTimelineStage: "confirmed",
+                    totalAmount: (session.amount_total || 0) / 100,
+                    customerName,
+                    customerEmail,
+                    items: orderItems,
+                    stripePaymentIntentId: pid,
+                };
+
+                if (shippingAddress) order.shippingAddress = shippingAddress;
+                if (selectedCourier) order.selectedCourier = selectedCourier;
+
+                const result = await sanity.create(order);
+                console.log("📦 [success] Created order:", result._id);
+                orderSaved = true;
+
+                // 5. Decrement stock
+                for (const item of orderItems) {
+                    if (!item.product?._ref) continue;
+                    try {
+                        const prod = await sanity.getDocument(
+                            item.product._ref,
+                        );
+                        if (prod && typeof prod.stock === "number") {
+                            const newStock = Math.max(
+                                0,
+                                prod.stock - (item.quantity || 1),
+                            );
+                            await sanity
+                                .patch(item.product._ref)
+                                .set({
+                                    stock: newStock,
+                                    ...(newStock === 0
+                                        ? { inStock: false }
+                                        : {}),
+                                })
+                                .commit();
+                        }
+                    } catch (e) {
+                        console.error("Stock update error:", e);
+                    }
+                }
+                }
+            }
+        }
+    } catch (err: any) {
+        console.error(
+            "[success] Persist error:",
+            err?.message || err,
+            err?.raw || "",
+        );
+        orderError =
+            "We received your payment. Your order may take a minute to appear in My Purchases. If it is still missing after refreshing, please contact support with your receipt.";
+    }
+}
 ---
 
-<html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width" />
-        <title>Payment Successful</title>
-        <style>
-            :root {
-                --background: #0f172a;
-                --text: #f8fafc;
-                --success: #10b981;
-            }
-            body {
-                background: var(--background);
-                color: var(--text);
-                margin: 0;
-                display: flex;
-                height: 100vh;
-                align-items: center;
-                justify-content: center;
-                font-family:
-                    ui-sans-serif,
-                    system-ui,
-                    -apple-system,
-                    sans-serif;
-            }
-            .success-container {
-                text-align: center;
-                animation: fadeIn 0.5s ease-out;
-                padding: 24px;
-            }
-            h2 {
-                margin: 16px 0 8px;
-                font-weight: 600;
-            }
-            p {
-                margin: 0;
-                color: #94a3b8;
-                font-size: 0.875rem;
-            }
-            .success-link {
-                display: inline-block;
-                margin-top: 24px;
-                padding: 12px 28px;
-                background: #10b981;
-                color: white;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 0.9rem;
-                transition: background 0.2s;
-            }
-            .success-link:hover {
-                background: #059669;
-            }
-            @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="success-container">
-            <svg
-                width="64"
-                height="64"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#10b981"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            <h2>Payment Successful!</h2>
-            <p>Thank you for your order. You will receive a confirmation email shortly.</p>
-            <a href="/account/purchases" class="success-link">View My Purchases</a>
+<Layout title="Payment Successful – Visupair">
+    <main class="account-page">
+        <div class="success-island-section">
+            <div class="payment-layout">
+                <div class="payment-card">
+                    <div class="state-icon state-icon--success">
+                        <svg
+                            width="36"
+                            height="36"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="check-svg"
+                        >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+
+                    <h1>Payment Successful!</h1>
+
+                    {
+                        courseRegistrationSaved ? (
+                            <p class="subtitle">
+                                Thank you for registering. Your course
+                                enrollment appears under My Purchases when you
+                                sign in with the same email you used at
+                                checkout.
+                            </p>
+                        ) : isCourseDonation ? (
+                            <p class="subtitle">
+                                Thank you for your course donation and
+                                registration. You will receive a confirmation
+                                email shortly.
+                            </p>
+                        ) : orderSaved ? (
+                            <p class="subtitle">
+                                Thank you for your purchase. Your order is
+                                ready in My Purchases.
+                            </p>
+                        ) : orderError ? (
+                            <p class="subtitle">
+                                Thank you for your purchase. Your payment was
+                                received successfully.
+                            </p>
+                        ) : (
+                            <p class="subtitle">
+                                Thank you for your purchase.
+                            </p>
+                        )
+                    }
+
+                    {
+                        courseRegistrationSaved && (
+                            <p class="order-status order-status--ok">
+                                ✓ Your enrollment has been saved — you can view
+                                it anytime under My Purchases.
+                            </p>
+                        )
+                    }
+
+                    {
+                        orderSaved &&
+                            !courseRegistrationSaved && (
+                                <p class="order-status order-status--ok">
+                                    ✓ Your order has been saved — you can view
+                                    it anytime under My Purchases.
+                                </p>
+                            )
+                    }
+
+                    {
+                        orderError && (
+                            <p class="order-status order-status--warn">
+                                {orderError}
+                            </p>
+                        )
+                    }
+
+                    <div class="actions">
+                        <a
+                            href="/account/purchases"
+                            class="btn-primary"
+                        >
+                            View My Purchases
+                        </a>
+                        {
+                            courseRegistrationSaved || isCourseDonation ? (
+                                <a href="/courses" class="btn-secondary">
+                                    Back to Courses
+                                </a>
+                            ) : (
+                                <a href="/store" class="btn-secondary">
+                                    Continue Shopping
+                                </a>
+                            )
+                        }
+                    </div>
+
+                    <p class="hint">
+                        Questions?
+                        <a href="/contact" class="hint-link">
+                            Contact support
+                        </a>
+                        and we'll help you out.
+                    </p>
+                </div>
+            </div>
         </div>
+    </main>
+</Layout>
 
-        <script define:vars={{ sessionId }}>
-            try {
-                // Clear cart after successful payment
-                if (typeof localStorage !== "undefined") {
-                    localStorage.removeItem("visupair_cart");
-                }
+<!-- Cart clearing: properly clears nanostores + localStorage -->
+<script>
+    import { clearCart } from "../../lib/cartStore";
 
-                // If in an iframe, notify parent
-                if (window.parent && window.parent !== window) {
-                    setTimeout(() => {
-                        window.parent.postMessage(
-                            {
-                                type: "CHECKOUT_SUCCESS",
-                                sessionId: sessionId,
-                            },
-                            "*",
-                        );
-                    }, 1000);
-                }
-            } catch (error) {
-                console.error("Success page error:", error);
+    function handleSuccessPageLoad() {
+        try {
+            clearCart();
+            if (typeof localStorage !== "undefined") {
+                localStorage.removeItem("visupair_cart");
             }
-        </script>
-    </body>
-</html>
+        } catch (e) {
+            console.error("Cart clear error:", e);
+        }
+    }
+
+    handleSuccessPageLoad();
+    document.addEventListener("astro:page-load", handleSuccessPageLoad);
+</script>
+
+<style>
+    .account-page {
+        padding: 0 12px;
+        margin: 0 auto;
+    }
+
+    .success-island-section {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        min-height: calc(100vh - 420px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .payment-layout {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        padding: 40px 24px;
+    }
+
+    .payment-card {
+        width: 100%;
+        max-width: 460px;
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-island);
+        padding: 48px 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        animation: cardIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes cardIn {
+        from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .state-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 28px;
+    }
+
+    .state-icon--success {
+        background: rgba(34, 197, 94, 0.08);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.18);
+    }
+
+    .check-svg {
+        animation: checkDraw 0.55s ease-out 0.2s both;
+        stroke-dasharray: 30;
+        stroke-dashoffset: 30;
+    }
+
+    @keyframes checkDraw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    h1 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--foreground);
+        margin: 0 0 12px;
+    }
+    .subtitle {
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--foreground);
+        opacity: 0.6;
+        margin: 0 0 20px;
+        max-width: 340px;
+    }
+
+    .order-status {
+        font-size: 13px;
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        margin-bottom: 20px;
+    }
+    .order-status--ok {
+        background: color-mix(in srgb, #22c55e, transparent 88%);
+        color: #22c55e;
+        border: 1px solid color-mix(in srgb, #22c55e, transparent 60%);
+    }
+    .order-status--warn {
+        background: color-mix(in srgb, #d97706, transparent 88%);
+        color: #d97706;
+        border: 1px solid color-mix(in srgb, #d97706, transparent 55%);
+    }
+
+    .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+        margin-bottom: 28px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        padding: 13px 20px;
+        border-radius: var(--radius-md);
+        font-family: var(--font-family);
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition:
+            opacity 0.15s,
+            transform 0.15s;
+    }
+    .btn-primary {
+        background: var(--foreground);
+        color: var(--page-bg);
+        border: none;
+    }
+    .btn-primary:hover {
+        opacity: 0.88;
+        transform: translateY(-1px);
+    }
+    .btn-secondary {
+        background: var(--surface-muted);
+        color: var(--foreground);
+        border: 1px solid var(--border-subtle);
+    }
+    .btn-secondary:hover {
+        background: var(--surface-hover);
+        transform: translateY(-1px);
+    }
+
+    .hint {
+        font-size: 13px;
+        color: var(--foreground);
+        opacity: 0.5;
+        margin: 0;
+    }
+    .hint-link {
+        color: var(--brand-violet);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .hint-link:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+        .payment-card {
+            padding: 36px 24px;
+        }
+        h1 {
+            font-size: 22px;
+        }
+    }
+</style>

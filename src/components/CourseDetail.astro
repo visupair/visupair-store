@@ -1,6 +1,7 @@
 ---
 import type { Course } from "../lib/store-data";
 import type { Currency } from "../lib/server-currency";
+import { formatCourseStartsAt } from "../lib/format-course-start";
 
 interface Props {
     course: Course;
@@ -23,11 +24,9 @@ const courseImage = course.mainImage || course.image || getPlaceholderImage(cour
 const registrationOpen = course.registrationOpen !== false;
 const pricingType = (course as any).pricingType || "paid";
 const donationPresets = (course as any).donationPresets || [5, 25, 50];
-
-const displayPrice =
-    serverCurrency === "PLN" && course.pricePLN
-        ? `${course.pricePLN}zł`
-        : `€${course.price}`;
+const startsAtDisplay = formatCourseStartsAt(course.startsAt, "full");
+const EUR_TO_PLN = 4.3;
+const plnFromEur = (eur: number) => Math.round(eur * EUR_TO_PLN);
 
 const getInitials = (name: string) => {
     return name.split(" ").map((word) => word[0]);
@@ -41,11 +40,12 @@ const pricingLabels: Record<string, string> = {
 };
 ---
 
-<div class="course-detail-panel" data-pricing-type={pricingType}>
+<div class="course-detail-panel" data-pricing-type={pricingType} data-server-currency={serverCurrency || ""}>
     <button
+        type="button"
         class="detail-close-btn"
-        onclick="window.history.back()"
-        aria-label="Close"
+        id="detail-close-btn"
+        aria-label="Close courses and back to catalog"
     >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -117,20 +117,42 @@ const pricingLabels: Record<string, string> = {
                     {pricingType === "free" && (
                         <div class="price-tag free-price">
                             <span class="price-amount free-label">Free</span>
-                            <span class="price-sub">Just register to attend</span>
+                            <span class="price-sub">Registration required</span>
                         </div>
                     )}
 
                     {pricingType === "donation" && (
                         <div class="price-tag donation-price">
-                            <span class="price-amount donation-label">Free to attend</span>
-                            <span class="price-sub">Optional donation welcome</span>
+                            <span class="price-amount donation-label">Free entry</span>
+                            <span class="price-sub">Voluntary contribution optional</span>
                         </div>
                     )}
                 </div>
 
                 <!-- Stats Grid -->
                 <div class="stats-container">
+                    {startsAtDisplay && (
+                        <div class="stat-box">
+                            <span class="stat-label">Course start</span>
+                            <span class="stat-value">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    aria-hidden="true"
+                                >
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span class="stat-value-text">{startsAtDisplay}</span>
+                            </span>
+                        </div>
+                    )}
                     <div class="stat-box">
                         <span class="stat-label">Duration</span>
                         <span class="stat-value">
@@ -138,7 +160,7 @@ const pricingLabels: Record<string, string> = {
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            {details.duration || (details as any)["Duration"] || "Self-Paced"}
+                            <span class="stat-value-text">{details.duration || (details as any)["Duration"] || "Self-Paced"}</span>
                         </span>
                     </div>
                     <div class="stat-box">
@@ -149,7 +171,7 @@ const pricingLabels: Record<string, string> = {
                                 <line x1="12" y1="20" x2="12" y2="4"></line>
                                 <line x1="6" y1="20" x2="6" y2="14"></line>
                             </svg>
-                            {details.level || (details as any)["Level"] || "All Levels"}
+                            <span class="stat-value-text">{details.level || (details as any)["Level"] || "All Levels"}</span>
                         </span>
                     </div>
                     <div class="stat-box">
@@ -160,7 +182,7 @@ const pricingLabels: Record<string, string> = {
                                 <polyline points="2 17 12 22 22 17"></polyline>
                                 <polyline points="2 12 12 17 22 12"></polyline>
                             </svg>
-                            {details.software || (details as any)["Software"] || (details as any)["Format"] || "Standard"}
+                            <span class="stat-value-text">{details.software || (details as any)["Software"] || (details as any)["Format"] || "Standard"}</span>
                         </span>
                     </div>
                 </div>
@@ -191,41 +213,19 @@ const pricingLabels: Record<string, string> = {
 
                 <!-- ACTION BUTTON: varies by pricing type -->
                 {registrationOpen ? (
-                    pricingType === "paid" ? (
-                        <button
-                            id="enroll-btn"
-                            class="btn-enroll"
-                            data-product-id={course._id}
-                            data-stripe-price-id={course.stripePriceId}
-                            data-product-type="course"
-                            data-enroll-eur={course.price}
-                            data-enroll-pln={course.pricePLN || Math.round(course.price * 4.3)}
-                            data-server-currency={serverCurrency || ""}>
-                            <span>Enroll Now for {displayPrice}</span>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                                <polyline points="12 5 19 12 12 19" />
-                            </svg>
-                        </button>
-                    ) : (
-                        <button
-                            id="register-btn"
-                            class={`btn-enroll ${pricingType === 'free' ? 'btn-free' : pricingType === 'donation' ? 'btn-donation' : 'btn-door'}`}
-                            data-course-id={course._id}
-                            data-course-name={course.name}
-                            data-pricing-type={pricingType}
-                            data-donation-presets={JSON.stringify(donationPresets)}>
-                            <span>
-                                {pricingType === "free" && "Register for Free"}
-                                {pricingType === "donation" && "Register — Free or Donate"}
-                                {pricingType === "payAtDoor" && `Register — ${displayPrice} at the Door`}
-                            </span>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                                <polyline points="12 5 19 12 12 19" />
-                            </svg>
-                        </button>
-                    )
+                    <button
+                        id="register-btn"
+                        class={`btn-enroll${pricingType === 'free' ? ' btn-free' : pricingType === 'donation' ? ' btn-donation' : pricingType === 'payAtDoor' ? ' btn-door' : ''}`}
+                        data-course-id={course._id}
+                        data-course-name={course.name}
+                        data-pricing-type={pricingType}
+                        data-donation-presets={JSON.stringify(donationPresets)}>
+                        <span>Register</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </button>
                 ) : (
                     <button class="btn-enroll" disabled style="opacity: 0.5; cursor: not-allowed;">
                         <span>Registration Closed</span>
@@ -239,44 +239,112 @@ const pricingLabels: Record<string, string> = {
     <div class="registration-form-view" id="registration-form-view" style="display:none;">
         <div class="reg-form-layout">
             <div class="reg-form-header">
-                <button class="reg-back-btn" id="reg-back-btn" aria-label="Back to course details">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
+                <button type="button" class="back-to-courses-link" id="reg-back-btn" aria-label="Back to course details">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
-                    <span>Back to Course</span>
+                    Back to Course
                 </button>
-                <h2 class="reg-form-title">Register for this Course</h2>
+                <h2 class="reg-form-title">Registration</h2>
                 <p class="reg-form-course-name">{course.name}</p>
+
+                {(pricingType === "paid" || pricingType === "payAtDoor") && (
+                    <div class={`reg-form-price-card ${pricingType === "payAtDoor" ? "reg-form-price-card--door" : "reg-form-price-card--paid"}`}>
+                        <div class="reg-form-price-row">
+                            <span class="reg-form-price-label">
+                                {pricingType === "paid" ? "Course fee" : "Price at the door"}
+                            </span>
+                            <span
+                                class="reg-form-price-amount"
+                                data-price-eur={course.price}
+                                data-price-pln={course.pricePLN || plnFromEur(course.price)}
+                                data-server-currency={serverCurrency || ""}
+                            >
+                                {serverCurrency === "PLN"
+                                    ? `${course.pricePLN || plnFromEur(course.price)}zł`
+                                    : `€${course.price}`}
+                            </span>
+                        </div>
+                        <p class="reg-form-price-hint">
+                            {pricingType === "paid"
+                                ? "This amount is charged when you continue to secure online checkout."
+                                : "Pay this amount when you arrive — no card charge for signing up here."}
+                        </p>
+                    </div>
+                )}
+
+                {pricingType === "free" && (
+                    <div class="reg-form-price-card reg-form-price-card--free">
+                        <div class="reg-form-price-row">
+                            <span class="reg-form-price-label">Course fee</span>
+                            <span class="reg-form-price-amount reg-form-price-amount--free">Free</span>
+                        </div>
+                        <p class="reg-form-price-hint">
+                            No payment required — we only need your details to reserve your spot.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <!-- Donation Section (only for donation type) -->
             {pricingType === "donation" && (
-                <div class="donation-section" id="donation-section">
-                    <h3 class="donation-heading">Would you like to support this course?</h3>
-                    <p class="donation-subtext">Your donation helps us create more courses. Attendance is free regardless.</p>
+                <div
+                    class="donation-section"
+                    id="donation-section"
+                    data-server-currency={serverCurrency || ""}
+                >
+                    <h3 class="donation-heading">Optional contribution</h3>
+                    <p class="donation-subtext">Add an amount if you wish. Your seat is not tied to a donation.</p>
                     <div class="donation-options">
-                        <button type="button" class="donation-chip" data-amount="0">
-                            <span>Free</span>
+                        <button type="button" class="donation-chip" data-donation-eur="0">
+                            <span class="donation-chip-label">None</span>
                         </button>
-                        {donationPresets.map((amount: number) => (
-                            <button type="button" class="donation-chip" data-amount={amount}>
-                                <span>€{amount}</span>
-                            </button>
-                        ))}
+                        {donationPresets.map((amount: number) => {
+                            const plnAmt = plnFromEur(amount);
+                            return (
+                                <button type="button" class="donation-chip" data-donation-eur={amount}>
+                                    <span
+                                        class="donation-chip-label"
+                                        data-eur-amt={amount}
+                                        data-pln-amt={plnAmt}
+                                    >
+                                        {serverCurrency === "PLN" ? `${plnAmt}zł` : `€${amount}`}
+                                    </span>
+                                </button>
+                            );
+                        })}
                         <div class="donation-custom-wrap">
-                            <span class="donation-custom-currency">€</span>
+                            <span class="donation-custom-currency" id="donation-custom-prefix">
+                                {serverCurrency === "PLN" ? "" : "€"}
+                            </span>
                             <input
                                 type="number"
                                 class="donation-custom-input"
                                 id="donation-custom-input"
                                 placeholder="Other"
                                 min="0"
-                                step="1"
+                                step="0.01"
                             />
+                            <span
+                                class="donation-custom-suffix"
+                                id="donation-custom-suffix"
+                                style={serverCurrency === "PLN" ? undefined : "display: none"}
+                            >
+                                {serverCurrency === "PLN" ? "zł" : ""}
+                            </span>
                         </div>
                     </div>
-                    <input type="hidden" id="selected-donation" value="0" />
+                    <input type="hidden" id="selected-donation-eur" value="0" />
                 </div>
             )}
 
@@ -303,14 +371,16 @@ const pricingLabels: Record<string, string> = {
                 <input type="hidden" id="reg-courseId" value={course._id} />
                 <input type="hidden" id="reg-courseName" value={course.name} />
                 <input type="hidden" id="reg-pricingType" value={pricingType} />
+                {pricingType === "paid" && (
+                    <>
+                        <input type="hidden" id="reg-stripePriceId" value={course.stripePriceId || ""} />
+                        <input type="hidden" id="reg-enroll-eur" value={String(course.price)} />
+                        <input type="hidden" id="reg-enroll-pln" value={String(course.pricePLN || Math.round(course.price * 4.3))} />
+                    </>
+                )}
 
                 <button type="submit" class={`btn-enroll btn-register-submit ${pricingType === 'free' ? 'btn-free' : pricingType === 'donation' ? 'btn-donation' : pricingType === 'payAtDoor' ? 'btn-door' : ''}`} id="reg-submit-btn">
-                    <span id="reg-submit-text">
-                        {pricingType === "free" && "Complete Registration"}
-                        {pricingType === "donation" && "Register & Donate"}
-                        {pricingType === "payAtDoor" && "Confirm Registration"}
-                        {pricingType === "paid" && "Complete Registration"}
-                    </span>
+                    <span id="reg-submit-text">Register</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
@@ -327,8 +397,21 @@ const pricingLabels: Record<string, string> = {
                 </div>
                 <h3 class="success-title">You're Registered!</h3>
                 <p class="success-text" id="success-text">We'll send you a confirmation to your email.</p>
-                <button class="btn-enroll btn-back-to-course" id="btn-back-to-course">
-                    <span>Back to Course Details</span>
+                <button type="button" class="back-to-courses-link" id="btn-back-to-course">
+                    <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Back to Course Details
                 </button>
             </div>
         </div>
@@ -485,13 +568,13 @@ const pricingLabels: Record<string, string> = {
     }
 
     .donation-badge {
-        background: color-mix(in srgb, #f59e0b, transparent 85%);
-        color: #f59e0b;
+        background: color-mix(in srgb, #22c55e, transparent 85%);
+        color: #22c55e;
     }
 
     .door-badge {
-        background: color-mix(in srgb, #3b82f6, transparent 85%);
-        color: #3b82f6;
+        background: color-mix(in srgb, var(--brand-violet), transparent 85%);
+        color: var(--brand-violet);
     }
 
     .detail-title {
@@ -517,11 +600,11 @@ const pricingLabels: Record<string, string> = {
     }
 
     .donation-price .price-amount {
-        color: #f59e0b;
+        color: #22c55e;
     }
 
     .door-price .price-amount {
-        color: #3b82f6;
+        color: var(--brand-violet);
     }
 
     .price-sub {
@@ -598,8 +681,15 @@ const pricingLabels: Record<string, string> = {
 
     .stats-container {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        /* Tablet / narrow: 2×2; overridden to 4 columns on wide desktop, 1 column on phone */
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+    }
+
+    @media (min-width: 1200px) {
+        .stats-container {
+            grid-template-columns: repeat(4, 1fr);
+        }
     }
 
     .stat-box {
@@ -629,12 +719,22 @@ const pricingLabels: Record<string, string> = {
         font-size: 14px;
         font-weight: 600;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 6px;
         color: var(--foreground);
     }
 
-    .stat-value svg { flex-shrink: 0; }
+    .stat-value svg {
+        flex-shrink: 0;
+        margin-top: 0.15em;
+    }
+
+    /* Text wraps beside the icon (same row); avoids flex-wrap pushing icon onto its own line */
+    .stat-value-text {
+        flex: 1;
+        min-width: 0;
+        line-height: 1.45;
+    }
 
     .curriculum-list {
         display: flex;
@@ -741,22 +841,24 @@ const pricingLabels: Record<string, string> = {
     }
 
     .btn-donation {
-        background: #f59e0b;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        color: #1a1a2e;
+        background: #22c55e;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        color: #ffffff;
     }
     .btn-donation:hover {
-        background: #d97706;
-        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+        background: #16a34a;
+        box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
     }
 
+    /* Pay at door: same brand violet as default .btn-enroll */
     .btn-door {
-        background: #3b82f6;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        background: var(--brand-violet);
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+        color: #ffffff;
     }
     .btn-door:hover {
-        background: #2563eb;
-        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        background: #9d9aff;
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
     }
 
     /* ── Registration Form ──────────────────────────────────── */
@@ -776,24 +878,38 @@ const pricingLabels: Record<string, string> = {
         gap: 8px;
     }
 
-    .reg-back-btn {
+    /* Matches cart page `.back-to-store-link` (ghost outline, violet on hover) */
+    .back-to-courses-link {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        background: none;
-        border: none;
-        color: var(--foreground);
-        opacity: 0.6;
-        cursor: pointer;
-        font-family: var(--font-family);
-        font-size: 14px;
-        font-weight: 500;
-        padding: 0;
+        align-self: flex-start;
+        gap: 6px;
         margin-bottom: 8px;
-        transition: opacity 0.2s;
+        padding: 8px 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--foreground);
+        font-family: var(--font-family);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        opacity: 0.6;
+        text-decoration: none;
+        transition: all 0.2s;
     }
 
-    .reg-back-btn:hover { opacity: 1; }
+    .back-to-courses-link:hover {
+        opacity: 1;
+        border-color: var(--brand-violet);
+        color: var(--brand-violet);
+        background: rgba(132, 128, 255, 0.06);
+    }
+
+    .back-to-courses-link:focus-visible {
+        outline: 2px solid var(--brand-violet);
+        outline-offset: 2px;
+    }
 
     .reg-form-title {
         font-size: 32px;
@@ -806,6 +922,89 @@ const pricingLabels: Record<string, string> = {
         font-size: 16px;
         opacity: 0.6;
         font-weight: 500;
+    }
+
+    .reg-form-price-card {
+        margin-top: 8px;
+        padding: 16px 18px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
+        background: color-mix(in srgb, var(--brand-violet), transparent 94%);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .reg-form-price-card--door {
+        background: color-mix(in srgb, var(--brand-violet), transparent 92%);
+    }
+
+    .reg-form-price-card--free {
+        background: color-mix(in srgb, #22c55e, transparent 92%);
+        border-color: color-mix(in srgb, #22c55e, transparent 70%);
+    }
+
+    .reg-form-price-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .reg-form-price-label {
+        font-size: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--foreground);
+        opacity: 0.75;
+    }
+
+    .reg-form-price-card--paid .reg-form-price-label,
+    .reg-form-price-card--door .reg-form-price-label {
+        color: var(--brand-violet);
+        opacity: 1;
+    }
+
+    .reg-form-price-card--free .reg-form-price-label {
+        color: #22c55e;
+        opacity: 1;
+    }
+
+    .reg-form-price-amount {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--brand-violet);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+
+    .reg-form-price-card--door .reg-form-price-amount {
+        color: var(--brand-violet);
+    }
+
+    .reg-form-price-amount.reg-form-price-amount--free {
+        color: #22c55e;
+    }
+
+    .reg-form-price-hint {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--foreground);
+        opacity: 0.65;
+    }
+
+    .reg-form-price-card--paid .reg-form-price-hint,
+    .reg-form-price-card--door .reg-form-price-hint {
+        color: var(--brand-violet);
+        opacity: 0.88;
+    }
+
+    .reg-form-price-card--free .reg-form-price-hint {
+        color: #22c55e;
+        opacity: 0.88;
     }
 
     .reg-form {
@@ -909,14 +1108,14 @@ const pricingLabels: Record<string, string> = {
     }
 
     .donation-chip:hover {
-        border-color: #f59e0b;
-        background: rgba(245, 158, 11, 0.05);
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.06);
     }
 
     .donation-chip.selected {
-        border-color: #f59e0b;
-        background: #f59e0b;
-        color: #1a1a2e;
+        border-color: #22c55e;
+        background: #22c55e;
+        color: #ffffff;
     }
 
     .donation-custom-wrap {
@@ -931,18 +1130,26 @@ const pricingLabels: Record<string, string> = {
     }
 
     .donation-custom-wrap:focus-within {
-        border-color: #f59e0b;
+        border-color: #22c55e;
     }
 
     .donation-custom-wrap.selected {
-        border-color: #f59e0b;
-        background: rgba(245, 158, 11, 0.08);
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.08);
     }
 
     .donation-custom-currency {
         font-size: 15px;
         font-weight: 600;
         opacity: 0.5;
+    }
+
+    .donation-custom-suffix {
+        font-size: 15px;
+        font-weight: 600;
+        opacity: 0.5;
+        margin-left: 2px;
+        flex-shrink: 0;
     }
 
     .donation-custom-input {
@@ -997,19 +1204,10 @@ const pricingLabels: Record<string, string> = {
         line-height: 1.6;
     }
 
-    .btn-back-to-course {
-        max-width: 300px;
+    .reg-success .back-to-courses-link {
         margin-top: 12px;
-        background: var(--surface-muted);
-        color: var(--foreground);
-        border: 1px solid var(--border-subtle);
-        box-shadow: none;
-    }
-
-    .btn-back-to-course:hover {
-        background: var(--surface-hover);
-        box-shadow: none;
-        border-color: var(--brand-violet);
+        margin-bottom: 0;
+        align-self: center;
     }
 
     /* ── Responsive ─────────────────────────────────────────── */
@@ -1094,7 +1292,75 @@ const pricingLabels: Record<string, string> = {
 </style>
 
 <script>
-    import { authClient } from "../lib/auth-client";
+    // Stable handlers so we can removeEventListener before re-bind (astro:page-load).
+    let coursePageshowHooked = false;
+    let courseRegSubmitHandler: ((e: SubmitEvent) => void) | null = null;
+    let donationListenersBound = false;
+
+    function onCoursePageshow() {
+        updatePrices();
+    }
+
+    function handleDetailClose() {
+        window.location.href = "/courses";
+    }
+
+    function handleRegisterBtnClick() {
+        showRegistrationForm();
+    }
+
+    function handleRegBackBtnClick() {
+        showCourseDetail();
+    }
+
+    function handleSuccessBackBtnClick() {
+        showCourseDetail();
+    }
+
+    function handleDonationDocumentClick(e: Event) {
+        const chip = (e.target as HTMLElement).closest(".donation-chip");
+        const section = document.getElementById("donation-section");
+        if (!chip || !section || !section.contains(chip)) return;
+
+        const chips = section.querySelectorAll(".donation-chip");
+        const customWrap = section.querySelector(".donation-custom-wrap");
+        const customInput = section.querySelector("#donation-custom-input") as HTMLInputElement | null;
+        const hiddenDonationEur = document.getElementById("selected-donation-eur") as HTMLInputElement | null;
+
+        chips.forEach((c) => c.classList.remove("selected"));
+        if (customWrap) customWrap.classList.remove("selected");
+        if (customInput) customInput.value = "";
+        chip.classList.add("selected");
+        if (hiddenDonationEur) hiddenDonationEur.value = chip.getAttribute("data-donation-eur") || "0";
+        updateSubmitBtnText();
+    }
+
+    function handleDonationFocusIn(e: Event) {
+        const t = e.target as HTMLElement;
+        if (t.id !== "donation-custom-input") return;
+        const section = document.getElementById("donation-section");
+        if (!section || !section.contains(t)) return;
+        const chips = section.querySelectorAll(".donation-chip");
+        const customWrap = section.querySelector(".donation-custom-wrap");
+        const hiddenDonationEur = document.getElementById("selected-donation-eur") as HTMLInputElement | null;
+        chips.forEach((c) => c.classList.remove("selected"));
+        if (customWrap) customWrap.classList.add("selected");
+        if (hiddenDonationEur) hiddenDonationEur.value = "";
+    }
+
+    function handleDonationInput(e: Event) {
+        const t = e.target as HTMLElement;
+        if (t.id !== "donation-custom-input") return;
+        const section = document.getElementById("donation-section");
+        if (!section || !section.contains(t)) return;
+        const chips = section.querySelectorAll(".donation-chip");
+        const customWrap = section.querySelector(".donation-custom-wrap");
+        const hiddenDonationEur = document.getElementById("selected-donation-eur") as HTMLInputElement | null;
+        chips.forEach((c) => c.classList.remove("selected"));
+        if (customWrap) customWrap.classList.add("selected");
+        if (hiddenDonationEur) hiddenDonationEur.value = "";
+        updateSubmitBtnText();
+    }
 
     // ── Toast Utility ──────────────────────────────────────────
     function showToast(message: string, type: 'error' | 'success' = 'error') {
@@ -1182,11 +1448,16 @@ const pricingLabels: Record<string, string> = {
     type Currency = "EUR" | "PLN";
 
     function detectUserCurrency(): Currency {
-        const priceElement = document.querySelector("[data-server-currency]");
-        const serverCurrency = priceElement?.getAttribute("data-server-currency");
-        if (serverCurrency && (serverCurrency === "EUR" || serverCurrency === "PLN")) {
-            return serverCurrency as Currency;
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugCurrency = urlParams.get("currency");
+        if (debugCurrency === "EUR" || debugCurrency === "PLN") return debugCurrency;
+
+        const panel = document.querySelector(".course-detail-panel");
+        const scoped = panel
+            ?.getAttribute("data-server-currency")
+            ?.trim();
+        if (scoped === "EUR" || scoped === "PLN") return scoped;
+
         try {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             if (tz && (tz.includes("Warsaw") || tz === "Europe/Warsaw")) return "PLN";
@@ -1196,21 +1467,91 @@ const pricingLabels: Record<string, string> = {
         return "EUR";
     }
 
+    const EUR_TO_PLN_RATE = 4.3;
+
+    function updateDonationLabels() {
+        const section = document.getElementById("donation-section");
+        if (!section) return;
+        const cur = detectUserCurrency();
+        section.querySelectorAll(".donation-chip-label[data-eur-amt]").forEach((el) => {
+            const eur = el.getAttribute("data-eur-amt");
+            const pln = el.getAttribute("data-pln-amt");
+            if (!eur || !pln) return;
+            el.textContent = cur === "PLN" ? `${pln}zł` : `€${eur}`;
+        });
+        const pref = document.getElementById("donation-custom-prefix");
+        const suff = document.getElementById("donation-custom-suffix");
+        if (pref && suff) {
+            if (cur === "PLN") {
+                pref.textContent = "";
+                suff.textContent = "zł";
+                suff.style.display = "";
+            } else {
+                pref.textContent = "€";
+                suff.textContent = "";
+                suff.style.display = "none";
+            }
+        }
+    }
+
+    function getDonationCheckoutAmount(): { amount: number; currency: Currency } | null {
+        const pt = (document.getElementById("reg-pricingType") as HTMLInputElement)?.value;
+        if (pt !== "donation") return null;
+
+        const cur = detectUserCurrency();
+        const customWrap = document.querySelector(".donation-custom-wrap");
+        const customInput = document.getElementById("donation-custom-input") as HTMLInputElement;
+        const hiddenEur = document.getElementById("selected-donation-eur") as HTMLInputElement;
+        const customVal = customInput ? parseFloat(customInput.value || "0") : 0;
+        const usingCustom =
+            customWrap?.classList.contains("selected") && customVal > 0;
+
+        if (usingCustom && customInput) {
+            const v = Math.round(customVal * 100) / 100;
+            if (v > 0) return { amount: v, currency: cur };
+        }
+
+        const eurVal = parseFloat(hiddenEur?.value || "0");
+        if (eurVal > 0) {
+            const amount =
+                cur === "PLN"
+                    ? Math.round(eurVal * EUR_TO_PLN_RATE * 100) / 100
+                    : eurVal;
+            return { amount, currency: cur };
+        }
+        return null;
+    }
+
+    function getPaidCheckoutAmount(): { amount: number; currency: Currency } | null {
+        const pt = (document.getElementById("reg-pricingType") as HTMLInputElement)?.value;
+        if (pt !== "paid") return null;
+
+        const eurEl = document.getElementById("reg-enroll-eur") as HTMLInputElement | null;
+        const plnEl = document.getElementById("reg-enroll-pln") as HTMLInputElement | null;
+        const eur = parseFloat(eurEl?.value || "0");
+        const pln = parseFloat(plnEl?.value || "0");
+        if (!(eur > 0) || !(pln > 0)) return null;
+
+        const cur = detectUserCurrency();
+        if (cur === "PLN") return { amount: Math.round(pln * 100) / 100, currency: "PLN" };
+        return { amount: Math.round(eur * 100) / 100, currency: "EUR" };
+    }
+
     function updatePrices() {
         const currency = detectUserCurrency();
-        document.querySelectorAll("[data-price-eur][data-price-pln]").forEach((el) => {
+        // Scope to this component only. A document-wide selector also matched store
+        // product buttons (data-price-eur on Add to Cart) after View Transitions.
+        const panel = document.querySelector(".course-detail-panel");
+        if (!panel) return;
+
+        panel.querySelectorAll("[data-price-eur][data-price-pln]").forEach((el) => {
             const eur = el.getAttribute("data-price-eur");
             const pln = el.getAttribute("data-price-pln");
             if (!eur || !pln) return;
             el.textContent = currency === "PLN" ? `${pln}zł` : `€${eur}`;
         });
-        document.querySelectorAll("[data-enroll-eur][data-enroll-pln]").forEach((btn) => {
-            const eur = btn.getAttribute("data-enroll-eur");
-            const pln = btn.getAttribute("data-enroll-pln");
-            if (!eur || !pln) return;
-            const span = btn.querySelector("span");
-            if (span) span.textContent = currency === "PLN" ? `Enroll Now for ${pln}zł` : `Enroll Now for €${eur}`;
-        });
+        updateDonationLabels();
+        updateSubmitBtnText();
     }
 
     // ── View switching (detail <-> registration form) ──────────
@@ -1252,64 +1593,61 @@ const pricingLabels: Record<string, string> = {
             if (customWrap) customWrap.classList.remove("selected");
             const customInput = document.getElementById("donation-custom-input") as HTMLInputElement;
             if (customInput) customInput.value = "";
-            const hiddenDonation = document.getElementById("selected-donation") as HTMLInputElement;
-            if (hiddenDonation) hiddenDonation.value = "0";
+            const hiddenDonationEur = document.getElementById("selected-donation-eur") as HTMLInputElement;
+            if (hiddenDonationEur) hiddenDonationEur.value = "0";
 
             detailView.style.display = "block";
             detailView.style.animation = "fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+            updateDonationLabels();
+            updateSubmitBtnText();
         }, 250);
     }
 
-    // ── Donation chips ─────────────────────────────────────────
+    // ── Donation chips (single document delegation — avoids duplicate handlers on astro:page-load)
     function initDonationChips() {
-        const chips = document.querySelectorAll(".donation-chip");
-        const customInput = document.getElementById("donation-custom-input") as HTMLInputElement;
-        const customWrap = document.querySelector(".donation-custom-wrap");
-        const hiddenDonation = document.getElementById("selected-donation") as HTMLInputElement;
+        const section = document.getElementById("donation-section");
+        if (!section) return;
 
-        if (!chips.length) return;
-
-        chips.forEach(chip => {
-            chip.addEventListener("click", () => {
-                chips.forEach(c => c.classList.remove("selected"));
-                if (customWrap) customWrap.classList.remove("selected");
-                if (customInput) customInput.value = "";
-                chip.classList.add("selected");
-                if (hiddenDonation) hiddenDonation.value = chip.getAttribute("data-amount") || "0";
-                updateSubmitBtnText();
-            });
-        });
-
-        if (customInput) {
-            customInput.addEventListener("focus", () => {
-                chips.forEach(c => c.classList.remove("selected"));
-                if (customWrap) customWrap.classList.add("selected");
-            });
-            customInput.addEventListener("input", () => {
-                chips.forEach(c => c.classList.remove("selected"));
-                if (customWrap) customWrap.classList.add("selected");
-                if (hiddenDonation) hiddenDonation.value = customInput.value || "0";
-                updateSubmitBtnText();
-            });
+        if (!donationListenersBound) {
+            donationListenersBound = true;
+            document.addEventListener("click", handleDonationDocumentClick);
+            document.addEventListener("focusin", handleDonationFocusIn);
+            document.addEventListener("input", handleDonationInput);
         }
 
-        // Select "Free" by default
+        const chips = section.querySelectorAll(".donation-chip");
+        const customWrap = section.querySelector(".donation-custom-wrap");
+        const customInput = section.querySelector("#donation-custom-input") as HTMLInputElement | null;
+        const hiddenDonationEur = document.getElementById("selected-donation-eur") as HTMLInputElement | null;
+
+        chips.forEach((c) => c.classList.remove("selected"));
+        if (customWrap) customWrap.classList.remove("selected");
+        if (customInput) customInput.value = "";
         const freeChip = chips[0];
         if (freeChip) freeChip.classList.add("selected");
+        if (hiddenDonationEur) hiddenDonationEur.value = "0";
+
+        updateDonationLabels();
+        updateSubmitBtnText();
     }
 
     function updateSubmitBtnText() {
         const submitText = document.getElementById("reg-submit-text");
-        const hiddenDonation = document.getElementById("selected-donation") as HTMLInputElement;
-        const pricingType = document.getElementById("reg-pricingType") as HTMLInputElement;
-
-        if (!submitText || !pricingType || pricingType.value !== "donation") return;
-
-        const amount = parseFloat(hiddenDonation?.value || "0");
-        if (amount > 0) {
-            submitText.textContent = `Register & Donate €${amount}`;
+        if (!submitText) return;
+        const pt = (document.getElementById("reg-pricingType") as HTMLInputElement)?.value;
+        if (pt === "paid") {
+            submitText.textContent = "Continue to payment";
+            return;
+        }
+        if (pt !== "donation") {
+            submitText.textContent = "Register";
+            return;
+        }
+        const d = getDonationCheckoutAmount();
+        if (d && d.amount > 0) {
+            submitText.textContent = "Register & donate";
         } else {
-            submitText.textContent = "Register for Free";
+            submitText.textContent = "Register";
         }
     }
 
@@ -1321,7 +1659,9 @@ const pricingLabels: Record<string, string> = {
 
         if (!form) return;
 
-        form.addEventListener("submit", async (e) => {
+        if (courseRegSubmitHandler) form.removeEventListener("submit", courseRegSubmitHandler);
+
+        courseRegSubmitHandler = async function onCourseRegSubmit(e: SubmitEvent) {
             e.preventDefault();
             if (submitBtn) submitBtn.disabled = true;
             if (submitText) submitText.textContent = "Registering...";
@@ -1333,10 +1673,68 @@ const pricingLabels: Record<string, string> = {
             const courseId = (document.getElementById("reg-courseId") as HTMLInputElement).value;
             const courseName = (document.getElementById("reg-courseName") as HTMLInputElement).value;
             const pricingType = (document.getElementById("reg-pricingType") as HTMLInputElement).value;
-            const donationAmountStr = (document.getElementById("selected-donation") as HTMLInputElement)?.value;
-            const donationAmount = donationAmountStr ? parseFloat(donationAmountStr) : 0;
+            const donationCheckout = getDonationCheckoutAmount();
 
             try {
+                if (pricingType === "paid") {
+                    const paid = getPaidCheckoutAmount();
+                    if (!paid || paid.amount <= 0) {
+                        throw new Error("Could not determine course price. Please refresh and try again.");
+                    }
+                    if (submitText) submitText.textContent = "Redirecting to checkout...";
+                    const stripePriceIdEl = document.getElementById("reg-stripePriceId") as HTMLInputElement | null;
+                    const stripePriceId = stripePriceIdEl?.value?.trim() || undefined;
+                    const response = await fetch("/api/create-checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            productId: courseId,
+                            priceId: paid.currency === "EUR" ? stripePriceId : undefined,
+                            productName: courseName,
+                            productType: "course",
+                            userEmail: email,
+                            firstName,
+                            lastName,
+                            phone: phone || "",
+                            price: paid.amount,
+                            currency: paid.currency,
+                            courseName,
+                        }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || !data.url) {
+                        throw new Error(data.error || "Could not start checkout");
+                    }
+                    window.location.href = data.url;
+                    return;
+                }
+
+                if (pricingType === "donation" && donationCheckout && donationCheckout.amount > 0) {
+                    if (submitText) submitText.textContent = "Redirecting to checkout...";
+                    const response = await fetch("/api/create-checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            productType: "course_donation",
+                            productId: courseId,
+                            productName: `Course donation — ${courseName}`,
+                            price: donationCheckout.amount,
+                            currency: donationCheckout.currency,
+                            userEmail: email,
+                            firstName,
+                            lastName,
+                            phone: phone || "",
+                            courseName,
+                        }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || !data.url) {
+                        throw new Error(data.error || "Could not start donation checkout");
+                    }
+                    window.location.href = data.url;
+                    return;
+                }
+
                 const response = await fetch("/api/course-register", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -1348,7 +1746,6 @@ const pricingLabels: Record<string, string> = {
                         courseId,
                         courseName,
                         pricingType,
-                        donationAmount: pricingType === "donation" ? donationAmount : undefined,
                     }),
                 });
 
@@ -1358,7 +1755,6 @@ const pricingLabels: Record<string, string> = {
                     throw new Error(data.message || "Registration failed");
                 }
 
-                // Show success
                 form.style.display = "none";
                 const donationSection = document.getElementById("donation-section");
                 if (donationSection) donationSection.style.display = "none";
@@ -1368,9 +1764,7 @@ const pricingLabels: Record<string, string> = {
                 if (successView) successView.style.display = "flex";
 
                 if (successText) {
-                    if (pricingType === "donation" && donationAmount > 0) {
-                        successText.textContent = `Thank you for your €${donationAmount} donation! We'll send a confirmation to ${email}.`;
-                    } else if (pricingType === "payAtDoor") {
+                    if (pricingType === "payAtDoor") {
                         successText.textContent = `Remember to bring payment to the venue. We'll send a confirmation to ${email}.`;
                     } else {
                         successText.textContent = `We'll send a confirmation to ${email}. See you at the course!`;
@@ -1381,92 +1775,49 @@ const pricingLabels: Record<string, string> = {
                 showToast(err.message || "Registration failed. Please try again.", "error");
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
-                if (submitText) {
-                    const pt = (document.getElementById("reg-pricingType") as HTMLInputElement)?.value;
-                    if (pt === "free") submitText.textContent = "Complete Registration";
-                    else if (pt === "donation") updateSubmitBtnText();
-                    else if (pt === "payAtDoor") submitText.textContent = "Confirm Registration";
-                    else submitText.textContent = "Complete Registration";
-                }
+                updateSubmitBtnText();
             }
-        });
-    }
-
-    // ── Paid course checkout (existing logic) ──────────────────
-    function initPaidEnroll() {
-        const enrollBtn = document.getElementById("enroll-btn");
-        if (!enrollBtn) return;
-
-        enrollBtn.dataset.originalText = enrollBtn.textContent || "Enroll Now";
-
-        enrollBtn.addEventListener("click", async () => {
-            const session = await authClient.getSession();
-            if (!session.data) {
-                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-                return;
-            }
-
-            const stripePriceId = (enrollBtn as HTMLElement).dataset.stripePriceId;
-            const productId = (enrollBtn as HTMLElement).dataset.productId;
-            const priceEur = parseFloat((enrollBtn as HTMLElement).dataset.enrollEur || "0");
-
-            const span = enrollBtn.querySelector("span");
-            if (span) span.textContent = "Redirecting to Checkout...";
-
-            try {
-                const response = await fetch("/api/create-checkout", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        productId,
-                        priceId: stripePriceId || undefined,
-                        productName: enrollBtn.closest(".course-detail-panel")?.querySelector(".detail-title")?.textContent || "Course",
-                        productType: "course",
-                        userEmail: session.data.user.email,
-                        price: priceEur,
-                        currency: "EUR",
-                    }),
-                });
-
-                const data = await response.json();
-                if (!response.ok || !data.url) {
-                    throw new Error(data.error || "Failed to create checkout session");
-                }
-                window.location.href = data.url;
-            } catch (err: any) {
-                console.error("Checkout error:", err);
-                showToast(err.message || "Unable to start checkout. Please try again.", "error");
-                if (span) span.textContent = enrollBtn.dataset.originalText || "Enroll Now";
-            }
-        });
+        };
+        form.addEventListener("submit", courseRegSubmitHandler);
     }
 
     // ── Init ───────────────────────────────────────────────────
     function initCourseDetail() {
-        updatePrices();
-        window.addEventListener("pageshow", updatePrices);
+        if (!document.querySelector(".course-detail-panel")) return;
 
-        // Register button → show form
+        updatePrices();
+
+        if (!coursePageshowHooked) {
+            window.addEventListener("pageshow", onCoursePageshow);
+            coursePageshowHooked = true;
+        }
+
+        const closeBtn = document.getElementById("detail-close-btn");
+        if (closeBtn) {
+            closeBtn.removeEventListener("click", handleDetailClose);
+            closeBtn.addEventListener("click", handleDetailClose);
+        }
+
         const registerBtn = document.getElementById("register-btn");
         if (registerBtn) {
-            registerBtn.addEventListener("click", showRegistrationForm);
+            registerBtn.removeEventListener("click", handleRegisterBtnClick);
+            registerBtn.addEventListener("click", handleRegisterBtnClick);
         }
 
-        // Back button → show detail
         const backBtn = document.getElementById("reg-back-btn");
         if (backBtn) {
-            backBtn.addEventListener("click", showCourseDetail);
+            backBtn.removeEventListener("click", handleRegBackBtnClick);
+            backBtn.addEventListener("click", handleRegBackBtnClick);
         }
 
-        // Back to course from success
         const backToCourse = document.getElementById("btn-back-to-course");
         if (backToCourse) {
-            backToCourse.addEventListener("click", showCourseDetail);
+            backToCourse.removeEventListener("click", handleSuccessBackBtnClick);
+            backToCourse.addEventListener("click", handleSuccessBackBtnClick);
         }
 
         initDonationChips();
         initRegistrationForm();
-        initPaidEnroll();
     }
 
     initCourseDetail();

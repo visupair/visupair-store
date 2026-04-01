@@ -160,7 +160,7 @@ import Layout from "../layouts/Layout.astro";
                 <div class="cart-item-info">
                   <h4 class="cart-item-name">${item.name}</h4>
                   ${item.selectedSize ? `<span class="cart-item-variant">Size: ${item.selectedSize}</span>` : ""}
-                  <span class="cart-item-type">${item.productType === "digital" ? "Digital" : "Physical"}</span>
+                  <span class="cart-item-type-badge ${item.productType === "digital" ? "cart-item-type-badge--digital" : "cart-item-type-badge--physical"}">${item.productType === "digital" ? "Digital" : "Physical"}</span>
                 </div>
                 <button class="cart-item-remove" aria-label="Remove item">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -561,13 +561,28 @@ import Layout from "../layouts/Layout.astro";
     color: var(--foreground);
   }
 
-  .cart-item-type {
-    font-size: 11px;
+  /* Same pill treatment as My Purchases grid (status + type badges) */
+  .cart-item-type-badge {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    opacity: 0.4;
-    display: block;
-    color: var(--foreground);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    line-height: 1.2;
+    width: fit-content;
+  }
+
+  .cart-item-type-badge--physical {
+    background: rgba(34, 197, 94, 0.18);
+    color: #15803d;
+  }
+
+  .cart-item-type-badge--digital {
+    background: rgba(132, 128, 255, 0.15);
+    color: var(--brand-violet);
   }
 
   .cart-item-remove {

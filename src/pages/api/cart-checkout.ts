@@ -20,6 +20,7 @@ export const POST: APIRoute = async (context) => {
             selectedShippingId,
             selectedShippingAmount,
             selectedShippingLabel,
+            shippingAddress,
         } = body as {
             items: CartCheckoutItem[];
             currency: string;
@@ -27,6 +28,16 @@ export const POST: APIRoute = async (context) => {
             selectedShippingId?: string;
             selectedShippingAmount?: string;
             selectedShippingLabel?: string;
+            shippingAddress?: {
+                firstName?: string;
+                lastName?: string;
+                address?: string;
+                apartment?: string;
+                city?: string;
+                postalCode?: string;
+                country?: string;
+                phone?: string;
+            };
         };
 
         if (!items || items.length === 0) {
@@ -85,6 +96,20 @@ export const POST: APIRoute = async (context) => {
             price: i.price,
         }));
 
+        // Build shipping address metadata from our checkout form
+        const shippingMeta: Record<string, string> = {};
+        if (shippingAddress && hasPhysical) {
+            const fullName = [shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(" ");
+            shippingMeta.shippingName = fullName;
+            shippingMeta.shippingStreet = [shippingAddress.address, shippingAddress.apartment].filter(Boolean).join(", ");
+            shippingMeta.shippingCity = shippingAddress.city || "";
+            shippingMeta.shippingZip = shippingAddress.postalCode || "";
+            shippingMeta.shippingCountry = shippingAddress.country || "";
+            shippingMeta.shippingPhone = shippingAddress.phone || "";
+            shippingMeta.firstName = shippingAddress.firstName || "";
+            shippingMeta.lastName = shippingAddress.lastName || "";
+        }
+
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
             mode: "payment",
             line_items: lineItems,
@@ -99,18 +124,9 @@ export const POST: APIRoute = async (context) => {
                 selectedShippingLabel: selectedShippingLabel || "",
                 selectedShippingAmount: selectedShippingAmount || "0",
                 cartItems: JSON.stringify(cartItemsSummary),
+                ...shippingMeta,
             },
         };
-
-        if (hasPhysical) {
-            sessionParams.shipping_address_collection = {
-                allowed_countries: [
-                    "PL", "DE", "FR", "GB", "US", "NL", "BE", "AT", "IT", "ES",
-                    "SE", "DK", "FI", "IE", "PT", "GR", "CZ", "HU", "RO", "BG",
-                    "HR", "SI", "SK", "EE", "LV", "LT", "LU", "MT", "CY",
-                ],
-            };
-        }
 
         const session = await stripe.checkout.sessions.create(sessionParams);
 

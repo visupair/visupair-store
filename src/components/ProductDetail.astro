@@ -1782,6 +1782,10 @@ try {
       return;
     }
 
+    // Refresh EUR / PLN on the detail price after View Transitions (only
+    // .product-price-dynamic — never the Add to Cart button).
+    updateProductPrices();
+
     console.log("Initializing Product Detail interactions...");
 
     const galleryImages = document.querySelectorAll(".detail-large-image");

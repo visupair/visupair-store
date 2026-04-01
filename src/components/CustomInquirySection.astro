@@ -1,0 +1,153 @@
+---
+import Button from "./Button.astro";
+
+export interface Props {
+    serviceId: string;
+    serviceName: string;
+}
+
+const { serviceId, serviceName } = Astro.props;
+---
+
+    <div class="custom-inquiry-island">
+        <div class="inquiry-wrapper">
+            <div class="inquiry-content">
+                <div class="inquiry-header">
+                    <h2 class="inquiry-title">Something Special in Mind?</h2>
+                    <p class="inquiry-description">
+                        Don't see what you're looking for? Tell us about your project and we'll create a tailored solution.
+                    </p>
+                </div>
+
+                <Button 
+                    href="/contact" 
+                    variant="primary" 
+                    label="Let's Talk"
+                    icon={true}
+                />
+            </div>
+        </div>
+    </div>
+
+<style>
+    .custom-inquiry-island {
+        width: 100%;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-island);
+        animation: islandFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    .inquiry-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 64px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .inquiry-content {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        max-width: 500px;
+        text-align: center;
+        align-items: center;
+    }
+
+    .inquiry-header {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .inquiry-title {
+        font-size: clamp(32px, 4vw, 42px);
+        font-weight: 700;
+        color: var(--foreground);
+        margin: 0;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+    }
+
+    .inquiry-description {
+        font-size: clamp(14px, 1.8vw, 16px);
+        line-height: 1.6;
+        color: var(--foreground);
+        opacity: 0.75;
+        margin: 0;
+    }
+
+
+
+    @keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes islandFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+        .custom-inquiry-island {
+            padding: 40px 0;
+        }
+
+        .inquiry-wrapper {
+            grid-template-columns: 1fr;
+            gap: 32px;
+            padding: 48px 24px;
+        }
+
+        .inquiry-content {
+            gap: 24px;
+            max-width: 100%;
+        }
+
+        .inquiry-title {
+            font-size: 28px;
+        }
+
+        .inquiry-description {
+            font-size: 14px;
+        }
+
+        .inquiry-decoration {
+            width: 150px;
+            height: 150px;
+            opacity: 0.5;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .inquiry-wrapper {
+            padding: 40px 20px;
+        }
+
+        .inquiry-decoration {
+            display: none;
+        }
+
+        .inquiry-title {
+            font-size: 24px;
+        }
+    }
+</style>

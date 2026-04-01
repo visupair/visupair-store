@@ -49,12 +49,12 @@ export const structure = (S) =>
                             S.divider(),
                             // By Status
                             S.listItem()
-                                .title('Pending Orders')
+                                .title('Processing (payment)')
                                 .icon(ComposeIcon)
                                 .child(
                                     S.documentList()
-                                        .title('Pending Orders')
-                                        .filter('_type == "order" && status == "pending"')
+                                        .title('Processing')
+                                        .filter('_type == "order" && status == "processing"')
                                 ),
                             S.listItem()
                                 .title('Paid Orders')
@@ -70,7 +70,9 @@ export const structure = (S) =>
                                 .child(
                                     S.documentList()
                                         .title('Shipped or Delivered')
-                                        .filter('_type == "order" && (status == "shipped" || status == "delivered")')
+                                        .filter(
+                                            '_type == "order" && (shippingTimelineStage == "shipped" || shippingTimelineStage == "delivered" || status == "shipped" || status == "delivered")',
+                                        )
                                 ),
                         ])
                 ),

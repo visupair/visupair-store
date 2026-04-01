@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import Stripe from "stripe";
 import { createClient } from "@sanity/client";
 import { sendOrderNotification } from "../../../lib/email";
+import { ensureCourseRegistrationFromStripeSession } from "../../../lib/ensure-course-registration-from-stripe";
 
 const sanityWriteClient = createClient({
     projectId: "sovnyov1",
@@ -37,20 +38,34 @@ export const POST: APIRoute = async (context) => {
                 const session = event.data.object as Stripe.Checkout.Session;
                 console.log("✅ Payment successful (Stripe):", session.id);
 
+                const courseOutcome = await ensureCourseRegistrationFromStripeSession(
+                    session,
+                    sanityWriteClient,
+                );
+                if (courseOutcome.action === "registered") {
+                    console.log("📋 Course registration recorded:", courseOutcome.registrationId);
+                    break;
+                }
+                if (courseOutcome.action === "stop") {
+                    console.warn(
+                        "⚠️ Course checkout did not create registration:",
+                        courseOutcome.reason,
+                    );
+                    break;
+                }
+
                 const metadata = session.metadata || {};
                 const internalUserEmail = metadata.userEmail;
                 const isCartCheckout = metadata.checkoutType === "cart";
 
                 let shippingAddress = null;
-                const sessionDetails = session as any;
-                if (sessionDetails.shipping_details?.address) {
-                    const addr = sessionDetails.shipping_details.address;
+                if (metadata.shippingName || metadata.shippingStreet || metadata.shippingCity) {
                     shippingAddress = {
-                        name: sessionDetails.shipping_details.name || "",
-                        street: addr.line1 || "",
-                        city: addr.city || "",
-                        zip: addr.postal_code || "",
-                        country: addr.country || "",
+                        name: metadata.shippingName || "",
+                        street: metadata.shippingStreet || "",
+                        city: metadata.shippingCity || "",
+                        zip: metadata.shippingZip || "",
+                        country: metadata.shippingCountry || "",
                     };
                 }
 
@@ -96,24 +111,43 @@ export const POST: APIRoute = async (context) => {
                         }));
                 }
 
+                let customerName = session.customer_details?.name || "";
+                if (metadata.firstName) {
+                    const combined = [metadata.firstName, metadata.lastName].filter(Boolean).join(" ").trim();
+                    if (combined) customerName = combined;
+                }
+
+                const paymentId = session.payment_intent?.toString() || session.id;
+                const existingOrder = await sanityWriteClient.fetch(
+                    `*[_type == "order" && stripePaymentIntentId == $pid][0]{ _id }`,
+                    { pid: paymentId },
+                );
+                if (existingOrder) {
+                    console.log("Order already recorded for payment; skipping duplicate webhook create:", paymentId);
+                    break;
+                }
+
                 const sanityOrder: any = {
                     _type: "order",
                     createdAt: new Date().toISOString(),
-                    orderNumber: session.payment_intent?.toString() || session.id,
+                    orderNumber: paymentId,
                     orderType,
                     status: "paid",
-                    customerEmail: internalUserEmail || session.customer_details?.email || "",
-                    customerName: session.customer_details?.name || "",
+                    shippingTimelineStage: "confirmed",
+                    customerEmail: (
+                        internalUserEmail ||
+                        session.customer_details?.email ||
+                        (session as any).customer_email ||
+                        ""
+                    ).trim(),
+                    customerName,
                     items: orderItems,
                     totalAmount: (session.amount_total || 0) / 100,
-                    currency: session.currency?.toUpperCase() || "EUR",
-                    paymentProvider: "stripe",
-                    stripePaymentIntentId: session.payment_intent?.toString() || session.id,
+                    stripePaymentIntentId: paymentId,
                 };
 
                 if (shippingAddress) sanityOrder.shippingAddress = shippingAddress;
                 if (selectedCourier) sanityOrder.selectedCourier = selectedCourier;
-                if (shippingAmount > 0) sanityOrder.shippingAmount = shippingAmount;
 
                 const result = await sanityWriteClient.create(sanityOrder);
                 console.log("📦 Created Sanity Order:", result._id);
@@ -147,7 +181,7 @@ export const POST: APIRoute = async (context) => {
                         customerEmail: sanityOrder.customerEmail,
                         items: orderItems,
                         totalAmount: sanityOrder.totalAmount,
-                        currency: sanityOrder.currency,
+                        currency: (session.currency || "eur").toUpperCase(),
                         selectedCourier,
                         shippingAmount,
                         shippingAddress,

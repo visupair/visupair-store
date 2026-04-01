@@ -596,157 +596,191 @@ const lastName = nameParts.slice(1).join(" ") || "";
 </style>
 
 <script>
-  // Form submission handlers (client-side)
+  import { authClient } from "../../lib/auth-client";
+  import { showVsToast } from "../../lib/vs-toast";
 
-  // --- 1. Profile Form ---
-  const profileForm = document.getElementById(
-    "profile-form",
-  ) as HTMLFormElement;
-  const profileSubmit = document.getElementById(
-    "profile-submit",
-  ) as HTMLButtonElement;
-  const avatarDisplay = document.getElementById(
-    "avatar-display",
-  ) as HTMLDivElement;
+  /**
+   * Layout uses `<ClientRouter />`. Module scripts can run once while the DOM
+   * is replaced on each navigation — bind listeners on `astro:page-load` and
+   * drop previous listeners with AbortController.
+   */
+  let profilePageAbort: AbortController | null = null;
 
-  if (profileForm && profileSubmit) {
-    profileForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
+  function initAccountProfilePage() {
+    profilePageAbort?.abort();
+    profilePageAbort = new AbortController();
+    const { signal } = profilePageAbort;
 
-      const formData = new FormData(profileForm);
-      const firstName = formData.get("firstName") as string;
-      const lastName = formData.get("lastName") as string;
+    const profileForm = document.getElementById(
+      "profile-form",
+    ) as HTMLFormElement | null;
+    const profileSubmit = document.getElementById(
+      "profile-submit",
+    ) as HTMLButtonElement | null;
+    const avatarDisplay = document.getElementById(
+      "avatar-display",
+    ) as HTMLDivElement | null;
 
-      profileSubmit.disabled = true;
-      profileSubmit.textContent = "Saving...";
+    if (profileForm && profileSubmit) {
+      profileForm.addEventListener(
+        "submit",
+        async (e) => {
+          e.preventDefault();
 
-      // Better Auth Integration:
-      // await authClient.updateUser({
-      //   name: `${firstName} ${lastName}`
-      // });
+          const formData = new FormData(profileForm);
+          const rawFirst = String(formData.get("firstName") ?? "").trim();
+          const rawLast = String(formData.get("lastName") ?? "").trim();
+          const fullName = [rawFirst, rawLast].filter(Boolean).join(" ").trim();
 
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 800));
+          if (!rawFirst) {
+            showVsToast("First name is required.", "error");
+            return;
+          }
 
-      // Update avatar display
-      if (avatarDisplay) {
-        avatarDisplay.textContent = `${firstName.charAt(0)}${lastName.charAt(0)}`;
-      }
+          profileSubmit.disabled = true;
+          profileSubmit.textContent = "Saving...";
 
-      profileSubmit.disabled = false;
-      profileSubmit.textContent = "Save Changes";
-      alert("Profile updated successfully.");
-    });
+          try {
+            const result = await authClient.updateUser({
+              name: fullName,
+            });
+
+            const err = (result as { error?: { message?: string } }).error;
+            if (err) {
+              showVsToast(
+                err.message || "Could not update your profile.",
+                "error",
+              );
+              return;
+            }
+
+            if (avatarDisplay) {
+              avatarDisplay.textContent = `${rawFirst.charAt(0)}${rawLast.charAt(0)}`;
+            }
+
+            showVsToast("Your name was saved.", "success");
+          } catch {
+            showVsToast(
+              "Could not update your profile. Please try again.",
+              "error",
+            );
+          } finally {
+            profileSubmit.disabled = false;
+            profileSubmit.textContent = "Save Changes";
+          }
+        },
+        { signal },
+      );
+    }
+
+    const emailForm = document.getElementById("email-form") as HTMLFormElement | null;
+    const emailSubmit = document.getElementById(
+      "email-submit",
+    ) as HTMLButtonElement | null;
+
+    if (emailForm && emailSubmit) {
+      emailForm.addEventListener(
+        "submit",
+        async (e) => {
+          e.preventDefault();
+
+          const formData = new FormData(emailForm);
+          const email = formData.get("email") as string;
+
+          emailSubmit.disabled = true;
+          emailSubmit.textContent = "Updating...";
+
+          // await authClient.changeEmail({ newEmail: email, callbackURL: '/account/profile' });
+          await new Promise((r) => setTimeout(r, 800));
+
+          emailSubmit.disabled = false;
+          emailSubmit.textContent = "Update";
+          showVsToast(`Verification email sent to ${email}.`, "success");
+        },
+        { signal },
+      );
+    }
+
+    const passwordForm = document.getElementById(
+      "password-form",
+    ) as HTMLFormElement | null;
+    const passwordSubmit = document.getElementById(
+      "password-submit",
+    ) as HTMLButtonElement | null;
+
+    if (passwordForm && passwordSubmit) {
+      passwordForm.addEventListener(
+        "submit",
+        async (e) => {
+          e.preventDefault();
+
+          const formData = new FormData(passwordForm);
+          const newPassword = formData.get("newPassword") as string;
+          const confirmPassword = formData.get("confirmPassword") as string;
+
+          if (newPassword !== confirmPassword) {
+            showVsToast("New passwords do not match.", "error");
+            return;
+          }
+
+          passwordSubmit.disabled = true;
+          passwordSubmit.textContent = "Updating...";
+
+          // await authClient.changePassword({ currentPassword, newPassword });
+          await new Promise((r) => setTimeout(r, 1000));
+
+          passwordSubmit.disabled = false;
+          passwordSubmit.textContent = "Change Password";
+          passwordForm.reset();
+          showVsToast("Password changed successfully.", "success");
+        },
+        { signal },
+      );
+    }
+
+    const deleteBtn = document.getElementById(
+      "delete-account-btn",
+    ) as HTMLButtonElement | null;
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener(
+        "click",
+        async () => {
+          if (
+            !confirm(
+              "Are you sure you want to delete your account? This action cannot be undone.",
+            )
+          ) {
+            return;
+          }
+          deleteBtn.disabled = true;
+          deleteBtn.textContent = "Deleting...";
+
+          // await authClient.deleteUser();
+          await new Promise((r) => setTimeout(r, 1500));
+
+          showVsToast("Account deleted.", "success");
+          window.location.href = "/";
+        },
+        { signal },
+      );
+    }
+
+    const purchasesBtn = document.getElementById(
+      "purchases-btn",
+    ) as HTMLButtonElement | null;
+
+    if (purchasesBtn) {
+      purchasesBtn.addEventListener(
+        "click",
+        () => {
+          window.location.href = "/account/purchases";
+        },
+        { signal },
+      );
+    }
   }
 
-  // --- 2. Email Form ---
-  const emailForm = document.getElementById("email-form") as HTMLFormElement;
-  const emailSubmit = document.getElementById(
-    "email-submit",
-  ) as HTMLButtonElement;
-
-  if (emailForm && emailSubmit) {
-    emailForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const formData = new FormData(emailForm);
-      const email = formData.get("email") as string;
-
-      emailSubmit.disabled = true;
-      emailSubmit.textContent = "Updating...";
-
-      // Better Auth Integration:
-      // await authClient.changeEmail({
-      //   newEmail: email,
-      //   callbackURL: '/account/profile'
-      // });
-
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 800));
-
-      emailSubmit.disabled = false;
-      emailSubmit.textContent = "Update";
-      alert(`Verification email sent to ${email}.`);
-    });
-  }
-
-  // --- 3. Password Form ---
-  const passwordForm = document.getElementById(
-    "password-form",
-  ) as HTMLFormElement;
-  const passwordSubmit = document.getElementById(
-    "password-submit",
-  ) as HTMLButtonElement;
-
-  if (passwordForm && passwordSubmit) {
-    passwordForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const formData = new FormData(passwordForm);
-      const currentPassword = formData.get("currentPassword") as string;
-      const newPassword = formData.get("newPassword") as string;
-      const confirmPassword = formData.get("confirmPassword") as string;
-
-      if (newPassword !== confirmPassword) {
-        alert("New passwords do not match.");
-        return;
-      }
-
-      passwordSubmit.disabled = true;
-      passwordSubmit.textContent = "Updating...";
-
-      // Better Auth Integration:
-      // await authClient.changePassword({
-      //   currentPassword: currentPassword,
-      //   newPassword: newPassword
-      // });
-
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 1000));
-
-      passwordSubmit.disabled = false;
-      passwordSubmit.textContent = "Change Password";
-      passwordForm.reset();
-      alert("Password changed successfully.");
-    });
-  }
-
-  // --- 4. Delete Account ---
-  const deleteBtn = document.getElementById(
-    "delete-account-btn",
-  ) as HTMLButtonElement;
-
-  if (deleteBtn) {
-    deleteBtn.addEventListener("click", async () => {
-      if (
-        confirm(
-          "Are you sure you want to delete your account? This action cannot be undone.",
-        )
-      ) {
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = "Deleting...";
-
-        // Better Auth Integration:
-        // await authClient.deleteUser();
-
-        // Simulate API call
-        await new Promise((r) => setTimeout(r, 1500));
-
-        alert("Account deleted.");
-        // Redirect to home page after deletion
-        window.location.href = "/";
-      }
-    });
-  }
-
-  // --- 5. Purchase History Button ---
-  const purchasesBtn = document.getElementById(
-    "purchases-btn",
-  ) as HTMLButtonElement;
-
-  if (purchasesBtn) {
-    purchasesBtn.addEventListener("click", () => {
-      window.location.href = "/account/purchases";
-    });
-  }
+  initAccountProfilePage();
+  document.addEventListener("astro:page-load", initAccountProfilePage);
 </script>

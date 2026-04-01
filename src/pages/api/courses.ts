@@ -23,6 +23,7 @@ export const GET: APIRoute = async () => {
           },
           alt
         },
+        startsAt,
         registrationOpen,
 
         instructor {

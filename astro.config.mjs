@@ -110,6 +110,16 @@ export default defineConfig({
         },
       },
     ],
+    // Stripe’s Node SDK breaks Vite’s SSR dep optimizer on Cloudflare dev
+    // (missing deps_ssr/stripe.js). Load it from node_modules instead.
+    optimizeDeps: {
+      exclude: ['stripe'],
+    },
+    ssr: {
+      optimizeDeps: {
+        exclude: ['stripe'],
+      },
+    },
     build: {
       cssMinify: 'lightningcss',
       // Better code splitting

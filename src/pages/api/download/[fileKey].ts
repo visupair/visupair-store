@@ -1,6 +1,15 @@
 import type { APIRoute } from "astro";
 import { authClient } from "../../../lib/auth-client";
-import { sanityClient } from "../../../lib/sanity";
+import { createClient } from "@sanity/client";
+
+// Use a read-capable client (with token to bypass CDN caching)
+const sanityClient = createClient({
+    projectId: "sovnyov1",
+    dataset: "production",
+    useCdn: false,
+    apiVersion: "2024-03-01",
+    token: import.meta.env.SANITY_API_TOKEN,
+});
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
     const { fileKey } = params;
@@ -11,9 +20,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     // 1. Authenticate User
     const session = await authClient.getSession({
-        fetchOptions: {
-            headers: request.headers
-        }
+        fetchOptions: { headers: request.headers }
     });
 
     if (!session.data) {
@@ -22,32 +29,55 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     const userEmail = session.data.user.email;
 
-    // 2. Verify Purchase in Sanity
-    // Find any PAID order by this user that contains a product/course with this fileKey
-    const query = `*[_type == "order" && userEmail == $email && status == "paid" && (
-        defined(products[]) && count(products[@->digitalFileKey == $fileKey]) > 0
-    )][0]`;
+    // 2. Verify access in Sanity — digital *store products* only via paid order line items;
+    // course materials via courseRegistration (webhook often creates registration without an order).
+    const orderQuery = `*[
+        _type == "order" &&
+        customerEmail == $email &&
+        status in ["paid", "processing", "shipped", "delivered"] &&
+        count(items[
+            product->_type == "product" &&
+            product->productType == "digital" &&
+            product->digitalFileKey == $fileKey
+        ]) > 0
+    ][0]{ _id }`;
 
-    const order = await sanityClient.fetch(query, { email: userEmail, fileKey });
+    const courseRegQuery = `*[
+        _type == "courseRegistration" &&
+        email == $email &&
+        course->digitalFileKey == $fileKey
+    ][0]{ _id }`;
 
-    if (!order) {
-        // Also check if they are the owner/admin (optional, for testing) -> skipped for now
+    let authorized = await sanityClient.fetch(orderQuery, {
+        email: userEmail,
+        fileKey,
+    });
+
+    if (!authorized) {
+        authorized = await sanityClient.fetch(courseRegQuery, {
+            email: userEmail,
+            fileKey,
+        });
+    }
+
+    if (!authorized) {
         return new Response("Forbidden: You have not purchased this product.", { status: 403 });
     }
 
-    // 3. Generate Signed URL from R2
+    // 3. Stream File from Cloudflare R2
     try {
-        // @ts-ignore
-        const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
-        let runtimeEnv = cfEnv || {};
+        let runtimeEnv: any = {};
         try {
-            if (locals.runtime && typeof locals.runtime === 'object') {
-                const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, 'env');
-                if (descriptor && typeof descriptor.get !== 'function') {
-                    runtimeEnv = (locals.runtime as any).env || {};
-                }
+            if (locals.runtime && typeof locals.runtime === "object") {
+                const anyRuntime = locals.runtime as any;
+                runtimeEnv = anyRuntime.env || {};
             }
-        } catch (e) { }
+        } catch (_e) { /* not a CF Workers env */ }
+
+        if (!runtimeEnv.VISUPAIR_R2) {
+            console.error("R2 binding VISUPAIR_R2 not found in runtime env");
+            return new Response("File storage not configured", { status: 503 });
+        }
 
         const object = await runtimeEnv.VISUPAIR_R2.get(fileKey);
 
@@ -55,18 +85,16 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
             return new Response("File not found in storage", { status: 404 });
         }
 
-        // R2 Presigned URL requires using the S3 compatible API or a Worker script.
-        // Since we are in a Worker (Astro SSR on Cloudflare), we can stream the response 
-        // OR easier: just Redirect to a signed URL if we had S3 client.
-        // But with native R2 bindings, we can just stream the body!
-
         const headers = new Headers();
         object.writeHttpMetadata(headers);
         headers.set("etag", object.httpEtag);
 
-        return new Response(object.body, {
-            headers,
-        });
+        // Force download dialog in browser
+        if (!headers.has("content-disposition")) {
+            headers.set("content-disposition", `attachment; filename="${fileKey}"`);
+        }
+
+        return new Response(object.body, { headers });
 
     } catch (error) {
         console.error("R2 Error:", error);

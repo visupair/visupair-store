@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import ServicesSidebar from "./ServicesSidebar.astro";
 import ServiceRequestForm from "./ServiceRequestForm.astro";
+import CustomInquirySection from "./CustomInquirySection.astro";
 import type { ServicePlan } from "../lib/services-data";
 
 interface Props {
@@ -102,6 +103,17 @@ const selectedServiceId = service ? service.id : null;
             <ServiceRequestForm />
         </div>
     </div>
+
+    <!-- Custom Inquiry Section (Separate from sidebar & plans) -->
+    <section style="width: 100%; background: var(--bg-secondary);  margin-top: 12px;">
+        <div style="padding: 0 12px; margin: 0 auto;">
+            <CustomInquirySection 
+                serviceId={service?.id || "general"} 
+                serviceName={service?.title || "Services"} 
+            />
+        </div>
+    </section>
+
     ) : (
         <div style="padding: 100px; text-align: center;">
             <h1>No services available yet.</h1>

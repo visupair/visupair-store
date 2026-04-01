@@ -86,7 +86,6 @@ if (!userSession) {
                 id="favorites-content"
                 style={favoriteProducts.length > 0 ? "" : "display: none;"}
             >
-                <h1 class="page-title">Your Favorites</h1>
                 <div class="favorites-grid-wrapper">
                     <ProductGrid
                         products={favoriteProducts}
@@ -129,14 +128,6 @@ if (!userSession) {
     .account-page {
         padding: 0px 12px;
         margin: 0px auto;
-    }
-
-    .page-title {
-        font-size: 32px;
-        font-weight: 700;
-        margin: 24px;
-        color: var(--foreground);
-        text-align: center;
     }
 
     .favorites-section {

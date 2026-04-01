@@ -24,7 +24,8 @@ export async function getPortfolioProjects() {
         isFeatured,
         "mainImage": mainImage.asset->url,
         "gallery": gallery[].asset->url,
-        youtubeUrl
+        youtubeUrl,
+        "youtubeVideos": youtubeVideos[]
     }`;
     return await sanityClient.fetch(query);
 }
@@ -44,7 +45,8 @@ export async function getPortfolioProject(slug) {
         "mainImage": mainImage.asset->url,
         "gallery": gallery[].asset->url,
         "images": gallery[].asset->url,
-        youtubeUrl
+        youtubeUrl,
+        "youtubeVideos": youtubeVideos[]
     }`;
     return await sanityClient.fetch(query, { slug });
 }

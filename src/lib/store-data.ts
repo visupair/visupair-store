@@ -70,6 +70,8 @@ export interface Course {
     donationPresets?: number[];
     description: string;
     mainImage?: string;
+    /** When the course begins (ISO datetime from Sanity). Optional for on-demand / TBA. */
+    startsAt?: string;
     registrationOpen?: boolean;
 
     // Course-specific fields
@@ -122,7 +124,8 @@ export interface PortfolioItem {
     featured?: boolean;
     isFeatured?: boolean;
     details?: Record<string, string>; // Additional info
-    youtubeUrl?: string;
+    youtubeUrl?: string; // Legacy: single video
+    youtubeVideos?: Array<{ url: string }>; // New: multiple videos
 }
 
 // Fashion Design Structure

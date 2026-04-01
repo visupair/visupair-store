@@ -2,71 +2,86 @@ export default {
     name: 'order',
     title: 'Order',
     type: 'document',
+    fieldsets: [
+        { name: 'customer', title: '👤 Customer', options: { collapsible: true, collapsed: false } },
+        { name: 'items', title: '📦 Items', options: { collapsible: true, collapsed: false } },
+        { name: 'shipping', title: '🚚 Shipping & Tracking', options: { collapsible: true, collapsed: true } },
+        { name: 'admin', title: '⚙️ Admin', options: { collapsible: true, collapsed: true } },
+    ],
     fields: [
+        // ── Core (always visible at top) ──
         {
             name: 'orderNumber',
             title: 'Order Number',
             type: 'string',
+            readOnly: true,
         },
         {
             name: 'createdAt',
             title: 'Created At',
             type: 'datetime',
-            initialValue: () => new Date().toISOString()
+            readOnly: true,
+        },
+        {
+            name: 'status',
+            title: 'Payment status',
+            type: 'string',
+            description:
+                'Payment / fulfilment admin only (not the customer delivery steps). Use **Delivery timeline** in Shipping for Confirmed → Shipped → Delivered.',
+            options: {
+                list: [
+                    { title: 'Paid', value: 'paid' },
+                    { title: 'Processing', value: 'processing' },
+                    { title: 'Cancelled', value: 'cancelled' },
+                    { title: 'Refunded', value: 'refunded' },
+                ],
+                layout: 'radio',
+            },
         },
         {
             name: 'orderType',
             title: 'Order Type',
             type: 'string',
+            readOnly: true,
             options: {
                 list: [
                     { title: 'Physical', value: 'physical' },
                     { title: 'Digital', value: 'digital' },
-                    { title: 'Mixed', value: 'mixed' }
+                    { title: 'Mixed', value: 'mixed' },
+                    { title: 'Course', value: 'course' },
                 ],
-                layout: 'radio'
             },
-            initialValue: 'physical' // Default fallback
         },
         {
-            name: 'status',
-            title: 'Status',
-            type: 'string',
-            options: {
-                list: [
-                    { title: 'Pending', value: 'pending' },
-                    { title: 'Processing', value: 'processing' },
-                    { title: 'Paid', value: 'paid' },
-                    { title: 'Shipped', value: 'shipped' },
-                    { title: 'Delivered', value: 'delivered' },
-                    { title: 'Cancelled', value: 'cancelled' },
-                    { title: 'Refunded', value: 'refunded' }
-                ],
-                layout: 'radio'
-            },
-            initialValue: 'pending'
+            name: 'totalAmount',
+            title: 'Total Amount',
+            type: 'number',
+            readOnly: true,
+            description: 'Amount paid by customer (set automatically from Stripe)',
         },
-        {
-            name: 'userId',
-            title: 'User ID',
-            type: 'string',
-            description: 'The ID of the user from Better Auth (D1 Database)',
-            readOnly: true
-        },
+
+        // ── Customer ──
         {
             name: 'customerName',
             title: 'Customer Name',
-            type: 'string'
+            type: 'string',
+            fieldset: 'customer',
+            readOnly: true,
         },
         {
             name: 'customerEmail',
             title: 'Customer Email',
-            type: 'string'
+            type: 'string',
+            fieldset: 'customer',
+            readOnly: true,
         },
+
+        // ── Items ──
         {
             name: 'items',
-            title: 'Line Items',
+            title: 'Items',
             type: 'array',
+            fieldset: 'items',
             of: [
                 {
                     type: 'object',
@@ -75,41 +90,35 @@ export default {
                             name: 'product',
                             title: 'Product',
                             type: 'reference',
-                            to: [{ type: 'product' }, { type: 'course' }]
+                            to: [{ type: 'product' }, { type: 'course' }],
                         },
                         {
                             name: 'productType',
-                            title: 'Product Type',
+                            title: 'Type',
                             type: 'string',
                             options: {
                                 list: [
                                     { title: 'Physical', value: 'physical' },
-                                    { title: 'Digital', value: 'digital' }
-                                ]
-                            }
+                                    { title: 'Digital', value: 'digital' },
+                                    { title: 'Course', value: 'course' },
+                                ],
+                            },
                         },
                         {
                             name: 'quantity',
-                            title: 'Quantity',
-                            type: 'number'
+                            title: 'Qty',
+                            type: 'number',
                         },
                         {
                             name: 'price',
-                            title: 'Price (at purchase)',
-                            type: 'number'
+                            title: 'Price',
+                            type: 'number',
                         },
                         {
                             name: 'variant',
                             title: 'Variant',
                             type: 'string',
-                            description: 'E.g. Size: M, Color: Red'
                         },
-                        {
-                            name: 'licenseKey',
-                            title: 'License Key',
-                            type: 'string',
-                            hidden: ({ parent }) => parent?.productType !== 'digital'
-                        }
                     ],
                     preview: {
                         select: {
@@ -117,111 +126,128 @@ export default {
                             subtitle: 'variant',
                             price: 'price',
                             quantity: 'quantity',
-                            media: 'product.mainImage'
+                            media: 'product.mainImage',
                         },
                         prepare({ title, subtitle, price, quantity, media }) {
                             return {
-                                title: `${quantity}x ${title}`,
-                                subtitle: `${subtitle ? subtitle + ' - ' : ''}€${price}`,
-                                media
-                            }
-                        }
-                    }
-                }
-            ]
+                                title: `${quantity || 1}× ${title || 'Product'}`,
+                                subtitle: subtitle ? `${subtitle} — €${price}` : `€${price}`,
+                                media,
+                            };
+                        },
+                    },
+                },
+            ],
         },
-        {
-            name: 'totalAmount',
-            title: 'Total Amount',
-            type: 'number'
-        },
-        {
-            name: 'currency',
-            title: 'Currency',
-            type: 'string',
-            initialValue: 'EUR'
-        },
-        {
-            name: 'paymentProvider',
-            title: 'Payment Provider',
-            type: 'string',
-            options: {
-                list: [
-                    { title: 'Stripe', value: 'stripe' }
-                ]
-            }
-        },
-        {
-            name: 'stripePaymentIntentId',
-            title: 'Stripe Payment Intent ID',
-            type: 'string',
-            description: 'Stripe Payment Intent ID'
-        },
+
+        // ── Shipping & Tracking ──
         {
             name: 'shippingAddress',
             title: 'Shipping Address',
             type: 'object',
+            fieldset: 'shipping',
+            readOnly: true,
             fields: [
                 { name: 'name', type: 'string', title: 'Name' },
                 { name: 'street', type: 'string', title: 'Street' },
                 { name: 'city', type: 'string', title: 'City' },
                 { name: 'zip', type: 'string', title: 'ZIP Code' },
-                { name: 'country', type: 'string', title: 'Country' }
+                { name: 'country', type: 'string', title: 'Country' },
             ],
-            hidden: ({ document }) => {
-                return document?.orderType === 'digital';
-            }
         },
         {
             name: 'selectedCourier',
             title: 'Selected Courier',
             type: 'string',
-            description: 'Courier chosen by customer at checkout (e.g. DHL, DPD, InPost)'
-        },
-        {
-            name: 'shippingAmount',
-            title: 'Shipping Cost',
-            type: 'number',
-            description: 'Shipping cost paid by customer'
-        },
-        {
-            name: 'shippingTransactionId',
-            title: 'Shipping Transaction ID',
-            type: 'string'
+            fieldset: 'shipping',
+            readOnly: true,
+            description: 'Courier chosen by customer at checkout',
         },
         {
             name: 'trackingNumber',
             title: 'Tracking Number',
-            type: 'string'
+            type: 'string',
+            fieldset: 'shipping',
+            description: 'Paste the tracking code from Furgonetka here',
         },
         {
-            name: 'carrier',
-            title: 'Carrier',
-            type: 'string'
-        }
+            name: 'trackingUrl',
+            title: 'Tracking URL',
+            type: 'url',
+            fieldset: 'shipping',
+            description: 'Direct link to courier tracking page — customer can click it',
+        },
+        {
+            name: 'estimatedDelivery',
+            title: 'Estimated Delivery',
+            type: 'date',
+            fieldset: 'shipping',
+        },
+        {
+            name: 'shippingTimelineStage',
+            title: 'Delivery timeline (customer view)',
+            type: 'string',
+            fieldset: 'shipping',
+            description:
+                'Controls the progress steps on My Purchases: Confirmed → Shipped → Delivered. Move this as you dispatch and complete the order.',
+            initialValue: 'confirmed',
+            options: {
+                list: [
+                    { title: 'Confirmed — paid, preparing shipment', value: 'confirmed' },
+                    { title: 'Shipped — handed to courier', value: 'shipped' },
+                    { title: 'Delivered — completed', value: 'delivered' },
+                ],
+                layout: 'radio',
+            },
+        },
+
+        // ── Admin ──
+        {
+            name: 'stripePaymentIntentId',
+            title: 'Stripe Payment ID',
+            type: 'string',
+            fieldset: 'admin',
+            readOnly: true,
+        },
+        {
+            name: 'internalNotes',
+            title: 'Internal Notes',
+            type: 'text',
+            fieldset: 'admin',
+            description: 'Private notes (not visible to customer)',
+        },
     ],
     preview: {
         select: {
             title: 'orderNumber',
             subtitle: 'customerEmail',
             status: 'status',
+            timeline: 'shippingTimelineStage',
             date: 'createdAt',
             total: 'totalAmount',
-            currency: 'currency'
         },
-        prepare({ title, subtitle, status, date, total, currency }) {
-            const statusEmoji = {
-                pending: '⏳',
-                paid: '✅',
-                shipped: '🚚',
-                delivered: '📦',
-                cancelled: '❌'
-            }[status] || '❓';
-
-            return {
-                title: `${statusEmoji} Order ${title}`,
-                subtitle: `${subtitle} - ${new Date(date).toLocaleDateString()} - ${total} ${currency}`
+        prepare({ title, subtitle, status, timeline, date, total }) {
+            let emoji = '❓';
+            if (status === 'cancelled') emoji = '❌';
+            else if (status === 'refunded') emoji = '↩️';
+            else if (status === 'processing') emoji = '🔄';
+            else if (status === 'paid' || status === 'shipped' || status === 'delivered') {
+                // shipped/delivered = legacy docs before payment/timeline split
+                const t =
+                    timeline === 'delivered' || status === 'delivered'
+                        ? 'delivered'
+                        : timeline === 'shipped' || status === 'shipped'
+                          ? 'shipped'
+                          : 'confirmed';
+                emoji =
+                    t === 'delivered' ? '📦' : t === 'shipped' ? '🚚' : '✅';
             }
-        }
-    }
-}
+
+            const d = date ? new Date(date).toLocaleDateString() : '';
+            return {
+                title: `${emoji} #${(title || '').slice(-8)} — €${total || 0}`,
+                subtitle: `${subtitle || ''} · ${d}`,
+            };
+        },
+    },
+};

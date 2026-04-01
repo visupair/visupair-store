@@ -1,6 +1,7 @@
 ---
 import type { Course } from "../lib/store-data";
 import type { Currency } from "../lib/server-currency";
+import { formatCourseStartsAt } from "../lib/format-course-start";
 
 interface Props {
     courses: Course[];
@@ -12,8 +13,8 @@ const { courses, serverCurrency } = Astro.props;
 const priceColorMap: Record<string, string> = {
     paid: "var(--brand-violet)",
     free: "#22c55e",
-    donation: "#f59e0b",
-    payAtDoor: "#3b82f6",
+    donation: "#22c55e",
+    payAtDoor: "var(--brand-violet)",
 };
 
 // Helper to generate placeholder image
@@ -34,6 +35,11 @@ const getInitials = (name: string) => {
 };
 ---
 
+<div
+    id="course-catalog-root"
+    class="course-catalog-root"
+    data-server-currency={serverCurrency ?? ""}
+>
 <div class="course-grid">
     {
         courses.map((course) => {
@@ -50,6 +56,10 @@ const getInitials = (name: string) => {
 
             const registrationOpen = course.registrationOpen !== false;
             const pricingType = (course as any).pricingType || "paid";
+            const startsAtLabel = formatCourseStartsAt(
+                course.startsAt,
+                "compact",
+            );
 
             return (
                 <a href={`/courses/${courseSlug}`} class="course-card">
@@ -71,6 +81,11 @@ const getInitials = (name: string) => {
 
                     <div class="course-content">
                         <div class="course-meta-tags">
+                            {startsAtLabel && (
+                                <span class="course-tag course-tag-start" title="Course start">
+                                    {startsAtLabel}
+                                </span>
+                            )}
                             <span class="course-tag">
                                 {details.level ||
                                     (details as any)["Level"] ||
@@ -131,7 +146,7 @@ const getInitials = (name: string) => {
                                         color: priceColorMap[pricingType],
                                     }}
                                 >
-                                    {pricingType === "free" ? "Free" : "Free / Donate"}
+                                    Free
                                 </span>
                             )}
                         </div>
@@ -141,8 +156,14 @@ const getInitials = (name: string) => {
         })
     }
 </div>
+</div>
 
 <style>
+    /* Wrapper for reliable server currency hint; does not affect layout */
+    .course-catalog-root {
+        display: contents;
+    }
+
     .course-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -288,19 +309,28 @@ const getInitials = (name: string) => {
         border-radius: var(--radius-sm);
     }
 
+    /* Start date/time: readable casing, not all-caps */
+    .course-tag-start {
+        text-transform: none;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--foreground);
+        background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    }
+
     .course-tag-free {
         background: rgba(34, 197, 94, 0.1);
         color: #22c55e;
     }
 
     .course-tag-donation {
-        background: rgba(245, 158, 11, 0.1);
-        color: #f59e0b;
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
     }
 
     .course-tag-payAtDoor {
-        background: rgba(59, 130, 246, 0.1);
-        color: #3b82f6;
+        background: rgba(132, 128, 255, 0.1);
+        color: var(--brand-violet);
     }
 
     .course-price-label {
@@ -383,46 +413,71 @@ const getInitials = (name: string) => {
 </style>
 
 <script>
-    // Client-side currency detection for course grid
-    type Currency = 'EUR' | 'PLN';
+    // Client-side currency detection for course grid (aligned with ProductGrid / CourseDetail)
+    type Currency = "EUR" | "PLN";
 
     function detectUserCurrency(): Currency {
-        // PRIORITY 1: Server-detected currency (Cloudflare)
-        const priceElement = document.querySelector('[data-server-currency]');
-        const serverCurrency = priceElement?.getAttribute('data-server-currency');
-        
-        if (serverCurrency && (serverCurrency === 'EUR' || serverCurrency === 'PLN')) {
-            return serverCurrency as Currency;
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugCurrency = urlParams.get("currency");
+        if (debugCurrency === "EUR" || debugCurrency === "PLN") {
+            return debugCurrency;
         }
 
-        // FALLBACK 1: Check timezone
+        // Prefer this catalog’s server hint — avoids reading another page’s
+        // [data-server-currency] after View Transitions (store vs courses).
+        const catalogRoot = document.getElementById("course-catalog-root");
+        const catalogHint = catalogRoot
+            ?.getAttribute("data-server-currency")
+            ?.trim();
+        if (catalogHint === "EUR" || catalogHint === "PLN") {
+            return catalogHint;
+        }
+
+        // Any price cell on this catalog (fallback if root attribute missing)
+        const nestedHint = catalogRoot
+            ?.querySelector("[data-server-currency]")
+            ?.getAttribute("data-server-currency")
+            ?.trim();
+        if (nestedHint === "EUR" || nestedHint === "PLN") {
+            return nestedHint;
+        }
+
         try {
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            if (timezone && (timezone.includes('Warsaw') || timezone === 'Europe/Warsaw' || timezone === 'Poland')) {
-                return 'PLN';
+            if (
+                timezone &&
+                (timezone.includes("Warsaw") ||
+                    timezone === "Europe/Warsaw" ||
+                    timezone === "Poland")
+            ) {
+                return "PLN";
             }
         } catch (e) {}
 
-        // FALLBACK 2: Check browser language
         const locale = navigator.language || (navigator as any).userLanguage;
-        if (locale && locale.toLowerCase().startsWith('pl')) {
-            return 'PLN';
+        if (locale && locale.toLowerCase().startsWith("pl")) {
+            return "PLN";
         }
 
-        return 'EUR';
+        return "EUR";
     }
 
     function updateCoursePrices() {
+        const catalogRoot = document.getElementById("course-catalog-root");
+        if (!catalogRoot) return;
+
         const currency = detectUserCurrency();
-        const priceElements = document.querySelectorAll('.course-price[data-price-eur][data-price-pln]');
-        
+        const priceElements = catalogRoot.querySelectorAll(
+            ".course-price[data-price-eur][data-price-pln]",
+        );
+
         priceElements.forEach((element) => {
-            const priceEUR = element.getAttribute('data-price-eur');
-            const pricePLN = element.getAttribute('data-price-pln');
-            
+            const priceEUR = element.getAttribute("data-price-eur");
+            const pricePLN = element.getAttribute("data-price-pln");
+
             if (!priceEUR || !pricePLN) return;
-            
-            if (currency === 'PLN') {
+
+            if (currency === "PLN") {
                 element.textContent = `${pricePLN}zł`;
             } else {
                 element.textContent = `€${priceEUR}`;
@@ -430,6 +485,6 @@ const getInitials = (name: string) => {
         });
     }
 
-    // Run on page load
     updateCoursePrices();
+    document.addEventListener("astro:page-load", updateCoursePrices);
 </script>

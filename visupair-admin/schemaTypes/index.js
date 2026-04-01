@@ -7,7 +7,7 @@ import courseRegistration from './courseRegistration'
 import service from './service'
 import proposal from './proposal'
 import contact from './contact'
-
+import supportSubmission from './supportSubmission'
 import order from './order'
 
-export const schemaTypes = [category, product, portfolioCategory, portfolioProject, course, courseRegistration, service, proposal, contact, order]
+export const schemaTypes = [category, product, portfolioCategory, portfolioProject, course, courseRegistration, service, proposal, contact, supportSubmission, order]

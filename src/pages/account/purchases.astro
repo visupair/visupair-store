@@ -1,13 +1,20 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { authClient } from "../../lib/auth-client";
-import { sanityClient, urlFor } from "../../lib/sanity";
+import { urlFor } from "../../lib/sanity";
+import { createClient } from "@sanity/client";
 
-// Check if user is logged in
+// Non-CDN client → fresh data immediately
+const sanityFresh = createClient({
+  projectId: "sovnyov1",
+  dataset: "production",
+  useCdn: false,
+  apiVersion: "2024-03-01",
+  token: import.meta.env.SANITY_API_TOKEN,
+});
+
 const session = await authClient.getSession({
-  fetchOptions: {
-    headers: Astro.request.headers,
-  },
+  fetchOptions: { headers: Astro.request.headers },
 });
 
 if (!session.data) {
@@ -16,379 +23,1030 @@ if (!session.data) {
 
 const userEmail = session.data.user.email;
 
-// Fetch Orders from Sanity
-const query = `*[_type == "order" && customerEmail == $email && status == "paid"] | order(createdAt desc) {
-    _id,
-    orderNumber,
-    createdAt,
-    totalAmount,
-    currency,
-    status,
-    orderType,
-    selectedCourier,
-    trackingNumber,
-    items[] {
-        _key,
-        productType,
-        quantity,
-        price,
-        variant,
-        "product": product-> {
-            _id,
-            name,
-            "image": mainImage,
-            productType,
-            digitalFileKey
-        }
+const query = `*[_type == "order" && customerEmail == $email] | order(createdAt desc) {
+  _id,
+  orderNumber,
+  createdAt,
+  totalAmount,
+  status,
+  orderType,
+  selectedCourier,
+  trackingNumber,
+  trackingUrl,
+  estimatedDelivery,
+  shippingTimelineStage,
+  shippingAddress,
+  items[] {
+    _key,
+    productType,
+    quantity,
+    price,
+    variant,
+    "product": product-> {
+      _id,
+      name,
+      "image": mainImage,
+      productType,
+      digitalFileKey,
+      "slug": slug.current
     }
+  }
 }`;
 
-const orders = await sanityClient.fetch(query, { email: userEmail });
+const courseRegQuery = `*[_type == "courseRegistration" && email == $email] | order(createdAt desc) {
+  _id,
+  courseName,
+  createdAt,
+  pricingType,
+  donationAmount,
+  donationCurrency,
+  paidAmount,
+  paidCurrency,
+  "course": course-> {
+    _id,
+    name,
+    slug,
+    mainImage,
+    digitalFileKey,
+    price,
+    pricePLN
+  }
+}`;
 
-// Check for success param from redirect
-const successParam = Astro.url.searchParams.get("success");
+const orders = await sanityFresh.fetch(query, { email: userEmail });
+const courseRegistrations = await sanityFresh.fetch(courseRegQuery, {
+  email: userEmail,
+});
+
+const courseIdsFromRegistrations = new Set(
+  courseRegistrations.map((r: any) => r.course?._id).filter(Boolean),
+);
+
+/** Cart line items grouped for My Purchases sections (course lines with a registration are shown only under Courses). */
+const physicalItems: { order: any; item: any; product: any }[] = [];
+const digitalItems: { order: any; item: any; product: any }[] = [];
+const orderOnlyCourseItems: { order: any; item: any; product: any }[] = [];
+
+for (const order of orders) {
+  for (const item of order.items || []) {
+    const product = item.product;
+    const pt = item.productType || product?.productType;
+    if (pt === "course") {
+      const cid = product?._id;
+      if (cid && courseIdsFromRegistrations.has(cid)) continue;
+      orderOnlyCourseItems.push({ order, item, product });
+      continue;
+    }
+    if (pt === "digital") {
+      digitalItems.push({ order, item, product });
+    } else {
+      physicalItems.push({ order, item, product });
+    }
+  }
+}
+
+const hasAnyLibrary =
+  physicalItems.length > 0 ||
+  digitalItems.length > 0 ||
+  courseRegistrations.length > 0 ||
+  orderOnlyCourseItems.length > 0;
+
+/** Card + popup price for course registrations (pay-at-door uses course list price from CMS). */
+function courseRegistrationDisplayPrice(reg: any): string {
+  const pt = reg.pricingType;
+  const c = reg.course;
+  if (pt === "free") return "Free";
+  if (pt === "payAtDoor") {
+    const eur = c?.price;
+    const pln = c?.pricePLN;
+    if (eur != null && Number(eur) > 0) {
+      if (pln != null && Number(pln) > 0) {
+        return `€${eur} · ${pln} zł`;
+      }
+      return `€${eur}`;
+    }
+    if (pln != null && Number(pln) > 0) return `${pln} zł`;
+    return "Pay at door";
+  }
+  if (pt === "donation") {
+    const amt = reg.donationAmount;
+    if (amt != null && Number(amt) > 0) {
+      return reg.donationCurrency === "PLN" ? `${amt} zł` : `€${amt}`;
+    }
+    return "Free";
+  }
+  if (pt === "paid" && reg.paidAmount != null) {
+    return reg.paidCurrency === "PLN" ? `${reg.paidAmount} zł` : `€${reg.paidAmount}`;
+  }
+  return "—";
+}
+
+/** Delivery steps for physical orders (timeline preferred; legacy status shipped/delivered still respected). */
+function resolveDeliveryTimeline(order: any) {
+  const field =
+    order.shippingTimelineStage === "shipped" ||
+    order.shippingTimelineStage === "delivered" ||
+    order.shippingTimelineStage === "confirmed"
+      ? order.shippingTimelineStage
+      : null;
+  const fromLegacyStatus =
+    order.status === "delivered"
+      ? "delivered"
+      : order.status === "shipped"
+        ? "shipped"
+        : "confirmed";
+  function rank(t: string) {
+    if (t === "delivered") return 2;
+    if (t === "shipped") return 1;
+    return 0;
+  }
+  const r = Math.max(
+    field != null ? rank(field) : -1,
+    rank(fromLegacyStatus),
+  );
+  return r === 2 ? "delivered" : r === 1 ? "shipped" : "confirmed";
+}
+
+function purchaseCardBadge(order: any, isDigital: boolean, isCourse: boolean) {
+  if (order.status === "cancelled")
+    return { label: "Cancelled", badgeClass: "cancelled" };
+  if (order.status === "refunded")
+    return { label: "Refunded", badgeClass: "refunded" };
+  if (!isDigital && !isCourse) {
+    const stage = resolveDeliveryTimeline(order);
+    const labels = {
+      confirmed: "Confirmed",
+      shipped: "Shipped",
+      delivered: "Delivered",
+    };
+    const badgeClass =
+      stage === "delivered"
+        ? "delivered"
+        : stage === "shipped"
+          ? "shipped"
+          : "paid";
+    return { label: labels[stage], badgeClass };
+  }
+  if (order.status === "processing")
+    return { label: "Processing", badgeClass: "processing" };
+  return { label: "Paid", badgeClass: "paid" };
+}
+
+function orderAllowsDigitalDownload(order: any) {
+  const s = order.status;
+  if (s === "cancelled" || s === "refunded") return false;
+  return (
+    s === "paid" ||
+    s === "processing" ||
+    s === "shipped" ||
+    s === "delivered"
+  );
+}
 ---
 
-<Layout title="My Purchases - Visupair">
+<Layout title="Purchases — Visupair">
   <main class="account-page">
     <div class="purchases-section">
       {
-        successParam && (
-          <div class="success-banner">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <div>
-              <strong>Payment Successful!</strong>
-              <p>Thank you for your purchase. Your items are listed below.</p>
-            </div>
-          </div>
-        )
-      }
-
-      {
-        orders.length === 0 ? (
+        !hasAnyLibrary ? (
           <div class="empty-state">
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              stroke-width="1.5"
             >
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
               <line x1="3" y1="6" x2="21" y2="6" />
               <path d="M16 10a4 4 0 0 1-8 0" />
             </svg>
             <h3>No purchases yet</h3>
-            <p>When you make a purchase, it will appear here.</p>
+            <p>Items you buy will appear here.</p>
             <a href="/store/fashion-design" class="btn-primary">
               Browse Products
             </a>
           </div>
         ) : (
-          <div class="orders-list">
-            <h1 class="page-title">My Purchases</h1>
-            {orders.map((order: any) => (
-              <div class="order-card">
-                <div class="order-header">
-                  <div class="order-meta">
-                    <span class="order-date">
-                      {order.createdAt
-                        ? new Date(order.createdAt).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
-                        : "Date unavailable"}
-                    </span>
-                    <span class="order-number">
-                      #{order.orderNumber || order._id.slice(-8)}
-                    </span>
+          <div id="purchases-content">
+            {
+              physicalItems.length > 0 && (
+                <section class="purchases-category" aria-labelledby="purchases-physical">
+                  <div class="section-header">
+                    <h2 id="purchases-physical" class="section-title">
+                      Physical Products
+                    </h2>
                   </div>
-                  <div class="order-total">
-                    {order.currency === "PLN"
-                      ? `${order.totalAmount} zł`
-                      : `€${order.totalAmount}`}
-                  </div>
-                </div>
-
-                {order.selectedCourier && (
-                  <div class="order-courier">
-                    <span>Courier: {order.selectedCourier}</span>
-                    {order.trackingNumber && (
-                      <span class="tracking">Tracking: {order.trackingNumber}</span>
-                    )}
-                  </div>
-                )}
-
-                <div class="order-items">
-                  {order.items &&
-                    order.items.map((item: any) => {
-                      const product = item.product;
-                      const displayName = product?.name || item.variant || "Product";
-                      const displayType = item.productType || product?.productType || "physical";
-                      const displayImage = product?.image;
-                      const digitalFileKey = product?.digitalFileKey;
-
+                  <div class="purchases-grid">
+                    {physicalItems.map(({ order, item, product }) => {
+                      const name = product?.name || item.variant || "Product";
+                      const img = product?.image;
+                      const isDigital = false;
+                      const isCourse = false;
+                      const { label: statusLabel, badgeClass } =
+                        purchaseCardBadge(order, isDigital, isCourse);
+                      const orderData = JSON.stringify({
+                        kind: "orderItem",
+                        orderId: order._id,
+                        orderNumber: order.orderNumber,
+                        createdAt: order.createdAt,
+                        totalAmount: order.totalAmount,
+                        status: order.status,
+                        statusLabel,
+                        badgeClass,
+                        orderType: order.orderType,
+                        selectedCourier: order.selectedCourier,
+                        trackingNumber: order.trackingNumber,
+                        trackingUrl: order.trackingUrl,
+                        estimatedDelivery: order.estimatedDelivery,
+                        shippingTimelineStage: order.shippingTimelineStage,
+                        shippingAddress: order.shippingAddress,
+                        itemName: name,
+                        itemPrice: item.price,
+                        itemQty: item.quantity,
+                        itemVariant: item.variant,
+                        itemType: item.productType || product?.productType,
+                        isDigital,
+                        isCourse,
+                        canDownload: false,
+                        fileKey: null,
+                        image: img ? urlFor(img).width(400).url() : null,
+                      });
                       return (
-                        <div class="order-item">
-                          <div class="item-image">
-                            {displayImage && (
+                        <button
+                          type="button"
+                          class="purchase-card"
+                          data-order={orderData}
+                        >
+                          <div class="card-image">
+                            {img ? (
                               <img
-                                src={urlFor(displayImage).width(200).url()}
-                                alt={displayName}
+                                src={urlFor(img).width(400).url()}
+                                alt={name}
+                                loading="lazy"
                               />
-                            )}
-                          </div>
-                          <div class="item-details">
-                            <h4>{displayName}</h4>
-                            {item.variant && product?.name && item.variant !== product.name && (
-                              <span class="item-variant">{item.variant}</span>
-                            )}
-                            <span class="item-type">
-                              {displayType === "digital"
-                                ? "Digital Product"
-                                : "Physical Product"}
-                            </span>
-
-                            <div class="item-actions">
-                              {digitalFileKey ? (
-                                <a
-                                  href={`/api/download/${digitalFileKey}`}
-                                  class="btn-download"
-                                  target="_blank"
-                                  download
+                            ) : (
+                              <div class="card-placeholder">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
                                 >
-                                  <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                  >
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                  </svg>
-                                  Download Files
-                                </a>
-                              ) : (
-                                <span class="shipping-status">Processing</span>
-                              )}
-                            </div>
+                                  <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                  />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                            <span class={`card-badge badge-${badgeClass}`}>
+                              {statusLabel}
+                            </span>
                           </div>
-                        </div>
+                          <div class="card-body">
+                            <h4 class="card-title">{name}</h4>
+                            {item.variant && item.variant !== name && (
+                              <span class="card-variant">{item.variant}</span>
+                            )}
+                            <span class="card-price">€{item.price}</span>
+                          </div>
+                        </button>
                       );
                     })}
-                </div>
-              </div>
-            ))}
+                  </div>
+                </section>
+              )
+            }
+
+            {
+              digitalItems.length > 0 && (
+                <section class="purchases-category" aria-labelledby="purchases-digital">
+                  <div class="section-header">
+                    <h2 id="purchases-digital" class="section-title">
+                      Digital Products
+                    </h2>
+                  </div>
+                  <div class="purchases-grid">
+                    {digitalItems.map(({ order, item, product }) => {
+                      const name = product?.name || item.variant || "Product";
+                      const img = product?.image;
+                      const isDigital = true;
+                      const isCourse = false;
+                      const { label: statusLabel, badgeClass } =
+                        purchaseCardBadge(order, isDigital, isCourse);
+                      const canDownload =
+                        orderAllowsDigitalDownload(order) && isDigital;
+                      const fileKey = product?.digitalFileKey;
+                      const orderData = JSON.stringify({
+                        kind: "orderItem",
+                        orderId: order._id,
+                        orderNumber: order.orderNumber,
+                        createdAt: order.createdAt,
+                        totalAmount: order.totalAmount,
+                        status: order.status,
+                        statusLabel,
+                        badgeClass,
+                        orderType: order.orderType,
+                        selectedCourier: order.selectedCourier,
+                        trackingNumber: order.trackingNumber,
+                        trackingUrl: order.trackingUrl,
+                        estimatedDelivery: order.estimatedDelivery,
+                        shippingTimelineStage: order.shippingTimelineStage,
+                        shippingAddress: order.shippingAddress,
+                        itemName: name,
+                        itemPrice: item.price,
+                        itemQty: item.quantity,
+                        itemVariant: item.variant,
+                        itemType: item.productType || product?.productType,
+                        isDigital,
+                        isCourse,
+                        canDownload,
+                        fileKey,
+                        image: img ? urlFor(img).width(400).url() : null,
+                      });
+                      return (
+                        <button
+                          type="button"
+                          class="purchase-card"
+                          data-order={orderData}
+                        >
+                          <div class="card-image">
+                            {img ? (
+                              <img
+                                src={urlFor(img).width(400).url()}
+                                alt={name}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div class="card-placeholder">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
+                                >
+                                  <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                  />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                            <span class={`card-badge badge-${badgeClass}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <div class="card-body">
+                            <h4 class="card-title">{name}</h4>
+                            {item.variant && item.variant !== name && (
+                              <span class="card-variant">{item.variant}</span>
+                            )}
+                            <span class="card-price">€{item.price}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              )
+            }
+
+            {
+              courseRegistrations.length + orderOnlyCourseItems.length > 0 && (
+                <section class="purchases-category" aria-labelledby="purchases-courses">
+                  <div class="section-header">
+                    <h2 id="purchases-courses" class="section-title">
+                      Courses
+                    </h2>
+                  </div>
+                  <div class="purchases-grid">
+                    {courseRegistrations.map((reg: any) => {
+                      const name =
+                        reg.course?.name || reg.courseName || "Course";
+                      const img = reg.course?.mainImage;
+                      const slugCurrent = reg.course?.slug?.current || "";
+                      const fileKey = reg.course?.digitalFileKey || null;
+                      const cardPrice = courseRegistrationDisplayPrice(reg);
+                      const priceMuted =
+                        cardPrice === "—" ||
+                        cardPrice === "Pay at door" ||
+                        cardPrice === "Free";
+                      const orderData = JSON.stringify({
+                        kind: "courseRegistration",
+                        registrationId: reg._id,
+                        courseName: name,
+                        createdAt: reg.createdAt,
+                        pricingType: reg.pricingType,
+                        donationAmount: reg.donationAmount,
+                        donationCurrency: reg.donationCurrency,
+                        paidAmount: reg.paidAmount,
+                        paidCurrency: reg.paidCurrency,
+                        doorPriceEur: reg.course?.price ?? null,
+                        doorPricePln: reg.course?.pricePLN ?? null,
+                        courseSlug: slugCurrent,
+                        fileKey,
+                        image: img ? urlFor(img).width(400).url() : null,
+                      });
+                      return (
+                        <button
+                          type="button"
+                          class="purchase-card"
+                          data-order={orderData}
+                        >
+                          <div class="card-image">
+                            {img ? (
+                              <img
+                                src={urlFor(img).width(400).url()}
+                                alt={name}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div class="card-placeholder">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
+                                >
+                                  <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                  />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                            <span class="card-badge badge-paid">Enrolled</span>
+                          </div>
+                          <div class="card-body">
+                            <h4 class="card-title">{name}</h4>
+                            <span class="card-variant">Your registration</span>
+                            <span
+                              class={`card-price${priceMuted ? " card-price--muted" : ""}`}
+                            >
+                              {cardPrice}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {orderOnlyCourseItems.map(({ order, item, product }) => {
+                      const name = product?.name || item.variant || "Course";
+                      const img = product?.image;
+                      const isDigital = false;
+                      const isCourse = true;
+                      const { label: statusLabel, badgeClass } =
+                        purchaseCardBadge(order, isDigital, isCourse);
+                      const slugCurrent = product?.slug || "";
+                      const fileKey = product?.digitalFileKey || null;
+                      const canDownload =
+                        Boolean(fileKey) && orderAllowsDigitalDownload(order);
+                      const orderData = JSON.stringify({
+                        kind: "orderItem",
+                        orderId: order._id,
+                        orderNumber: order.orderNumber,
+                        createdAt: order.createdAt,
+                        totalAmount: order.totalAmount,
+                        status: order.status,
+                        statusLabel,
+                        badgeClass,
+                        orderType: order.orderType,
+                        selectedCourier: order.selectedCourier,
+                        trackingNumber: order.trackingNumber,
+                        trackingUrl: order.trackingUrl,
+                        estimatedDelivery: order.estimatedDelivery,
+                        shippingTimelineStage: order.shippingTimelineStage,
+                        shippingAddress: order.shippingAddress,
+                        itemName: name,
+                        itemPrice: item.price,
+                        itemQty: item.quantity,
+                        itemVariant: item.variant,
+                        itemType: item.productType || product?.productType,
+                        isDigital,
+                        isCourse,
+                        canDownload,
+                        fileKey,
+                        courseSlug: slugCurrent,
+                        image: img ? urlFor(img).width(400).url() : null,
+                      });
+                      return (
+                        <button
+                          type="button"
+                          class="purchase-card"
+                          data-order={orderData}
+                        >
+                          <div class="card-image">
+                            {img ? (
+                              <img
+                                src={urlFor(img).width(400).url()}
+                                alt={name}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div class="card-placeholder">
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.5"
+                                >
+                                  <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                  />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                            <span class={`card-badge badge-${badgeClass}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                          <div class="card-body">
+                            <h4 class="card-title">{name}</h4>
+                            {item.variant && item.variant !== name && (
+                              <span class="card-variant">{item.variant}</span>
+                            )}
+                            <span class="card-price">€{item.price}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              )
+            }
           </div>
         )
       }
     </div>
+
+    <!-- Detail popup (hidden by default) -->
+    <div class="popup-overlay" id="popup-overlay">
+      <div class="popup-card" id="popup-card">
+        <button class="popup-close" id="popup-close" aria-label="Close">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="popup-content" id="popup-content"></div>
+      </div>
+    </div>
   </main>
 </Layout>
 
+<script>
+  // @ts-nocheck
+  function escapeHtml(s) {
+    if (s == null || s === undefined) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function resolveTimelineStage(d) {
+    const field =
+      d.shippingTimelineStage === "shipped" ||
+      d.shippingTimelineStage === "delivered" ||
+      d.shippingTimelineStage === "confirmed"
+        ? d.shippingTimelineStage
+        : null;
+    const fromStatus =
+      d.status === "delivered"
+        ? "delivered"
+        : d.status === "shipped"
+          ? "shipped"
+          : "confirmed";
+    function rank(t) {
+      if (t === "delivered") return 2;
+      if (t === "shipped") return 1;
+      return 0;
+    }
+    const r = Math.max(
+      field != null ? rank(field) : -1,
+      rank(fromStatus),
+    );
+    return r === 2 ? "delivered" : r === 1 ? "shipped" : "confirmed";
+  }
+
+  function buildShippingTimeline(stage) {
+    const complete = [
+      true,
+      stage === "shipped" || stage === "delivered",
+      stage === "delivered",
+    ];
+    let currentIdx = -1;
+    for (let i = 0; i < 3; i++) {
+      if (!complete[i]) {
+        currentIdx = i;
+        break;
+      }
+    }
+    const labels = ["Confirmed", "Shipped", "Delivered"];
+    const check =
+      '<svg class="st-check" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    let html =
+      '<div class="ship-timeline ship-timeline--compact" role="list" aria-label="Delivery progress">';
+    for (let i = 0; i < 3; i++) {
+      let stepClass = "st-step";
+      if (complete[i]) stepClass += " st-step--done";
+      else if (i === currentIdx) stepClass += " st-step--current";
+      else stepClass += " st-step--pending";
+
+      const inner = complete[i] ? check : "";
+      html += `<div class="${stepClass}" role="listitem"><span class="st-node">${inner}</span><span class="st-label">${labels[i]}</span></div>`;
+
+      if (i < 2) {
+        let connClass = "st-conn";
+        if (complete[i + 1]) connClass += " st-conn--done";
+        else if (complete[i] && !complete[i + 1]) connClass += " st-conn--prog";
+        html += `<div class="${connClass}" aria-hidden="true"></div>`;
+      }
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function isSafeTrackingUrl(url) {
+    if (!url || typeof url !== "string") return false;
+    try {
+      const u = new URL(url);
+      return u.protocol === "https:" || u.protocol === "http:";
+    } catch {
+      return false;
+    }
+  }
+
+  function courseRegistrationPricingLabel(d) {
+    const pt = d.pricingType;
+    if (pt === "free") return "Free";
+    if (pt === "payAtDoor") {
+      const eur = d.doorPriceEur;
+      const pln = d.doorPricePln;
+      if (eur != null && Number(eur) > 0) {
+        if (pln != null && Number(pln) > 0) {
+          return `€${eur} or ${pln} zł at the door`;
+        }
+        return `€${eur} at the door`;
+      }
+      if (pln != null && Number(pln) > 0) {
+        return `${pln} zł at the door`;
+      }
+      return "Pay at the door";
+    }
+    if (pt === "donation") {
+      const amt = d.donationAmount;
+      if (amt != null && Number(amt) > 0) {
+        return d.donationCurrency === "PLN" ? `${amt} zł donated` : `€${amt} donated`;
+      }
+      return "Registered (no donation)";
+    }
+    if (pt === "paid" && d.paidAmount != null) {
+      return d.paidCurrency === "PLN" ? `${d.paidAmount} zł paid` : `€${d.paidAmount} paid`;
+    }
+    return "—";
+  }
+
+  function downloadButtonHtml(fileKey) {
+    return `
+              <div class="popup-actions">
+              <a href="/api/download/${encodeURIComponent(String(fileKey))}" class="popup-btn popup-btn--primary popup-btn--block" download>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download files
+              </a>
+              </div>
+            `;
+  }
+
+  function initPurchases() {
+    const overlay = document.getElementById("popup-overlay");
+    const popupContent = document.getElementById("popup-content");
+    const popupClose = document.getElementById("popup-close");
+    if (!overlay || !popupContent || !popupClose) return;
+
+    function close() {
+      overlay?.classList.remove("active");
+      document.body.style.overflow = "";
+    }
+
+    popupClose.addEventListener("click", close);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    });
+
+    document.querySelectorAll(".purchase-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const raw = card.getAttribute("data-order");
+        if (!raw) return;
+
+        try {
+          const d = JSON.parse(raw);
+
+          if (d.kind === "courseRegistration") {
+            const nameSafe = escapeHtml(d.courseName);
+            const dateStr = d.createdAt
+              ? new Date(d.createdAt).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "";
+            const pricingSafe = escapeHtml(courseRegistrationPricingLabel(d));
+            let html = `
+            ${d.image ? `<img class="popup-image" src="${String(d.image).replace(/"/g, "&quot;")}" alt="${nameSafe}" />` : ""}
+            <div class="popup-header">
+              <h2>${nameSafe}</h2>
+              <span class="popup-badge badge-paid">Enrolled</span>
+            </div>
+            <div class="popup-details">
+              <div class="detail-row">
+                <span class="detail-label">Registered</span>
+                <span class="detail-value">${escapeHtml(dateStr)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Enrollment</span>
+                <span class="detail-value">${pricingSafe}</span>
+              </div>
+            </div>`;
+            if (d.courseSlug) {
+              const slugEnc = encodeURIComponent(String(d.courseSlug));
+              html += `<div class="popup-actions">
+                <a href="/courses/${slugEnc}" class="popup-btn popup-btn--outline popup-btn--block">View course page</a>
+              </div>`;
+            }
+            if (d.fileKey) {
+              html += downloadButtonHtml(d.fileKey);
+            }
+            popupContent.innerHTML = html;
+            overlay.classList.add("active");
+            document.body.style.overflow = "hidden";
+            return;
+          }
+
+          const nameSafe = escapeHtml(d.itemName);
+          const variantSafe = escapeHtml(d.itemVariant);
+          const statusLabelSafe = escapeHtml(d.statusLabel);
+
+          const dateStr = d.createdAt
+            ? new Date(d.createdAt).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : "";
+
+          const estDeliveryFormatted = d.estimatedDelivery
+            ? new Date(d.estimatedDelivery).toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "long",
+                day: "numeric",
+              })
+            : "";
+
+          const estDeliveryDisplay = estDeliveryFormatted
+            ? estDeliveryFormatted
+            : "3–5 business days";
+
+          let html = `
+            ${d.image ? `<img class="popup-image" src="${String(d.image).replace(/"/g, "&quot;")}" alt="${nameSafe}" />` : ""}
+            <div class="popup-header">
+              <h2>${nameSafe}</h2>
+              <span class="popup-badge badge-${escapeHtml(d.badgeClass || d.status)}">${statusLabelSafe}</span>
+            </div>
+
+            <div class="popup-details">
+              <div class="detail-row">
+                <span class="detail-label">Price</span>
+                <span class="detail-value">€${escapeHtml(d.itemPrice)}</span>
+              </div>
+              ${
+                d.itemVariant && d.itemVariant !== d.itemName
+                  ? `
+                <div class="detail-row">
+                  <span class="detail-label">Variant</span>
+                  <span class="detail-value">${variantSafe}</span>
+                </div>
+              `
+                  : ""
+              }
+              <div class="detail-row">
+                <span class="detail-label">Quantity</span>
+                <span class="detail-value">${escapeHtml(d.itemQty || 1)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Date</span>
+                <span class="detail-value">${escapeHtml(dateStr)}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Order</span>
+                <span class="detail-value detail-mono">#${escapeHtml((d.orderNumber || "").slice(-10))}</span>
+              </div>
+            </div>
+          `;
+
+          if (!d.isDigital && !d.isCourse) {
+            const stage = resolveTimelineStage(d);
+            const courier = d.selectedCourier
+              ? escapeHtml(d.selectedCourier)
+              : "";
+            const trackingNo = d.trackingNumber
+              ? escapeHtml(d.trackingNumber)
+              : "";
+            const trackUrl = isSafeTrackingUrl(d.trackingUrl)
+              ? d.trackingUrl
+              : "";
+
+            html += `<div class="popup-section popup-section--shipping">`;
+            html += `<h3>Shipping</h3>`;
+            html += `<div class="shipping-surface">`;
+            html += buildShippingTimeline(stage);
+
+            html += `<div class="shipping-main-grid${d.shippingAddress ? "" : " shipping-main-grid--meta-only"}">`;
+            html += `<div class="shipping-meta-col">`;
+            if (courier) {
+              html += `<div class="sf-item"><span class="sf-key">Courier</span><span class="sf-val">${courier}</span></div>`;
+            }
+            if (trackingNo) {
+              html += `<div class="sf-item"><span class="sf-key">Tracking №</span><span class="sf-val sf-val--mono">${trackingNo}</span></div>`;
+            }
+            html += `<div class="sf-item"><span class="sf-key">Est. delivery</span><span class="sf-val">${escapeHtml(estDeliveryDisplay)}</span></div>`;
+            html += `</div>`;
+
+            if (d.shippingAddress) {
+              const a = d.shippingAddress;
+              const cityLine = [a.zip, a.city].filter(Boolean).join(" ").trim();
+              const addrLines = [
+                a.name,
+                a.street,
+                [cityLine, a.country].filter(Boolean).join(" · "),
+              ].filter(Boolean);
+              const addrHtml = addrLines
+                .map((line) => `<span class="ship-to-line">${escapeHtml(line)}</span>`)
+                .join("");
+              html += `<div class="ship-to-block">
+                <span class="ship-to-label">Ship to</span>
+                <div class="ship-to-body" role="group" aria-label="Shipping address">${addrHtml}</div>
+              </div>`;
+            }
+
+            html += `</div>`;
+
+            if (
+              !d.trackingNumber &&
+              d.status !== "cancelled" &&
+              d.status !== "refunded" &&
+              resolveTimelineStage(d) === "confirmed"
+            ) {
+              html += `<p class="popup-hint popup-hint--shipping">Tracking details will appear once your order is dispatched.</p>`;
+            }
+
+            html += `</div></div>`;
+
+            if (trackUrl) {
+              html += `<div class="popup-actions">
+              <a href="${trackUrl}" target="_blank" rel="noopener noreferrer" class="popup-btn popup-btn--outline popup-btn--block">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Track parcel
+              </a>
+            </div>`;
+            }
+          } else if (d.isCourse) {
+            if (d.courseSlug) {
+              const slugEnc = encodeURIComponent(String(d.courseSlug));
+              html += `<div class="popup-actions">
+                <a href="/courses/${slugEnc}" class="popup-btn popup-btn--outline popup-btn--block">View course page</a>
+              </div>`;
+            }
+            if (d.canDownload && d.fileKey) {
+              html += downloadButtonHtml(d.fileKey);
+            }
+          }
+
+          if (d.isDigital && d.canDownload && d.fileKey) {
+            html += downloadButtonHtml(d.fileKey);
+          } else if (d.isDigital && !d.canDownload) {
+            html += `<p class="popup-hint popup-hint--padded">Download will be available after payment is confirmed.</p>`;
+          }
+
+          popupContent.innerHTML = html;
+          overlay.classList.add("active");
+          document.body.style.overflow = "hidden";
+        } catch (e) {
+          console.error("Popup error:", e);
+        }
+      });
+    });
+  }
+
+  initPurchases();
+  document.addEventListener("astro:page-load", initPurchases);
+</script>
+
 <style>
+  /* ─── Layout (Island Block — matching favorites) ─── */
   .account-page {
-    padding: 24px 12px;
-    margin: 0px auto;
-    max-width: 1000px;
+    padding: 0 12px;
+    margin: 0 auto;
   }
 
   .purchases-section {
-    min-height: calc(100vh - 420px);
-  }
-
-  .header-actions {
-    margin-bottom: 24px;
-  }
-
-  .page-title {
-    font-size: 28px;
-    margin-bottom: 24px;
-    color: var(--foreground);
-  }
-
-  .success-banner {
-    background: color-mix(in srgb, var(--brand-lime), transparent 85%);
-    border: 1px solid color-mix(in srgb, var(--brand-lime), transparent 50%);
-    padding: 16px;
-    border-radius: var(--radius-lg);
-    display: flex;
-    gap: 12px;
-    margin-bottom: 32px;
-    color: var(--foreground);
-  }
-
-  .success-banner svg {
-    color: var(--brand-lime);
-    flex-shrink: 0;
-  }
-
-  .orders-list {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .order-card {
     background: var(--surface);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-
-  .order-header {
-    padding: 16px 24px;
-    background: var(--surface-muted);
-    border-bottom: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    min-height: calc(100vh - 420px);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .order-date {
-    font-weight: 600;
-    color: var(--foreground);
-    margin-right: 12px;
-  }
-
-  .order-number {
-    font-family: monospace;
-    opacity: 0.6;
-    font-size: 13px;
-  }
-
-  .order-total {
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--brand-violet);
-  }
-
-  .order-courier {
-    padding: 10px 24px;
-    display: flex;
-    gap: 16px;
-    font-size: 13px;
-    color: var(--foreground);
-    opacity: 0.7;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .order-courier .tracking {
-    font-family: monospace;
-    font-weight: 500;
-  }
-
-  .item-variant {
-    font-size: 12px;
-    opacity: 0.5;
-    display: block;
-    margin-bottom: 2px;
-  }
-
-  .order-items {
+    flex-direction: column;
     padding: 24px;
+  }
+
+  /* Category blocks — spacing matches store ProductGrid `.product-group` */
+  .purchases-category {
     display: flex;
     flex-direction: column;
-    gap: 24px;
   }
 
-  .order-item {
+  .purchases-category + .purchases-category {
+    margin-top: 48px;
+  }
+
+  /* Same pattern as `ProductGrid.astro`: uppercase label + flex line */
+  .purchases-category .section-header {
     display: flex;
-    gap: 20px;
-  }
-
-  .item-image {
-    width: 80px;
-    height: 80px;
-    background: var(--surface-muted);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-
-  .item-image img {
+    align-items: center;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    margin: 0 0 16px;
+    gap: 16px;
   }
 
-  .item-details {
+  .purchases-category .section-header::after {
+    content: "";
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    height: 1px;
+    background: var(--border-subtle);
   }
 
-  .item-details h4 {
-    margin: 0 0 4px 0;
-    font-size: 16px;
+  .purchases-category .section-title {
+    font-size: 14px;
     font-weight: 600;
-  }
-
-  .item-type {
-    font-size: 12px;
-    opacity: 0.6;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 12px;
-    display: block;
+    color: var(--foreground);
+    opacity: 0.7;
+    white-space: nowrap;
+    margin: 0;
   }
 
-  .item-actions {
-    display: flex;
-    align-items: center;
-  }
-
-  .btn-download {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: var(--brand-violet);
-    color: white;
-    text-decoration: none;
-    font-size: 13px;
+  .card-price--muted {
     font-weight: 600;
-    border-radius: var(--radius-md);
-    transition: all 0.2s;
+    opacity: 0.45;
   }
 
-  .btn-download:hover {
-    background: #9d9aff;
-    transform: translateY(-1px);
-  }
-
-  .shipping-status {
-    font-size: 13px;
-    padding: 4px 10px;
-    background: var(--surface-muted);
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--border-subtle);
-    opacity: 0.8;
-  }
-
+  /* ─── Empty State ─── */
   .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
-    height: auto;
-    padding: 145px 24px;
+    min-height: 400px;
+    padding: 40px 24px;
+    flex: 1;
   }
 
   .empty-state svg {
@@ -397,14 +1055,12 @@ const successParam = Astro.url.searchParams.get("success");
     opacity: 0.3;
     margin-bottom: 24px;
   }
-
   .empty-state h3 {
     font-size: 20px;
     font-weight: 600;
     margin-bottom: 8px;
     color: var(--foreground);
   }
-
   .empty-state p {
     font-size: 15px;
     opacity: 0.6;
@@ -429,27 +1085,626 @@ const successParam = Astro.url.searchParams.get("success");
     transition: all 0.2s;
     box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
   }
-
   .btn-primary:hover {
     background: #9d9aff;
     box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
     transform: translateY(-2px);
   }
 
+  /* ─── Card Grid ─── */
+  .purchases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  /* ─── Purchase Card (small, like a product card) ─── */
+  .purchase-card {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+
+  .purchase-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--brand-violet);
+  }
+
+  .card-image {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+  }
+  .card-placeholder svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.2;
+  }
+
+  /* Badge */
+  .card-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+  }
+
+  .badge-paid {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+  .badge-processing {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
+  .badge-shipped {
+    background: rgba(132, 128, 255, 0.15);
+    color: var(--brand-violet);
+  }
+  .badge-delivered {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  .badge-cancelled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  .badge-refunded {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+  }
+
+  .card-body {
+    padding: 10px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-variant {
+    font-size: 11px;
+    opacity: 0.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-violet);
+  }
+
+  /* ─── Popup Overlay ─── */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.25s,
+      visibility 0.25s;
+    padding: 24px;
+  }
+  .popup-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .popup-card {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: popIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes popIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .popup-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: var(--surface-muted);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--foreground);
+    opacity: 0.6;
+    z-index: 1;
+    transition: opacity 0.15s;
+  }
+  .popup-close:hover {
+    opacity: 1;
+  }
+
+  .popup-content {
+    padding: 0;
+  }
+
+  /* Popup internals (rendered by JS) */
+  :global(.popup-image) {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  :global(.popup-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+    gap: 12px;
+  }
+
+  :global(.popup-header h2) {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--foreground);
+  }
+
+  :global(.popup-badge) {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+  }
+
+  /* Popup HTML is injected via innerHTML — no Astro scope, so badge colors must be :global */
+  :global(.popup-badge.badge-paid) {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+  :global(.popup-badge.badge-processing) {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
+  :global(.popup-badge.badge-shipped) {
+    background: rgba(132, 128, 255, 0.15);
+    color: var(--brand-violet);
+  }
+  :global(.popup-badge.badge-delivered) {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  :global(.popup-badge.badge-cancelled) {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  :global(.popup-badge.badge-refunded) {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+  }
+
+  :global(.popup-details) {
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  :global(.popup-section) {
+    padding: 0 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+
+  :global(.popup-section h3) {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.45;
+    margin: 0 0 12px;
+  }
+
+  :global(.popup-section--shipping) {
+    padding-bottom: 8px;
+  }
+
+  :global(.popup-section--shipping > h3) {
+    margin-bottom: 10px;
+  }
+
+  :global(.shipping-surface) {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--foreground), transparent 94%);
+    padding: 12px 14px 12px;
+  }
+
+  /* ─── Shipping timeline (compact stepper) ─── */
+  :global(.ship-timeline) {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  :global(.ship-timeline--compact) {
+    margin: 0 0 20px;
+    padding: 0;
+  }
+
+  :global(.st-step) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  :global(.ship-timeline--compact .st-step) {
+    max-width: none;
+  }
+
+  :global(.st-node) {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition:
+      border-color 0.2s,
+      background 0.2s;
+  }
+
+  :global(.st-step--done .st-node) {
+    background: var(--foreground);
+    color: var(--page-bg, #fff);
+    border: 1.5px solid var(--foreground);
+  }
+
+  :global(.st-step--current .st-node) {
+    background: transparent;
+    border: 1.5px solid var(--foreground);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground), transparent 40%);
+  }
+
+  :global(.st-step--pending .st-node) {
+    background: transparent;
+    border: 1.5px solid color-mix(in srgb, var(--foreground), transparent 82%);
+  }
+
+  :global(.st-check) {
+    display: block;
+  }
+
+  :global(.st-label) {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--foreground);
+    opacity: 0.5;
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.2;
+    padding: 0 2px;
+    max-width: 100%;
+  }
+
+  :global(.st-step--done .st-label) {
+    opacity: 0.82;
+    color: var(--foreground);
+  }
+
+  :global(.st-step--current .st-label) {
+    opacity: 0.95;
+    font-weight: 700;
+  }
+
+  :global(.st-conn) {
+    flex: 1 1 0;
+    min-width: 4px;
+    height: 2px;
+    border-radius: 2px;
+    margin-top: 7px;
+    background: color-mix(in srgb, var(--foreground), transparent 88%);
+    align-self: flex-start;
+  }
+
+  :global(.st-conn--done) {
+    background: color-mix(in srgb, var(--foreground), transparent 12%);
+  }
+
+  :global(.st-conn--prog) {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--foreground), transparent 12%) 0%,
+      color-mix(in srgb, var(--foreground), transparent 12%) 52%,
+      color-mix(in srgb, var(--foreground), transparent 88%) 52%,
+      color-mix(in srgb, var(--foreground), transparent 88%) 100%
+    );
+  }
+
+  :global(.shipping-main-grid) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+    align-items: start;
+  }
+
+  :global(.shipping-main-grid--meta-only) {
+    grid-template-columns: 1fr;
+  }
+
+  :global(.shipping-meta-col) {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  :global(.sf-item) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  :global(.sf-key) {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.42;
+    line-height: 1.2;
+  }
+
+  :global(.sf-val) {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--foreground);
+    word-break: break-word;
+  }
+
+  :global(.sf-val--mono) {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  :global(.ship-to-block) {
+    margin-top: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    min-width: 0;
+    text-align: right;
+  }
+
+  :global(.ship-to-label) {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.42;
+    margin-bottom: 6px;
+  }
+
+  :global(.ship-to-body) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--foreground);
+    opacity: 0.92;
+  }
+
+  :global(.ship-to-line:first-child) {
+    font-weight: 700;
+    opacity: 1;
+  }
+
+  :global(.popup-hint--shipping) {
+    font-size: 11px;
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+    opacity: 0.5;
+  }
+
+  @media (min-width: 381px) {
+    :global(
+      .shipping-main-grid:not(.shipping-main-grid--meta-only) .ship-to-block
+    ) {
+      padding-left: 16px;
+      margin-left: 2px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    :global(.shipping-main-grid) {
+      grid-template-columns: 1fr;
+    }
+
+    :global(.ship-to-body),
+    :global(.ship-to-block) {
+      text-align: left;
+    }
+  }
+
+  :global(.detail-row) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  :global(.detail-label) {
+    font-size: 13px;
+    opacity: 0.5;
+    font-weight: 500;
+  }
+
+  :global(.detail-value) {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  :global(.detail-mono) {
+    font-family: monospace;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  :global(.popup-actions) {
+    padding: 8px 24px 24px;
+    margin-top: 0;
+  }
+
+  :global(.popup-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin: 0;
+  }
+
+  :global(.popup-btn--block) {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  :global(.popup-btn--primary) {
+    background: var(--brand-violet);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(132, 128, 255, 0.3);
+  }
+  :global(.popup-btn--primary:hover) {
+    background: #9d9aff;
+    transform: translateY(-1px);
+  }
+
+  :global(.popup-btn--outline) {
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+  }
+  :global(.popup-btn--outline:hover) {
+    border-color: var(--brand-violet);
+    color: var(--brand-violet);
+  }
+
+  :global(.popup-hint) {
+    font-size: 12px;
+    opacity: 0.45;
+    font-style: italic;
+    margin: 8px 0 0;
+    padding-top: 10px;
+    line-height: 1.5;
+  }
+
+  :global(.popup-hint--padded) {
+    padding: 0 24px 24px;
+    margin: 0;
+  }
+
+  /* ─── Responsive ─── */
   @media (max-width: 600px) {
-    .order-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
+    .purchases-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
     }
-
-    .order-item {
-      flex-direction: column;
+    .popup-card {
+      max-width: 100%;
     }
+  }
 
-    .item-image {
-      width: 100%;
-      height: 200px;
+  @media (max-width: 380px) {
+    .purchases-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>

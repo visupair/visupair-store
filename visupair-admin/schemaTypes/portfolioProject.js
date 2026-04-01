@@ -58,10 +58,36 @@ export default defineType({
             ],
         }),
         defineField({
-            name: 'youtubeUrl',
-            title: 'YouTube Video URL',
-            description: 'Add a YouTube video URL (e.g. https://www.youtube.com/watch?v=...) to embed in the project details.',
-            type: 'url',
+            name: 'youtubeVideos',
+            title: 'YouTube Videos',
+            description: 'Add multiple YouTube video URLs. Videos will appear on the left side gallery.',
+            type: 'array',
+            of: [
+                {
+                    type: 'object',
+                    fields: [
+                        defineField({
+                            name: 'url',
+                            title: 'YouTube Video URL',
+                            type: 'url',
+                            validation: (Rule) => Rule.required(),
+                            description: 'e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                        }),
+                    ],
+                    preview: {
+                        select: {
+                            url: 'url',
+                        },
+                        prepare(selection) {
+                            const { url } = selection;
+                            return {
+                                title: 'YouTube Video',
+                                subtitle: url,
+                            };
+                        },
+                    },
+                },
+            ],
         }),
         defineField({
             name: 'description',

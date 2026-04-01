@@ -9,13 +9,14 @@ export default defineType({
             name: 'pricingType',
             title: 'Pricing Type',
             type: 'string',
-            description: 'How students pay for this course',
+            description:
+                'How this course is sold on the site (free, donation-based, pay at the door, or paid online). Each signup is stored as a Course Registration with its own row: you will see Pricing Type there too (Free, Donation with amount if they paid, Paid with fee charged, etc.).',
             options: {
                 list: [
-                    { title: 'Paid (Online Payment)', value: 'paid' },
                     { title: 'Free', value: 'free' },
-                    { title: 'Donation (Free + Optional Donation)', value: 'donation' },
-                    { title: 'Pay at the Door', value: 'payAtDoor' },
+                    { title: 'Donation (free entry + optional donation)', value: 'donation' },
+                    { title: 'Paid (online payment)', value: 'paid' },
+                    { title: 'Pay at the door', value: 'payAtDoor' },
                 ],
                 layout: 'radio',
             },
@@ -27,8 +28,26 @@ export default defineType({
             name: 'registrationOpen',
             title: 'Registration Open',
             type: 'boolean',
-            description: 'Controls the "Registration Open" badge on the course detail page',
+            description:
+                'Controls whether people can register on the website. Turn off manually to close registration, or leave the system to turn it off automatically when “Maximum participants” is reached.',
             initialValue: true,
+        }),
+
+        defineField({
+            name: 'maxParticipants',
+            title: 'Maximum participants',
+            type: 'number',
+            description:
+                'Optional. How many people can register in total for this course. When that many registrations exist, “Registration Open” is set off automatically. Leave empty for no limit (only manual open/close). This number is not shown on the website.',
+            validation: (Rule) =>
+                Rule.custom((value) => {
+                    if (value === undefined || value === null || value === '') return true
+                    const n = Number(value)
+                    if (!Number.isInteger(n) || n < 1) {
+                        return 'Use a whole number of at least 1, or leave empty'
+                    }
+                    return true
+                }),
         }),
 
         defineField({
@@ -104,6 +123,16 @@ export default defineType({
             type: 'image',
             options: {
                 hotspot: true,
+            },
+        }),
+        defineField({
+            name: 'startsAt',
+            title: 'Course start (date & time)',
+            type: 'datetime',
+            description:
+                'When this course begins (first session or kickoff). Shown on the course catalog and course page. Leave empty if the date is not set yet or the offering is fully on-demand / self-paced.',
+            options: {
+                timeStep: 15,
             },
         }),
         defineField({
@@ -211,8 +240,9 @@ export default defineType({
             media: 'mainImage',
             registrationOpen: 'registrationOpen',
             pricingType: 'pricingType',
+            startsAt: 'startsAt',
         },
-        prepare({ title, price, pricePLN, media, registrationOpen, pricingType }) {
+        prepare({ title, price, pricePLN, media, registrationOpen, pricingType, startsAt }) {
             const typeLabels = {
                 paid: '💳 Paid',
                 free: '🆓 Free',
@@ -223,9 +253,32 @@ export default defineType({
             const priceStr = pricingType === 'free' || pricingType === 'donation'
                 ? typeLabel
                 : `${typeLabel} • €${price || 0}${pricePLN ? ' / ' + pricePLN + 'zł' : ''}`
+            let startStr = ''
+            if (startsAt) {
+                try {
+                    const d = new Date(startsAt)
+                    if (!Number.isNaN(d.getTime())) {
+                        const dateFmt = new Intl.DateTimeFormat('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                        })
+                        const parts = dateFmt.formatToParts(d)
+                        const day = parts.find((p) => p.type === 'day')?.value ?? ''
+                        const month = (parts.find((p) => p.type === 'month')?.value ?? '').toUpperCase()
+                        const year = parts.find((p) => p.type === 'year')?.value ?? ''
+                        const timePart = d.toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                        })
+                        startStr = ` • 📅 ${day} ${month} ${year} - ${timePart}`
+                    }
+                } catch { /* ignore */ }
+            }
             return {
                 title: title,
-                subtitle: `${priceStr} • ${registrationOpen ? '✅ Open' : '🔒 Closed'}`,
+                subtitle: `${priceStr}${startStr} • ${registrationOpen ? '✅ Open' : '🔒 Closed'}`,
                 media: media,
             }
         },

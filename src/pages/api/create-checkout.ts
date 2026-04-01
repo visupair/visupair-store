@@ -1,16 +1,95 @@
 import type { APIRoute } from "astro";
 import Stripe from "stripe";
+import { createClient } from "@sanity/client";
+import {
+    courseRegistrationExists,
+    COURSE_REGISTRATION_DUPLICATE_MESSAGE,
+} from "../../lib/course-registration-dedupe";
+import { assertCourseAcceptsRegistrations, COURSE_FULL_MESSAGE } from "../../lib/course-capacity";
+
+const sanityClient = createClient({
+    projectId: "sovnyov1",
+    dataset: "production",
+    useCdn: false,
+    token: import.meta.env.SANITY_API_TOKEN,
+    apiVersion: "2024-03-01",
+});
 
 export const POST: APIRoute = async (context) => {
     try {
         const body = await context.request.json();
-        const { productId, priceId, productName, productType, userEmail, price, currency, shippingAddress, selectedShippingId, selectedShippingAmount } = body;
+        const {
+            productId,
+            priceId,
+            productName,
+            productType,
+            userEmail,
+            price,
+            currency,
+            shippingAddress,
+            selectedShippingId,
+            selectedShippingAmount,
+            firstName,
+            lastName,
+            phone,
+            courseName,
+        } = body;
 
-        if (!priceId && !price) {
+        const isCourseDonation = productType === "course_donation";
+        const isCoursePaid = productType === "course";
+
+        if (isCoursePaid) {
+            if (
+                !userEmail ||
+                !String(firstName || "").trim() ||
+                !String(lastName || "").trim()
+            ) {
+                return new Response(JSON.stringify({ error: "Name and email are required for course checkout" }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+        }
+
+        if (!priceId && !price && !isCourseDonation) {
             return new Response(JSON.stringify({ error: "Missing price information" }), {
                 status: 400,
                 headers: { "Content-Type": "application/json" },
             });
+        }
+
+        if (isCourseDonation) {
+            const amt = parseFloat(String(price));
+            if (
+                !amt ||
+                amt <= 0 ||
+                !userEmail ||
+                !productId ||
+                !String(firstName || "").trim() ||
+                !String(lastName || "").trim()
+            ) {
+                return new Response(JSON.stringify({ error: "Invalid donation checkout" }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+        }
+
+        if ((isCourseDonation || isCoursePaid) && productId && userEmail) {
+            if (await courseRegistrationExists(sanityClient, String(productId), String(userEmail))) {
+                return new Response(JSON.stringify({ error: COURSE_REGISTRATION_DUPLICATE_MESSAGE }), {
+                    status: 409,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            const capacity = await assertCourseAcceptsRegistrations(sanityClient, String(productId));
+            if (!capacity.ok) {
+                return new Response(JSON.stringify({ error: capacity.message || COURSE_FULL_MESSAGE }), {
+                    status: 403,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
         }
 
         const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
@@ -25,6 +104,7 @@ export const POST: APIRoute = async (context) => {
         // Only fall back to a priceId (Stripe-stored price) when no explicit
         // currency override is needed (i.e., EUR and no shipping).
         const usePriceData =
+            isCourseDonation ||
             resolvedCurrency !== "EUR" ||
             (selectedShippingAmount && parseFloat(selectedShippingAmount) > 0);
 
@@ -45,6 +125,28 @@ export const POST: APIRoute = async (context) => {
             });
         }
 
+        const donationMetadata: Record<string, string> = isCourseDonation
+            ? {
+                checkoutType: "course_donation",
+                courseId: String(productId),
+                courseName: String(courseName || productName || "Course").slice(0, 120),
+                firstName: String(firstName || "").slice(0, 80),
+                lastName: String(lastName || "").slice(0, 80),
+                phone: String(phone || "").slice(0, 40),
+                userEmail: String(userEmail),
+            }
+            : {};
+
+        const coursePaidMetadata: Record<string, string> =
+            isCoursePaid && !isCourseDonation
+                ? {
+                    courseName: String(courseName || productName || "").slice(0, 120),
+                    firstName: String(firstName || "").slice(0, 80),
+                    lastName: String(lastName || "").slice(0, 80),
+                    phone: String(phone || "").slice(0, 40),
+                }
+                : {};
+
         // Add shipping as a separate line item in the SAME currency
         if (selectedShippingAmount && parseFloat(selectedShippingAmount) > 0 && productType === "physical") {
             lineItems.push({
@@ -58,26 +160,36 @@ export const POST: APIRoute = async (context) => {
         }
 
 
+        // Build shipping metadata from the address already collected on our site
+        const shippingMeta: Record<string, string> = {};
+        if (shippingAddress && productType === "physical") {
+            shippingMeta.shippingName = String(shippingAddress.firstName || "") + " " + String(shippingAddress.lastName || "");
+            shippingMeta.shippingStreet = String(shippingAddress.address || shippingAddress.street || "");
+            shippingMeta.shippingCity = String(shippingAddress.city || "");
+            shippingMeta.shippingZip = String(shippingAddress.postalCode || shippingAddress.zip || "");
+            shippingMeta.shippingCountry = String(shippingAddress.country || "");
+            shippingMeta.shippingPhone = String(shippingAddress.phone || phone || "");
+        }
+
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
             mode: "payment",
             line_items: lineItems,
-            success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}${isCourseDonation ? "&course_donation=1" : ""}`,
             cancel_url: context.request.headers.get("referer") || `${origin}/`,
             customer_email: userEmail,
             metadata: {
                 productId: productId || "",
-                productType: productType || "physical",
+                productType: isCourseDonation ? "course_donation" : productType || "physical",
                 userEmail: userEmail || "",
                 selectedShippingId: selectedShippingId || "",
+                selectedShippingAmount: selectedShippingAmount || "0",
+                firstName: firstName || "",
+                lastName: lastName || "",
+                ...shippingMeta,
+                ...donationMetadata,
+                ...coursePaidMetadata,
             },
         };
-
-        // Collect shipping address for physical products
-        if (productType === "physical") {
-            sessionParams.shipping_address_collection = {
-                allowed_countries: ["PL", "DE", "FR", "GB", "US", "NL", "BE", "AT", "IT", "ES"],
-            };
-        }
 
         const session = await stripe.checkout.sessions.create(sessionParams);
 

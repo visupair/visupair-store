@@ -76,7 +76,8 @@
 [data-theme="dark"] .portfolio-detail-panel::-webkit-scrollbar-thumb,
 [data-theme="dark"] .product-detail-panel::-webkit-scrollbar-thumb,
 [data-theme="dark"] .course-detail-panel::-webkit-scrollbar-thumb,
-[data-theme="dark"] .portfolio-sidebar::-webkit-scrollbar-thumb {
+[data-theme="dark"] .portfolio-sidebar::-webkit-scrollbar-thumb,
+[data-theme="dark"] .popup-card::-webkit-scrollbar-thumb {
   background-color: #1e1933 !important;
   border-radius: 999px;
   opacity: 1 !important;
@@ -90,7 +91,8 @@
 [data-theme="dark"] .portfolio-detail-panel,
 [data-theme="dark"] .product-detail-panel,
 [data-theme="dark"] .course-detail-panel,
-[data-theme="dark"] .portfolio-sidebar {
+[data-theme="dark"] .portfolio-sidebar,
+[data-theme="dark"] .popup-card {
   scrollbar-color: #1e1933 transparent;
 }
 
@@ -106,7 +108,8 @@ html:not([data-theme="dark"]) .portfolio-grid-container::-webkit-scrollbar-thumb
 html:not([data-theme="dark"]) .portfolio-detail-panel::-webkit-scrollbar-thumb,
 html:not([data-theme="dark"]) .product-detail-panel::-webkit-scrollbar-thumb,
 html:not([data-theme="dark"]) .course-detail-panel::-webkit-scrollbar-thumb,
-html:not([data-theme="dark"]) .portfolio-sidebar::-webkit-scrollbar-thumb {
+html:not([data-theme="dark"]) .portfolio-sidebar::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .popup-card::-webkit-scrollbar-thumb {
   background-color: #cecdd2 !important;
   border-radius: 999px;
   opacity: 1 !important;
@@ -121,6 +124,7 @@ html:not([data-theme="dark"]) .portfolio-grid-container,
 html:not([data-theme="dark"]) .portfolio-detail-panel,
 html:not([data-theme="dark"]) .product-detail-panel,
 html:not([data-theme="dark"]) .course-detail-panel,
-html:not([data-theme="dark"]) .portfolio-sidebar {
+html:not([data-theme="dark"]) .portfolio-sidebar,
+html:not([data-theme="dark"]) .popup-card {
   scrollbar-color: #cecdd2 transparent;
 }

@@ -1,5 +1,5 @@
 ---
-
+import 'flatpickr/dist/flatpickr.min.css';
 ---
 
 <div
@@ -184,11 +184,44 @@
                                     >
                                     <span>From</span>
                                 </div>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    class="form-input date-field"
-                                />
+                                <div class="date-input-inner">
+                                    <input
+                                        type="text"
+                                        name="startDate"
+                                        class="form-input date-field"
+                                        placeholder="Select start date"
+                                        data-input
+                                    />
+                                    <button
+                                        type="button"
+                                        class="date-field-clear"
+                                        aria-label="Clear start date"
+                                        title="Clear"
+                                    >
+                                        <svg
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            aria-hidden="true"
+                                        >
+                                            <line
+                                                x1="18"
+                                                y1="6"
+                                                x2="6"
+                                                y2="18"></line>
+                                            <line
+                                                x1="6"
+                                                y1="6"
+                                                x2="18"
+                                                y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                             <div class="date-input-wrapper">
                                 <div class="date-icon-box">
@@ -223,11 +256,44 @@
                                     >
                                     <span>To</span>
                                 </div>
-                                <input
-                                    type="date"
-                                    name="endDate"
-                                    class="form-input date-field"
-                                />
+                                <div class="date-input-inner">
+                                    <input
+                                        type="text"
+                                        name="endDate"
+                                        class="form-input date-field"
+                                        placeholder="Select end date"
+                                        data-input
+                                    />
+                                    <button
+                                        type="button"
+                                        class="date-field-clear"
+                                        aria-label="Clear end date"
+                                        title="Clear"
+                                    >
+                                        <svg
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            aria-hidden="true"
+                                        >
+                                            <line
+                                                x1="18"
+                                                y1="6"
+                                                x2="6"
+                                                y2="18"></line>
+                                            <line
+                                                x1="6"
+                                                y1="6"
+                                                x2="18"
+                                                y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -573,6 +639,52 @@
         min-width: 0;
     }
 
+    .date-input-inner {
+        position: relative;
+        width: 100%;
+    }
+
+    .date-input-inner .date-field {
+        padding-right: 40px;
+    }
+
+    .date-field-clear {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: var(--radius-md);
+        background: rgba(239, 68, 68, 0.08);
+        color: #ef4444;
+        opacity: 1;
+        cursor: pointer;
+        transition:
+            background 0.15s ease,
+            color 0.15s ease;
+    }
+
+    .date-field-clear:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.14);
+        color: #ef4444;
+    }
+
+    .date-field-clear:focus-visible {
+        outline: 2px solid #ef4444;
+        outline-offset: 2px;
+    }
+
+    .date-field-clear[hidden] {
+        display: none !important;
+    }
+
     .date-icon-box {
         font-size: 12px;
         font-weight: 600;
@@ -582,6 +694,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        cursor: pointer;
     }
 
     .date-icon-box svg {
@@ -597,6 +710,10 @@
         box-sizing: border-box;
     }
 
+    .date-field::placeholder {
+        cursor: pointer;
+    }
+
     /* Actions */
     .btn-submit {
         width: 100%;
@@ -608,16 +725,26 @@
         border: none;
         border-radius: var(--radius-lg);
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s ease;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-family: var(--font-family);
     }
 
-    .btn-submit:hover {
+    .btn-submit:hover:not(:disabled) {
         background: #9d9aff;
         transform: translateY(-2px);
         box-shadow: 0 8px 24px rgba(132, 128, 255, 0.4);
+        cursor: pointer;
+    }
+
+    .btn-submit:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    .btn-submit:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
     }
 
     .privacy-note {
@@ -700,6 +827,544 @@
 
     .form-intro-mobile p:last-child {
         margin-bottom: 0;
+    }
+
+    /*
+     * Flatpickr aligned with Layout tokens + form card (.form-right-col).
+     * Vars inherit from html [data-theme]; !important beats flatpickr.min.css.
+     */
+    @keyframes visuFlatpickrIn {
+        from {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    :global(.flatpickr-calendar) {
+        background: var(--surface) !important;
+        color: var(--foreground) !important;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--border-subtle) !important;
+        box-shadow: var(--shadow-dropdown);
+        padding: 10px 10px 12px;
+        font-family: var(--font-family);
+        box-sizing: border-box;
+        min-width: 308px;
+    }
+
+    :global(.flatpickr-calendar.animate.open) {
+        animation: visuFlatpickrIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+    }
+
+    :global(.flatpickr-calendar.open) {
+        z-index: 100100;
+        overflow: visible !important;
+    }
+
+    /* Hide popover triangle (Flatpickr :before / :after) */
+    :global(.flatpickr-calendar:before),
+    :global(.flatpickr-calendar:after) {
+        display: none !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-months .flatpickr-month) {
+        color: var(--foreground) !important;
+        fill: var(--foreground) !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-month) {
+        flex: 0 0 auto;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 0;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-current-month) {
+        position: relative !important;
+        left: auto !important;
+        width: auto !important;
+        max-width: 100%;
+        padding: 0 !important;
+        height: auto !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        color: var(--foreground) !important;
+        font-weight: var(--font-weight-semibold);
+        font-size: 100%;
+        transform: none !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-current-month .cur-month) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        padding: 5px 12px;
+        min-height: 0;
+        line-height: 1.25;
+        box-sizing: border-box;
+        color: var(--foreground) !important;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
+        background: var(--surface-muted);
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-current-month .cur-month:hover) {
+        background: var(--surface-hover) !important;
+        border-color: var(--brand-violet) !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-current-month .numInputWrapper) {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        padding: 0 8px;
+        min-height: 0;
+        height: auto;
+        min-width: 3.75rem;
+        box-sizing: border-box;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
+        background: var(--surface-muted);
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease;
+    }
+
+    :global(
+        .flatpickr-calendar .flatpickr-current-month .numInputWrapper:hover
+    ) {
+        background: var(--surface-hover);
+        border-color: var(--brand-violet);
+    }
+
+    :global(.flatpickr-calendar .flatpickr-current-month .numInputWrapper span) {
+        display: none !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-current-month input.cur-year) {
+        color: var(--foreground) !important;
+        font-weight: var(--font-weight-semibold);
+        font-size: 13px;
+        line-height: 1.25;
+        cursor: pointer;
+        width: 3.15rem;
+        min-width: 3.15rem;
+        padding: 5px 2px;
+        margin: 0;
+        height: auto;
+        text-align: center;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    :global(
+        .flatpickr-calendar .flatpickr-current-month input.cur-year:focus
+    ) {
+        outline: none;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-months) {
+        margin-bottom: 8px !important;
+        padding: 8px 4px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px;
+        position: relative;
+        overflow: visible !important;
+    }
+
+    :global(
+        .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months
+    ) {
+        color: var(--foreground) !important;
+        background: var(--surface-muted) !important;
+        border: 1px solid var(--border-subtle) !important;
+        border-radius: var(--radius-lg);
+        padding: 4px 8px;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    :global(
+        .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months:hover
+    ) {
+        background: var(--surface-hover) !important;
+        border-color: var(--brand-violet) !important;
+    }
+
+    :global(.flatpickr-calendar .numInputWrapper span.arrowUp:after) {
+        border-bottom-color: var(--foreground) !important;
+        opacity: 0.45;
+    }
+
+    :global(.flatpickr-calendar .numInputWrapper span.arrowDown:after) {
+        border-top-color: var(--foreground) !important;
+        opacity: 0.45;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-prev-month),
+    :global(.flatpickr-calendar .flatpickr-next-month) {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        flex: 0 0 auto;
+        z-index: auto;
+        color: var(--foreground) !important;
+        fill: var(--foreground) !important;
+        border-radius: var(--radius-lg);
+        height: 32px;
+        width: 32px;
+        padding: 0;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        /* No hover treatment — keep arrows visually flat */
+        transition: none;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-prev-month svg),
+    :global(.flatpickr-calendar .flatpickr-next-month svg),
+    :global(.flatpickr-calendar .flatpickr-prev-month svg path),
+    :global(.flatpickr-calendar .flatpickr-next-month svg path) {
+        fill: var(--foreground) !important;
+        opacity: 0.85;
+        transition: none;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-prev-month:hover),
+    :global(.flatpickr-calendar .flatpickr-next-month:hover) {
+        background: transparent !important;
+        color: var(--foreground) !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-prev-month:hover svg),
+    :global(.flatpickr-calendar .flatpickr-next-month:hover svg),
+    :global(.flatpickr-calendar .flatpickr-prev-month:hover svg path),
+    :global(.flatpickr-calendar .flatpickr-next-month:hover svg path) {
+        fill: var(--foreground) !important;
+        opacity: 0.85;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-weekdays) {
+        margin-bottom: 6px;
+        padding-bottom: 8px;
+        height: auto;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    :global(.flatpickr-calendar span.flatpickr-weekday) {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--foreground) !important;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-innerContainer) {
+        position: relative;
+        overflow: visible !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-rContainer) {
+        overflow: visible;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-days) {
+        width: 100% !important;
+        overflow: visible;
+    }
+
+    :global(.flatpickr-calendar .dayContainer) {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        justify-content: flex-start !important;
+        gap: 1px;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day) {
+        border-radius: var(--radius-lg) !important;
+        box-sizing: border-box !important;
+        color: var(--foreground) !important;
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 0 0 calc((100% - 6px) / 7) !important;
+        max-width: calc((100% - 6px) / 7) !important;
+        width: calc((100% - 6px) / 7) !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1 !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        font-size: 12px !important;
+        font-weight: var(--font-weight-medium);
+        font-variant-numeric: tabular-nums;
+        transition:
+            background 0.15s ease,
+            color 0.15s ease,
+            border-color 0.15s ease;
+    }
+
+    :global(
+        .flatpickr-calendar
+            .flatpickr-day:hover:not(.flatpickr-disabled):not(.selected):not(
+                .visu-fp-past-muted-cell
+            ):not(.prevMonthDay:not(.visu-fp-future-cell)):not(.nextMonthDay:not(.visu-fp-future-cell))
+    ) {
+        background: transparent !important;
+        border-color: var(--brand-violet) !important;
+        color: var(--foreground) !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day:focus-visible) {
+        outline: 2px solid var(--brand-violet) !important;
+        outline-offset: 2px !important;
+        z-index: 1;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.today:not(.selected)) {
+        border-color: var(--brand-violet) !important;
+        background: rgba(132, 128, 255, 0.1) !important;
+        color: var(--foreground) !important;
+        font-weight: var(--font-weight-semibold);
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.today:not(.selected):hover) {
+        background: rgba(132, 128, 255, 0.16) !important;
+        border-color: var(--brand-violet) !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.selected),
+    :global(.flatpickr-calendar .flatpickr-day.startRange),
+    :global(.flatpickr-calendar .flatpickr-day.endRange) {
+        background: var(--brand-violet) !important;
+        border-color: var(--brand-violet) !important;
+        color: #ffffff !important;
+        font-weight: 700;
+        box-shadow: none !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.selected:hover),
+    :global(.flatpickr-calendar .flatpickr-day.startRange:hover),
+    :global(.flatpickr-calendar .flatpickr-day.endRange:hover) {
+        background: #9d9aff !important;
+        border-color: #9d9aff !important;
+        color: #ffffff !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.today.selected) {
+        background: var(--brand-violet) !important;
+        border-color: var(--brand-violet) !important;
+        color: #ffffff !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.prevMonthDay),
+    :global(.flatpickr-calendar .flatpickr-day.nextMonthDay) {
+        color: var(--foreground) !important;
+        opacity: 0.35;
+    }
+
+    /* On / after minDate: match month/year control fill (future incl. next month peek); before min: extra dim */
+    :global(
+        .flatpickr-calendar
+            .flatpickr-day.visu-fp-future-cell:not(.selected):not(.startRange):not(.endRange):not(.today)
+    ) {
+        border-color: var(--border-subtle) !important;
+        background: var(--surface-muted) !important;
+        color: var(--foreground) !important;
+        opacity: 0.5 !important;
+    }
+
+    :global(
+        .flatpickr-calendar
+            .flatpickr-day.visu-fp-future-cell:not(.selected):not(.flatpickr-disabled):hover
+    ) {
+        background: transparent !important;
+        border-color: var(--brand-violet) !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.visu-fp-past-muted-cell) {
+        color: var(--foreground) !important;
+        opacity: 0.2 !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.flatpickr-disabled),
+    :global(.flatpickr-calendar .flatpickr-day.flatpickr-disabled:hover) {
+        color: var(--foreground) !important;
+        opacity: 0.22;
+        background: transparent !important;
+        cursor: not-allowed !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-day.inRange) {
+        background: rgba(132, 128, 255, 0.12) !important;
+        border-color: transparent !important;
+        color: var(--foreground) !important;
+        box-shadow: none !important;
+    }
+
+    :global(.flatpickr-calendar .flatpickr-clear) {
+        color: var(--foreground);
+        opacity: 0.55;
+        font-size: 12px;
+        padding: 8px;
+        border-radius: var(--radius-lg);
+    }
+
+    :global(.flatpickr-calendar .flatpickr-clear:hover) {
+        opacity: 1;
+        background: var(--surface-hover);
+    }
+
+    /* Month / year button grids (custom overlay — matches form tokens) */
+    :global(.visu-fp-overlay) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        width: 100%;
+        min-height: 100%;
+        height: auto;
+        z-index: 6;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 6px 8px 10px;
+        background: var(--surface);
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+        overflow: visible;
+    }
+
+    :global(.visu-fp-overlay[hidden]) {
+        display: none !important;
+    }
+
+    :global(.visu-fp-panel-head) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    :global(.visu-fp-panel-head button) {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: var(--radius-lg);
+        background: transparent;
+        color: var(--foreground);
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        opacity: 0.75;
+        transition: background 0.15s ease, opacity 0.15s ease;
+    }
+
+    :global(.visu-fp-panel-head button:hover:not(:disabled)) {
+        background: var(--surface-hover);
+        opacity: 1;
+    }
+
+    :global(.visu-fp-panel-head button:disabled) {
+        opacity: 0.25;
+        cursor: not-allowed;
+    }
+
+    :global(.visu-fp-panel-title) {
+        flex: 1;
+        text-align: center;
+        font-size: 13px;
+        font-weight: var(--font-weight-semibold);
+        color: var(--foreground);
+        padding: 0 4px;
+    }
+
+    :global(.visu-fp-grid) {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        margin: 0;
+        padding: 2px 0 0;
+    }
+
+    :global(.visu-fp-grid button) {
+        margin: 0;
+        padding: 8px 6px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        background: transparent;
+        color: var(--foreground);
+        font-family: var(--font-family);
+        font-size: 12px;
+        font-weight: var(--font-weight-medium);
+        cursor: pointer;
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease,
+            color 0.15s ease;
+    }
+
+    :global(.visu-fp-grid button:hover:not(:disabled):not(.is-selected)) {
+        background: var(--surface-hover);
+        border-color: var(--border-subtle);
+    }
+
+    :global(.visu-fp-grid button.is-selected) {
+        background: var(--brand-violet) !important;
+        border-color: var(--brand-violet) !important;
+        color: #ffffff !important;
+        font-weight: 700;
+    }
+
+    :global(.visu-fp-grid button.is-edge) {
+        opacity: 0.48;
+    }
+
+    :global(.visu-fp-grid button:disabled) {
+        opacity: 0.22;
+        cursor: not-allowed;
+    }
+
+    :global(.visu-fp-grid button:focus-visible) {
+        outline: 2px solid var(--brand-violet);
+        outline-offset: 2px;
     }
 
     @keyframes fadeIn {
@@ -991,3 +1656,617 @@
         }
     }
 </style>
+
+<!-- Flatpickr altInput is created in JS without Astro scope — mirror .form-input / .date-field here -->
+<style is:global>
+    #service-request-form .date-input-inner input.form-input.date-field {
+        background: var(--surface-muted);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        padding-right: 40px;
+        font-size: 15px;
+        color: var(--foreground);
+        font-family: var(--font-family);
+        transition:
+            border-color 0.2s,
+            box-shadow 0.2s;
+        width: 100%;
+        box-sizing: border-box;
+        cursor: pointer;
+        -webkit-text-fill-color: var(--foreground);
+    }
+
+    #service-request-form .date-input-inner input.form-input.date-field:read-only {
+        background: var(--surface-muted) !important;
+        color: var(--foreground);
+        cursor: pointer;
+        opacity: 1;
+    }
+
+    #service-request-form .date-input-inner input.form-input.date-field:focus {
+        outline: none;
+        border-color: var(--brand-violet);
+        box-shadow: 0 0 0 3px rgba(132, 128, 255, 0.1);
+    }
+
+    #service-request-form .date-input-inner input.form-input.date-field::placeholder {
+        opacity: 0.4;
+        color: var(--foreground);
+    }
+
+    @media (max-width: 900px) {
+        #service-request-form .date-input-inner input.form-input.date-field {
+            font-size: 14px;
+            padding: 12px 14px;
+            padding-right: 40px;
+        }
+    }
+</style>
+
+<script>
+    import flatpickr from 'flatpickr';
+
+    type InputWithFp = HTMLInputElement & {
+        _flatpickr?: { destroy: () => void };
+    };
+
+    type FpInstance = {
+        calendarContainer: HTMLElement;
+        innerContainer?: HTMLElement;
+        currentYear: number;
+        currentMonth: number;
+        changeMonth: (delta: number) => void;
+        changeYear: (y: number) => void;
+        redraw: () => void;
+        monthElements: HTMLElement[];
+        yearElements: HTMLInputElement[];
+        prevMonthNav: HTMLElement;
+        nextMonthNav: HTMLElement;
+        config: { minDate?: Date; maxDate?: Date };
+        l10n: { months: { shorthand: string[]; longhand: string[] } };
+        _visuAbort?: AbortController;
+        set: (key: string, val: unknown) => void;
+        input: HTMLInputElement;
+        altInput?: HTMLInputElement;
+        clear: (triggerChange?: boolean, toInitial?: boolean) => void;
+        close: () => void;
+        isOpen: boolean;
+    };
+
+    let formVisibilityObserver: MutationObserver | null = null;
+
+    function formIsVisible(root: HTMLElement) {
+        return getComputedStyle(root).display !== 'none';
+    }
+
+    function monthStart(y: number, m: number) {
+        return new Date(y, m, 1);
+    }
+
+    function isMonthAllowed(fp: FpInstance, year: number, month: number) {
+        const t = monthStart(year, month);
+        const min = fp.config.minDate;
+        const max = fp.config.maxDate;
+        if (min) {
+            const b = monthStart(min.getFullYear(), min.getMonth());
+            if (t < b) return false;
+        }
+        if (max) {
+            const e = monthStart(max.getFullYear(), max.getMonth());
+            if (t > e) return false;
+        }
+        return true;
+    }
+
+    function yearLimits(fp: FpInstance) {
+        const minY = fp.config.minDate?.getFullYear() ?? 1900;
+        const maxY = fp.config.maxDate?.getFullYear() ?? 2100;
+        return { minY, maxY };
+    }
+
+    function isYearDisabled(fp: FpInstance, y: number) {
+        const { minY, maxY } = yearLimits(fp);
+        return y < minY || y > maxY;
+    }
+
+    function decadeLimits(fp: FpInstance) {
+        const minDec = fp.config.minDate
+            ? Math.floor(fp.config.minDate.getFullYear() / 10) * 10
+            : -Infinity;
+        const maxDec = fp.config.maxDate
+            ? Math.floor(fp.config.maxDate.getFullYear() / 10) * 10
+            : Infinity;
+        return { minDec, maxDec };
+    }
+
+    function hideVisuOverlay(fp: FpInstance) {
+        const o = fp.calendarContainer.querySelector('.visu-fp-overlay');
+        if (o) (o as HTMLElement).hidden = true;
+    }
+
+    type DayCell = HTMLElement & { dateObj?: Date };
+
+    function startOfCalendarDay(d: Date) {
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    }
+
+    function classifyVisuDayCell(fp: FpInstance, el: DayCell) {
+        el.classList.remove('visu-fp-future-cell', 'visu-fp-past-muted-cell');
+        const d = el.dateObj;
+        const rawMin = fp.config.minDate;
+        if (!d || !rawMin) return;
+        const min = rawMin instanceof Date ? rawMin : new Date(rawMin);
+        const tDay = startOfCalendarDay(d);
+        const tMin = startOfCalendarDay(min);
+        if (tDay < tMin) {
+            el.classList.add('visu-fp-past-muted-cell');
+            return;
+        }
+        if (el.classList.contains('flatpickr-disabled')) return;
+        el.classList.add('visu-fp-future-cell');
+    }
+
+    function trimMonthLabel(fp: FpInstance) {
+        const el = fp.monthElements[0];
+        if (el?.textContent) el.textContent = el.textContent.trim();
+    }
+
+    function syncDateClearButton(fp: FpInstance) {
+        const visible = fp.altInput ?? fp.input;
+        const btn = fp.input
+            .closest('.date-input-inner')
+            ?.querySelector('.date-field-clear');
+        if (!(btn instanceof HTMLButtonElement)) return;
+        const has = Boolean(
+            visible.value?.trim() || fp.input.value?.trim(),
+        );
+        btn.hidden = !has;
+        btn.disabled = !has;
+    }
+
+    function syncAltInputPlaceholder(fp: FpInstance) {
+        if (fp.altInput && fp.input?.placeholder) {
+            fp.altInput.placeholder = fp.input.placeholder;
+        }
+    }
+
+    function wireDateClearButton(fp: FpInstance) {
+        const input = fp.input;
+        const btn = input
+            .closest('.date-input-inner')
+            ?.querySelector('.date-field-clear');
+        if (!(btn instanceof HTMLButtonElement)) return;
+        if (btn.dataset.visuClearBound === '1') return;
+        btn.dataset.visuClearBound = '1';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fp.clear();
+            if (fp.isOpen) fp.close();
+            syncDateClearButton(fp);
+        });
+        syncDateClearButton(fp);
+    }
+
+    function visuPickerTeardown(fp: FpInstance) {
+        fp._visuAbort?.abort();
+    }
+
+    function setupVisuMonthYearGrids(fp: FpInstance) {
+        const inner = fp.innerContainer;
+        const rCont = inner?.querySelector('.flatpickr-rContainer');
+        if (!inner || !rCont || inner.querySelector('.visu-fp-overlay')) return;
+
+        const ac = new AbortController();
+        fp._visuAbort = ac;
+        const sig = ac.signal;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'visu-fp-overlay';
+        overlay.hidden = true;
+
+        const monthPart = document.createElement('div');
+        const yearPart = document.createElement('div');
+        yearPart.hidden = true;
+
+        const monthHead = document.createElement('div');
+        monthHead.className = 'visu-fp-panel-head';
+        const myPrev = document.createElement('button');
+        myPrev.type = 'button';
+        myPrev.setAttribute('aria-label', 'Previous year');
+        myPrev.textContent = '\u2039';
+        const myTitle = document.createElement('div');
+        myTitle.className = 'visu-fp-panel-title';
+        const myNext = document.createElement('button');
+        myNext.type = 'button';
+        myNext.setAttribute('aria-label', 'Next year');
+        myNext.textContent = '\u203a';
+        monthHead.append(myPrev, myTitle, myNext);
+
+        const monthGrid = document.createElement('div');
+        monthGrid.className = 'visu-fp-grid';
+
+        const yearHead = document.createElement('div');
+        yearHead.className = 'visu-fp-panel-head';
+        const yyPrev = document.createElement('button');
+        yyPrev.type = 'button';
+        yyPrev.setAttribute('aria-label', 'Previous decade');
+        yyPrev.textContent = '\u2039';
+        const yyTitle = document.createElement('div');
+        yyTitle.className = 'visu-fp-panel-title';
+        const yyNext = document.createElement('button');
+        yyNext.type = 'button';
+        yyNext.setAttribute('aria-label', 'Next decade');
+        yyNext.textContent = '\u203a';
+        yearHead.append(yyPrev, yyTitle, yyNext);
+
+        const yearGrid = document.createElement('div');
+        yearGrid.className = 'visu-fp-grid';
+
+        monthPart.append(monthHead, monthGrid);
+        yearPart.append(yearHead, yearGrid);
+        overlay.append(monthPart, yearPart);
+        inner.insertBefore(overlay, rCont);
+
+        let decadeBase = Math.floor(fp.currentYear / 10) * 10;
+
+        function closePanels() {
+            overlay.hidden = true;
+            yearPart.hidden = true;
+            monthPart.hidden = false;
+        }
+
+        function openMonthPanel() {
+            yearPart.hidden = true;
+            monthPart.hidden = false;
+            renderMonthGrid();
+            overlay.hidden = false;
+        }
+
+        function openYearPanel() {
+            decadeBase = Math.floor(fp.currentYear / 10) * 10;
+            monthPart.hidden = true;
+            yearPart.hidden = false;
+            renderYearGrid();
+            overlay.hidden = false;
+        }
+
+        function renderMonthGrid() {
+            const { minY, maxY } = yearLimits(fp);
+            myTitle.textContent = String(fp.currentYear);
+            myPrev.disabled = fp.currentYear <= minY;
+            myNext.disabled = fp.currentYear >= maxY;
+
+            monthGrid.replaceChildren();
+            const labels = fp.l10n.months.shorthand;
+            for (let m = 0; m < 12; m++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = labels[m] ?? String(m + 1);
+                const allowed = isMonthAllowed(fp, fp.currentYear, m);
+                if (!allowed) btn.disabled = true;
+                if (m === fp.currentMonth && allowed) btn.classList.add('is-selected');
+                btn.addEventListener(
+                    'click',
+                    () => {
+                        if (!isMonthAllowed(fp, fp.currentYear, m)) return;
+                        fp.changeMonth(m - fp.currentMonth);
+                        fp.redraw();
+                        closePanels();
+                    },
+                    { signal: sig },
+                );
+                monthGrid.appendChild(btn);
+            }
+        }
+
+        function renderYearGrid() {
+            const { minDec, maxDec } = decadeLimits(fp);
+            yyTitle.textContent = `${decadeBase}\u2009\u2013\u2009${decadeBase + 9}`;
+            yyPrev.disabled = decadeBase <= minDec;
+            yyNext.disabled = decadeBase >= maxDec;
+
+            yearGrid.replaceChildren();
+            for (let i = 0; i < 12; i++) {
+                const y = decadeBase - 1 + i;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = String(y);
+                if (y === decadeBase - 1 || y === decadeBase + 10)
+                    btn.classList.add('is-edge');
+                if (isYearDisabled(fp, y)) btn.disabled = true;
+                if (y === fp.currentYear && !btn.disabled)
+                    btn.classList.add('is-selected');
+                btn.addEventListener(
+                    'click',
+                    () => {
+                        if (isYearDisabled(fp, y)) return;
+                        fp.changeYear(y);
+                        fp.redraw();
+                        closePanels();
+                    },
+                    { signal: sig },
+                );
+                yearGrid.appendChild(btn);
+            }
+        }
+
+        myPrev.addEventListener(
+            'click',
+            (e) => {
+                e.stopPropagation();
+                const { minY } = yearLimits(fp);
+                if (fp.currentYear <= minY) return;
+                fp.changeYear(fp.currentYear - 1);
+                fp.redraw();
+                renderMonthGrid();
+            },
+            { signal: sig },
+        );
+        myNext.addEventListener(
+            'click',
+            (e) => {
+                e.stopPropagation();
+                const { maxY } = yearLimits(fp);
+                if (fp.currentYear >= maxY) return;
+                fp.changeYear(fp.currentYear + 1);
+                fp.redraw();
+                renderMonthGrid();
+            },
+            { signal: sig },
+        );
+
+        yyPrev.addEventListener(
+            'click',
+            (e) => {
+                e.stopPropagation();
+                const { minDec } = decadeLimits(fp);
+                if (decadeBase <= minDec) return;
+                decadeBase -= 10;
+                renderYearGrid();
+            },
+            { signal: sig },
+        );
+        yyNext.addEventListener(
+            'click',
+            (e) => {
+                e.stopPropagation();
+                const { maxDec } = decadeLimits(fp);
+                if (decadeBase >= maxDec) return;
+                decadeBase += 10;
+                renderYearGrid();
+            },
+            { signal: sig },
+        );
+
+        fp.monthElements[0].addEventListener(
+            'click',
+            (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openMonthPanel();
+            },
+            { signal: sig },
+        );
+        fp.monthElements[0].addEventListener(
+            'keydown',
+            (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openMonthPanel();
+                }
+            },
+            { signal: sig },
+        );
+
+        const yearEl = fp.yearElements[0];
+        yearEl.readOnly = true;
+        yearEl.addEventListener(
+            'click',
+            (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openYearPanel();
+            },
+            { signal: sig },
+        );
+        yearEl.addEventListener(
+            'keydown',
+            (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openYearPanel();
+                }
+            },
+            { signal: sig },
+        );
+
+        const navClose = () => closePanels();
+        fp.prevMonthNav.addEventListener('click', navClose, { signal: sig });
+        fp.nextMonthNav.addEventListener('click', navClose, { signal: sig });
+
+        document.addEventListener(
+            'keydown',
+            (e) => {
+                if (e.key === 'Escape' && !overlay.hidden) closePanels();
+            },
+            { signal: sig },
+        );
+
+        trimMonthLabel(fp);
+        fp.monthElements[0].setAttribute('role', 'button');
+        fp.monthElements[0].setAttribute('tabindex', '0');
+        fp.yearElements[0].setAttribute('role', 'button');
+        fp.yearElements[0].setAttribute('aria-label', 'Choose year');
+    }
+
+    function commonPickerOptions(
+        extra: Record<string, unknown> = {},
+    ): Record<string, unknown> {
+        const userReady = extra.onReady as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userClose = extra.onClose as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userDestroy = extra.onDestroy as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userOpen = extra.onOpen as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userMonthChange = extra.onMonthChange as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userYearChange = extra.onYearChange as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userOnChange = extra.onChange as
+            | ((d: Date[], s: string, fp: FpInstance) => void)
+            | undefined;
+        const userDayCreate = extra.onDayCreate as
+            | ((
+                  d: Date[],
+                  s: string,
+                  fp: FpInstance,
+                  dayElem: HTMLElement,
+              ) => void)
+            | undefined;
+        const {
+            onReady: _or,
+            onClose: _oc,
+            onDestroy: _od,
+            onOpen: _oo,
+            onMonthChange: _omc,
+            onYearChange: _oyc,
+            onChange: _och,
+            onDayCreate: _odc,
+            ...rest
+        } = extra;
+
+        return {
+            mode: 'single',
+            /* Stored value for the form + API (ISO-like, sortable) */
+            dateFormat: 'Y-m-d',
+            /* Visible field: day / month / year (European order) */
+            altInput: true,
+            altFormat: 'd/m/Y',
+            altInputClass: 'form-input date-field',
+            minDate: 'today',
+            disableMobile: true,
+            appendTo: document.body,
+            monthSelectorType: 'static',
+            shorthandCurrentMonth: true,
+            ...rest,
+            position: 'above left',
+            onReady(d: Date[], s: string, fp: FpInstance) {
+                setupVisuMonthYearGrids(fp);
+                syncAltInputPlaceholder(fp);
+                wireDateClearButton(fp);
+                userReady?.(d, s, fp);
+            },
+            onOpen(d: Date[], s: string, fp: FpInstance) {
+                trimMonthLabel(fp);
+                /* Sit slightly higher so the date input + placeholder stay visible underneath */
+                requestAnimationFrame(() => {
+                    const cal = fp.calendarContainer;
+                    const t = cal?.style?.top;
+                    if (!t) return;
+                    const n = parseFloat(t);
+                    if (!Number.isNaN(n)) cal.style.top = `${n - 40}px`;
+                });
+                userOpen?.(d, s, fp);
+            },
+            onMonthChange(d: Date[], s: string, fp: FpInstance) {
+                trimMonthLabel(fp);
+                userMonthChange?.(d, s, fp);
+            },
+            onYearChange(d: Date[], s: string, fp: FpInstance) {
+                trimMonthLabel(fp);
+                userYearChange?.(d, s, fp);
+            },
+            onDayCreate(
+                d: Date[],
+                s: string,
+                fp: FpInstance,
+                dayElem: HTMLElement,
+            ) {
+                classifyVisuDayCell(fp, dayElem as DayCell);
+                userDayCreate?.(d, s, fp, dayElem);
+            },
+            onChange(d: Date[], s: string, fp: FpInstance) {
+                syncDateClearButton(fp);
+                userOnChange?.(d, s, fp);
+            },
+            onClose(d: Date[], s: string, fp: FpInstance) {
+                hideVisuOverlay(fp);
+                syncDateClearButton(fp);
+                userClose?.(d, s, fp);
+            },
+            onDestroy(d: Date[], s: string, fp: FpInstance) {
+                visuPickerTeardown(fp);
+                userDestroy?.(d, s, fp);
+            },
+        };
+    }
+
+    function attachDatePickers(root: HTMLElement) {
+        const startDateInput = root.querySelector(
+            'input[name="startDate"]',
+        ) as InputWithFp | null;
+        const endDateInput = root.querySelector(
+            'input[name="endDate"]',
+        ) as InputWithFp | null;
+        if (!startDateInput || !endDateInput) return;
+        if (startDateInput._flatpickr || endDateInput._flatpickr) return;
+
+        const endPicker = flatpickr(
+            endDateInput,
+            commonPickerOptions(),
+        ) as unknown as FpInstance;
+
+        flatpickr(
+            startDateInput,
+            commonPickerOptions({
+                onChange(selectedDates: Date[]) {
+                    if (selectedDates[0]) {
+                        endPicker.set('minDate', selectedDates[0]);
+                    } else {
+                        endPicker.set('minDate', 'today');
+                    }
+                },
+            }),
+        );
+    }
+
+    function tryAttachPickersWhenVisible(root: HTMLElement) {
+        if (!formIsVisible(root)) return;
+        attachDatePickers(root);
+    }
+
+    function initServiceRequestFormUi() {
+        const root = document.getElementById('service-request-form');
+        if (!root) return;
+
+        const submitButton = root.querySelector('.btn-submit') as
+            | HTMLButtonElement
+            | undefined;
+        if (submitButton) {
+            submitButton.style.cursor = 'pointer';
+        }
+
+        formVisibilityObserver?.disconnect();
+        tryAttachPickersWhenVisible(root);
+
+        formVisibilityObserver = new MutationObserver(() => {
+            tryAttachPickersWhenVisible(root);
+        });
+        formVisibilityObserver.observe(root, {
+            attributes: true,
+            attributeFilter: ['style'],
+        });
+    }
+
+    document.addEventListener('astro:page-load', initServiceRequestFormUi);
+</script>

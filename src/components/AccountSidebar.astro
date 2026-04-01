@@ -109,7 +109,7 @@ const { userName, userEmail, userInitials } = Astro.props;
       >
     </a>
 
-    <a href="#" class="user-nav-item">
+    <a href="/support" class="user-nav-item">
       <svg
         class="user-nav-icon"
         viewBox="0 0 24 24"
@@ -361,10 +361,7 @@ const { userName, userEmail, userInitials } = Astro.props;
   declare global {
     interface Window {
       toggleAccountSidebar?: () => void;
-      updateAccountSidebar?: (user: {
-        name: string;
-        email: string;
-      }) => void;
+      updateAccountSidebar?: (user: { name: string; email: string }) => void;
     }
   }
 

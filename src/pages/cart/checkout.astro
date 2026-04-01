@@ -259,8 +259,7 @@ import Layout from "../../layouts/Layout.astro";
                   type="submit"
                   form="cart-shipping-form"
                   class="btn-pay"
-                  id="pay-btn-right"
-                  >Continue to Payment</button
+                  id="pay-btn-right">Continue to Payment</button
                 >
               </div>
               <p class="secure-note">
@@ -594,7 +593,9 @@ import Layout from "../../layouts/Layout.astro";
         return;
       }
 
-      const allPayBtns = document.querySelectorAll<HTMLButtonElement>("#pay-btn, #pay-btn-right");
+      const allPayBtns = document.querySelectorAll<HTMLButtonElement>(
+        "#pay-btn, #pay-btn-right",
+      );
       allPayBtns.forEach((btn) => {
         btn.textContent = "Redirecting to payment...";
         btn.disabled = true;
@@ -626,6 +627,32 @@ import Layout from "../../layouts/Layout.astro";
             selectedShippingId,
             selectedShippingAmount,
             selectedShippingLabel,
+            shippingAddress: {
+              firstName:
+                (form.querySelector('[name="firstName"]') as HTMLInputElement)
+                  ?.value || "",
+              lastName:
+                (form.querySelector('[name="lastName"]') as HTMLInputElement)
+                  ?.value || "",
+              address:
+                (form.querySelector('[name="address"]') as HTMLInputElement)
+                  ?.value || "",
+              apartment:
+                (form.querySelector('[name="apartment"]') as HTMLInputElement)
+                  ?.value || "",
+              city:
+                (form.querySelector('[name="city"]') as HTMLInputElement)
+                  ?.value || "",
+              postalCode:
+                (form.querySelector('[name="postalCode"]') as HTMLInputElement)
+                  ?.value || "",
+              country:
+                (form.querySelector('[name="country"]') as HTMLInputElement)
+                  ?.value || "PL",
+              phone:
+                (form.querySelector('[name="phone"]') as HTMLInputElement)
+                  ?.value || "",
+            },
           }),
         });
 
