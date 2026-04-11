@@ -19,6 +19,47 @@ const {
     categories = [],
 } = Astro.props;
 
+const parseYear = (y: string | number | undefined): number => {
+    if (y === undefined || y === null) return 0;
+    const n = typeof y === "number" ? y : Number.parseInt(String(y), 10);
+    return Number.isFinite(n) ? n : 0;
+};
+
+/** Newest-first: year (desc), then Sanity _updatedAt (desc), then slug. */
+const comparePortfolioItems = (a: PortfolioItem, b: PortfolioItem): number => {
+    const yA = parseYear(a.year);
+    const yB = parseYear(b.year);
+    if (yB !== yA) return yB - yA;
+    const tA = a._updatedAt ? new Date(a._updatedAt).getTime() : 0;
+    const tB = b._updatedAt ? new Date(b._updatedAt).getTime() : 0;
+    if (tB !== tA) return tB - tA;
+    const sA = a.slug || slugify(a.title || a.name || "");
+    const sB = b.slug || slugify(b.title || b.name || "");
+    return sA.localeCompare(sB);
+};
+
+const OTHER_GROUP_TITLE = "Other Projects";
+
+/** “All works” only: category blocks ordered by the newest project in each block. */
+const comparePortfolioGroups = (
+    a: { title: string; items: PortfolioItem[] },
+    b: { title: string; items: PortfolioItem[] },
+): number => {
+    if (a.title === OTHER_GROUP_TITLE && b.title !== OTHER_GROUP_TITLE) return 1;
+    if (b.title === OTHER_GROUP_TITLE && a.title !== OTHER_GROUP_TITLE) return -1;
+    if (a.items.length === 0) return 1;
+    if (b.items.length === 0) return -1;
+    let bestA = a.items[0]!;
+    let bestB = b.items[0]!;
+    for (const it of a.items) {
+        if (comparePortfolioItems(it, bestA) < 0) bestA = it;
+    }
+    for (const it of b.items) {
+        if (comparePortfolioItems(it, bestB) < 0) bestB = it;
+    }
+    return comparePortfolioItems(bestA, bestB);
+};
+
 // Helper to generate placeholder image
 const getPlaceholderImage = (text: string) => {
     const encodedText = encodeURIComponent(text);
@@ -46,7 +87,8 @@ const getPortfolioGroups = (items: PortfolioItem[]) => {
 
     // If we are in specific category mode (preserveCategory is set), don't group
     if (preserveCategory && !categoryMode) {
-        return [{ title: "", items }];
+        const sorted = [...items].sort(comparePortfolioItems);
+        return [{ title: "", items: sorted }];
     }
 
     const groups: { title: string; items: PortfolioItem[] }[] = [];
@@ -75,12 +117,18 @@ const getPortfolioGroups = (items: PortfolioItem[]) => {
         const categoryOrder = [
             "3D Design",
             "Brand Identity Design",
-            "Fashion Design",
+            "Garments",
             "Graphic Design",
             "Web Design",
         ];
         categoryOrder.forEach((catTitle) => {
-            const catItems = items.filter((item) => item.category === catTitle);
+            const catItems = items.filter((item) => {
+                const c = item.category;
+                if (catTitle === "Garments") {
+                    return c === "Garments" || c === "Fashion Design";
+                }
+                return c === catTitle;
+            });
             if (catItems.length > 0) {
                 groups.push({ title: catTitle, items: catItems });
                 catItems.forEach((i) =>
@@ -98,10 +146,20 @@ const getPortfolioGroups = (items: PortfolioItem[]) => {
             ),
     );
     if (others.length > 0) {
-        groups.push({ title: "Other Projects", items: others });
+        groups.push({ title: OTHER_GROUP_TITLE, items: others });
     }
 
-    return groups.length > 0 ? groups : [{ title: "", items }];
+    const withSortedItems = groups.map((g) => ({
+        ...g,
+        items: [...g.items].sort(comparePortfolioItems),
+    }));
+
+    const allWorksMode = !preserveCategory && !categoryMode;
+    const orderedGroups = allWorksMode
+        ? [...withSortedItems].sort(comparePortfolioGroups)
+        : withSortedItems;
+
+    return orderedGroups.length > 0 ? orderedGroups : [{ title: "", items }];
 };
 
 const groups = getPortfolioGroups(items);
@@ -250,6 +308,7 @@ const groups = getPortfolioGroups(items);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        min-width: 0;
         transition:
             transform 0.2s,
             box-shadow 0.2s,
@@ -310,15 +369,50 @@ const groups = getPortfolioGroups(items);
         font-weight: 500;
     }
 
-    /* Responsive */
+    /* Responsive — phones: 2 columns; tablet breakpoints below */
     @media (max-width: 768px) {
         .portfolio-grid-container {
             padding: 16px;
         }
 
+        .portfolio-info {
+            padding: 12px;
+        }
+
+        .portfolio-title {
+            font-size: 14px;
+        }
+    }
+
+    @media (max-width: 640px) {
         .portfolio-grid {
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+    }
+
+    /* Smaller tablets: 2 cols; iPad Pro portrait width (834+) / 12.9": 3 cols */
+    @media (min-width: 641px) and (max-width: 833px) {
+        .portfolio-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+    }
+
+    @media (min-width: 834px) and (max-width: 1024px) {
+        .portfolio-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .portfolio-grid {
+            gap: 10px;
+        }
+
+        .portfolio-info {
+            padding: 10px;
         }
     }
 </style>

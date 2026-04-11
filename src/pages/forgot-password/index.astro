@@ -341,68 +341,103 @@ import Layout from "../../layouts/Layout.astro";
 </style>
 
 <script>
-  const requestForm = document.getElementById("request-form");
-  const submitBtn = requestForm?.querySelector("button[type=submit]") as HTMLButtonElement | null;
+  import { showVsToast } from "../../lib/vs-toast";
 
-  if (requestForm) {
-    requestForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const emailInput = document.getElementById("email-input") as HTMLInputElement;
-      const email = emailInput?.value?.trim();
-      if (!email) return;
+  /** Better Auth route is POST /api/auth/request-password-reset (not forget-password). */
+  let forgotPageAbort: AbortController | null = null;
 
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Sending...";
-      }
+  function initForgotPasswordPage() {
+    forgotPageAbort?.abort();
+    forgotPageAbort = new AbortController();
+    const { signal } = forgotPageAbort;
 
-      try {
-        const response = await fetch("/api/auth/forget-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            redirectTo: `${window.location.origin}/reset-password`,
-          }),
-          credentials: "include",
-        });
+    const requestForm = document.getElementById("request-form");
+    const submitBtn = requestForm?.querySelector(
+      "button[type=submit]",
+    ) as HTMLButtonElement | null;
 
-        // Better Auth returns 200 even if email not found (security: don't leak user existence)
-        // Always show "sent" screen for valid request
-        if (response.ok || response.status === 400) {
-          const emailDisplay = document.querySelector("#email-display strong");
-          if (emailDisplay) emailDisplay.textContent = email;
+    if (requestForm) {
+      requestForm.addEventListener(
+        "submit",
+        async (e) => {
+          e.preventDefault();
+          const emailInput = document.getElementById(
+            "email-input",
+          ) as HTMLInputElement;
+          const email = emailInput?.value?.trim();
+          if (!email) return;
 
-          document.querySelectorAll(".auth-step").forEach((el) => {
-            el.classList.remove("active");
-            (el as HTMLElement).style.display = "none";
-          });
-          const sent = document.getElementById("sent-step");
-          if (sent) {
-            sent.classList.add("active");
-            sent.style.display = "block";
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Sending...";
           }
-        } else {
-          const data = await response.json().catch(() => ({}));
-          const msg = (data as any)?.message || "Something went wrong. Please try again.";
-          alert(msg);
-        }
-      } catch {
-        alert("Network error. Please check your connection and try again.");
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Reset Password";
-        }
-      }
-    });
+
+          try {
+            const response = await fetch("/api/auth/request-password-reset", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                redirectTo: `${window.location.origin}/reset-password`,
+              }),
+              credentials: "include",
+              signal,
+            });
+
+            // Better Auth returns 200 even if email not found (security: don't leak user existence)
+            if (response.ok) {
+              const emailDisplay = document.querySelector("#email-display strong");
+              if (emailDisplay) emailDisplay.textContent = email;
+
+              document.querySelectorAll(".auth-step").forEach((el) => {
+                el.classList.remove("active");
+                (el as HTMLElement).style.display = "none";
+              });
+              const sent = document.getElementById("sent-step");
+              if (sent) {
+                sent.classList.add("active");
+                sent.style.display = "block";
+              }
+            } else {
+              const data = (await response.json().catch(() => ({}))) as {
+                message?: string;
+                error?: string;
+              };
+              const msg =
+                data.message ||
+                data.error ||
+                "Something went wrong. Please try again.";
+              showVsToast(msg, "error");
+            }
+          } catch (err) {
+            if (err instanceof Error && err.name === "AbortError") return;
+            showVsToast(
+              "Network error. Please check your connection and try again.",
+              "error",
+            );
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Reset Password";
+            }
+          }
+        },
+        { signal },
+      );
+    }
+
+    const openEmailBtn = document.getElementById("open-email-btn");
+    if (openEmailBtn) {
+      openEmailBtn.addEventListener(
+        "click",
+        () => {
+          window.open("mailto:");
+        },
+        { signal },
+      );
+    }
   }
 
-  // Open Email App Button
-  const openEmailBtn = document.getElementById("open-email-btn");
-  if (openEmailBtn) {
-    openEmailBtn.addEventListener("click", () => {
-      window.open("mailto:");
-    });
-  }
+  initForgotPasswordPage();
+  document.addEventListener("astro:page-load", initForgotPasswordPage);
 </script>

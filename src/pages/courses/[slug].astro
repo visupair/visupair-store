@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import CourseDetail from "../../components/CourseDetail.astro";
+import type { Course } from "../../lib/store-data";
 
 const { slug } = Astro.params;
 
@@ -9,11 +10,26 @@ const serverCurrency = Astro.locals.currency;
 
 // Fetch course from Sanity via API
 const response = await fetch(`${Astro.url.origin}/api/courses/${slug}`);
-const course = await response.json();
-
-if (!course || course.error) {
+let raw: unknown;
+try {
+    if (!response.ok) {
+        return Astro.redirect("/courses");
+    }
+    raw = await response.json();
+} catch {
     return Astro.redirect("/courses");
 }
+
+if (
+    !raw ||
+    typeof raw !== "object" ||
+    Array.isArray(raw) ||
+    typeof (raw as { error?: unknown }).error === "string"
+) {
+    return Astro.redirect("/courses");
+}
+
+const course = raw as Course;
 ---
 
 <Layout>
@@ -50,12 +66,25 @@ if (!course || course.error) {
 
     @media (max-width: 900px) {
         .page-container {
-            padding: 16px;
-            gap: 16px;
+            padding: 12px;
+            gap: 12px;
         }
 
         .content-block {
-            padding: 20px;
+            padding: 16px 14px;
+            border-radius: var(--radius-lg);
+            min-height: auto;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-container {
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .content-block {
+            padding: 14px 12px;
         }
     }
 </style>

@@ -1,0 +1,1037 @@
+---
+---
+
+<div class="cc-root" data-cc-root transition:persist="cookie-consent">
+  <!-- Main banner (hidden after decision via html[data-cookie-decided]) -->
+  <div
+    class="cc-banner"
+    id="cc-banner"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="cc-banner-title"
+    hidden
+  >
+    <h2 class="cc-banner-title" id="cc-banner-title">You're in control</h2>
+    <p class="cc-banner-text">
+      By using this website, you agree to the storing of cookies on your device to
+      enhance site navigation, analyze site usage, and assist in our marketing efforts.
+      View our
+      <a href="/legal/privacy-policy" class="cc-link">Privacy Policy</a>
+      for more information.
+    </p>
+    <div class="cc-banner-actions">
+      <button type="button" class="cc-btn cc-btn-primary" id="cc-accept-all">
+        Accept all
+      </button>
+      <button type="button" class="cc-btn cc-btn-muted" id="cc-deny">Deny</button>
+      <button type="button" class="cc-btn-text" id="cc-manage-banner">
+        Manage settings
+      </button>
+    </div>
+  </div>
+
+  <!-- Re-open preferences -->
+  <button
+    type="button"
+    class="cc-fab"
+    id="cc-fab"
+    aria-label="Cookie preferences"
+    title="Cookie preferences"
+  >
+    <span class="cc-fab-icon" aria-hidden="true">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 20 20"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M19.8469 8.44797C19.9239 8.94846 19.9639 9.46009 19.9639 9.98194C19.9639 15.491 15.491 19.9639 9.98194 19.9639C4.47284 19.9639 0 15.491 0 9.98194C0 4.47284 4.47284 0 9.98194 0C10.4081 0 10.8278 0.0269281 11.2401 0.078927C11.462 0.106784 11.6561 0.238638 11.7638 0.434563C11.8706 0.629559 11.878 0.865411 11.7833 1.06691C11.67 1.30647 11.6069 1.57482 11.6069 1.8571C11.6069 2.46066 11.8957 2.99737 12.3423 3.33629C12.5577 3.50064 12.659 3.77549 12.6005 4.04106C12.5577 4.23513 12.5355 4.43569 12.5355 4.64276C12.5355 6.18044 13.7834 7.42842 15.3211 7.42842C15.413 7.42842 15.5031 7.42378 15.5932 7.41542C15.8253 7.39313 16.0528 7.48785 16.2005 7.66891C16.5412 8.08862 17.0603 8.35697 17.6425 8.35697C18.0548 8.35697 18.4364 8.22233 18.7447 7.99484C18.9406 7.84998 19.1978 7.81748 19.4235 7.91034C19.6491 8.00319 19.8088 8.20747 19.8469 8.44797ZM14.3926 11.6069C13.7519 11.6069 13.2319 12.1269 13.2319 12.7676C13.2319 13.4083 13.7519 13.9283 14.3926 13.9283C15.0333 13.9283 15.5533 13.4083 15.5533 12.7676C15.5533 12.1269 15.0333 11.6069 14.3926 11.6069ZM7.42842 13.9283C6.78772 13.9283 6.26773 14.4483 6.26773 15.089C6.26773 15.7297 6.78772 16.2497 7.42842 16.2497C8.06912 16.2497 8.58911 15.7297 8.58911 15.089C8.58911 14.4483 8.06912 13.9283 7.42842 13.9283ZM7.65127 3.89992C7.26685 3.89992 6.95486 4.21191 6.95486 4.59633C6.95486 4.98075 7.26685 5.29275 7.65127 5.29275C8.03569 5.29275 8.34769 4.98075 8.34769 4.59633C8.34769 4.21191 8.03569 3.89992 7.65127 3.89992ZM10.2141 11.6069C9.82965 11.6069 9.51766 11.9189 9.51766 12.3033C9.51766 12.6877 9.82965 12.9997 10.2141 12.9997C10.5985 12.9997 10.9105 12.6877 10.9105 12.3033C10.9105 11.9189 10.5985 11.6069 10.2141 11.6069ZM4.8749 8.82125C4.49048 8.82125 4.17849 9.13324 4.17849 9.51766C4.17849 9.90208 4.49048 10.2141 4.8749 10.2141C5.25932 10.2141 5.57131 9.90208 5.57131 9.51766C5.57131 9.13324 5.25932 8.82125 4.8749 8.82125ZM9.28552 6.732C8.64482 6.732 8.12483 7.25199 8.12483 7.89269C8.12483 8.5334 8.64482 9.05339 9.28552 9.05339C9.92622 9.05339 10.4462 8.5334 10.4462 7.89269C10.4462 7.25199 9.92622 6.732 9.28552 6.732Z"
+          fill="currentColor"
+        ></path>
+      </svg>
+    </span>
+  </button>
+
+  <!-- Preferences modal -->
+  <div
+    class="cc-overlay"
+    id="cc-overlay"
+    hidden
+    aria-hidden="true"
+  >
+    <div
+      class="cc-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cc-modal-title"
+      id="cc-modal"
+    >
+      <div class="cc-modal-head">
+        <h2 class="cc-modal-title" id="cc-modal-title">Preferences</h2>
+        <button type="button" class="cc-modal-close" id="cc-modal-close" aria-label="Close">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <p class="cc-modal-intro">
+        Privacy is important to us, so you have the option of disabling certain types of
+        storage that may not be necessary for the basic functioning of the website. Blocking
+        categories may impact your experience on the website.
+        <a href="/legal/cookie-policy" class="cc-link">More information</a>
+      </p>
+      <button type="button" class="cc-btn cc-modal-acceptall" id="cc-modal-accept-all">
+        Accept all cookies
+      </button>
+
+      <ul class="cc-categories">
+        <li class="cc-cat">
+          <div class="cc-cat-text">
+            <span class="cc-cat-name">Essential</span>
+            <span class="cc-cat-desc"
+              >These items are required to enable basic website functionality.</span
+            >
+          </div>
+          <span class="cc-cat-locked">Always active</span>
+        </li>
+        <li class="cc-cat">
+          <div class="cc-cat-text">
+            <span class="cc-cat-name">Marketing</span>
+            <span class="cc-cat-desc"
+              >These items are used to deliver advertising that is more relevant to you and
+              your interests.</span
+            >
+          </div>
+          <label class="cc-switch">
+            <input type="checkbox" id="cc-toggle-marketing" class="cc-switch-input" />
+            <span class="cc-switch-track" aria-hidden="true">
+              <span class="cc-switch-knob"></span>
+            </span>
+            <span class="sr-only">Marketing cookies</span>
+          </label>
+        </li>
+        <li class="cc-cat">
+          <div class="cc-cat-text">
+            <span class="cc-cat-name">Personalization</span>
+            <span class="cc-cat-desc"
+              >These items allow the website to remember choices you make (such as your user
+              name, language, or the region you are in) and provide enhanced, more personal
+              features.</span
+            >
+          </div>
+          <label class="cc-switch">
+            <input type="checkbox" id="cc-toggle-personalization" class="cc-switch-input" />
+            <span class="cc-switch-track" aria-hidden="true">
+              <span class="cc-switch-knob"></span>
+            </span>
+            <span class="sr-only">Personalization cookies</span>
+          </label>
+        </li>
+        <li class="cc-cat">
+          <div class="cc-cat-text">
+            <span class="cc-cat-name">Analytics</span>
+            <span class="cc-cat-desc"
+              >These items help the website operator understand how its website performs,
+              how visitors interact with the site, and whether there may be technical
+              issues.</span
+            >
+          </div>
+          <label class="cc-switch">
+            <input type="checkbox" id="cc-toggle-analytics" class="cc-switch-input" />
+            <span class="cc-switch-track" aria-hidden="true">
+              <span class="cc-switch-knob"></span>
+            </span>
+            <span class="sr-only">Analytics cookies</span>
+          </label>
+        </li>
+      </ul>
+
+      <div class="cc-modal-footer">
+        <button type="button" class="cc-btn cc-btn-muted" id="cc-reject-all">
+          Reject all cookies
+        </button>
+        <button type="button" class="cc-btn cc-btn-primary" id="cc-confirm">
+          Confirm my choices
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  :root {
+    --z-cookie-consent: 1200;
+    /* FAB inset from viewport edges (symmetric-ish with main layout gutters) */
+    --cc-fab-inset-x: max(1.5rem, env(safe-area-inset-left, 0px));
+    --cc-fab-inset-y: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .cc-root {
+    font-family: var(--font-family, system-ui, sans-serif);
+    font-size: var(--font-size-base, 16px);
+    line-height: 1.45;
+  }
+
+  .cc-banner {
+    position: fixed;
+    box-sizing: border-box;
+    left: calc(max(1rem, env(safe-area-inset-left, 0px)) - 3px);
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    right: auto;
+    z-index: var(--z-cookie-consent);
+    max-width: min(32rem, calc(100vw - 2rem));
+    padding: 0.75rem 1rem 0.85rem;
+    background: var(--surface);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg, 10px);
+    box-shadow: var(--shadow-dropdown);
+    transform: translateX(calc(-100% - 1.5rem));
+    opacity: 0;
+    transition:
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.35s ease;
+  }
+
+  .cc-banner.cc-banner--visible {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  html[data-cookie-decided] .cc-banner {
+    display: none !important;
+  }
+
+  .cc-banner-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.9375rem;
+    font-weight: var(--font-weight-semibold, 600);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .cc-banner-text {
+    margin: 0 0 0.65rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--foreground);
+    opacity: 0.72;
+  }
+
+  .cc-link {
+    color: var(--foreground);
+    font-weight: var(--font-weight-medium, 500);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .cc-link:hover {
+    opacity: 0.85;
+  }
+
+  .cc-banner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+  }
+
+  .cc-btn {
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: var(--font-weight-medium, 500);
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-md, 6px);
+    border: none;
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.12s ease,
+      filter 0.18s ease;
+  }
+
+  .cc-btn:active {
+    transform: scale(0.98);
+  }
+
+  .cc-btn-primary {
+    background: var(--foreground);
+    color: var(--surface);
+    box-shadow: 0 1px 2px rgba(14, 10, 35, 0.08);
+  }
+
+  .cc-btn-primary:hover {
+    filter: brightness(1.12);
+    box-shadow:
+      0 2px 8px rgba(14, 10, 35, 0.12),
+      0 1px 2px rgba(14, 10, 35, 0.06);
+  }
+
+  [data-theme="dark"] .cc-btn-primary:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .cc-btn-muted {
+    background: var(--surface-muted);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .cc-btn-muted:hover {
+    background: var(--surface-hover);
+    border-color: var(--brand-violet);
+    box-shadow: 0 0 0 1px rgba(132, 128, 255, 0.25);
+  }
+
+  /* Tertiary: plain text like the reference — no underline; hover fills slightly */
+  .cc-btn-text {
+    background: none;
+    border: none;
+    padding: 0.4rem 0.5rem;
+    margin: 0 -0.25rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: var(--font-weight-medium, 500);
+    color: var(--foreground);
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: var(--radius-md, 6px);
+    transition:
+      color 0.18s ease,
+      background-color 0.18s ease;
+  }
+
+  .cc-btn-text:hover {
+    color: var(--brand-violet);
+    background: var(--surface-muted);
+  }
+
+  .cc-btn-text:focus-visible {
+    outline: 2px solid var(--brand-violet);
+    outline-offset: 2px;
+  }
+
+  /* Low-contrast trigger — no hover scale (avoids hover/pointer flicker on fixed corners) */
+  .cc-fab {
+    position: fixed;
+    left: var(--cc-fab-inset-x);
+    bottom: var(--cc-fab-inset-y);
+    right: auto;
+    z-index: calc(var(--z-cookie-consent) - 1);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-muted);
+    color: var(--foreground);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(14, 10, 35, 0.05);
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  [data-theme="dark"] .cc-fab {
+    /* Closer to page than pure surface-muted; solid colors avoid color-mix repaint issues */
+    background: var(--surface-icon-box);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+
+  html[data-cookie-decided] .cc-fab {
+    display: flex;
+  }
+
+  /* After “accept all”, hide the floating control on other pages (still shown on Cookie Policy). */
+  html[data-cookie-decided][data-cc-hide-cookie-fab] .cc-fab {
+    display: none !important;
+  }
+
+  html[data-cc-cookie-policy-page][data-cookie-decided] .cc-fab {
+    display: flex !important;
+  }
+
+  .cc-fab:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-capsule);
+  }
+
+  [data-theme="dark"] .cc-fab:hover {
+    background: var(--surface-hover);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  }
+
+  .cc-fab:focus-visible {
+    outline: 2px solid var(--brand-violet);
+    outline-offset: 2px;
+  }
+
+  .cc-fab-icon {
+    display: flex;
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+  }
+
+  [data-theme="dark"] .cc-fab-icon {
+    opacity: 0.32;
+  }
+
+  .cc-fab:hover .cc-fab-icon,
+  .cc-fab:focus-visible .cc-fab-icon {
+    opacity: 0.72;
+  }
+
+  [data-theme="dark"] .cc-fab:hover .cc-fab-icon,
+  [data-theme="dark"] .cc-fab:focus-visible .cc-fab-icon {
+    opacity: 0.68;
+  }
+
+  /* When banner visible, keep FAB clears the corner with same vertical rhythm */
+  html:not([data-cookie-decided]) .cc-fab {
+    bottom: var(--cc-fab-inset-y);
+  }
+
+  .cc-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-cookie-consent) + 1);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(14, 10, 35, 0.45);
+    backdrop-filter: blur(4px);
+  }
+
+  .cc-overlay[hidden] {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  .cc-overlay:not([hidden]) {
+    display: flex;
+  }
+
+  [data-theme="dark"] .cc-overlay {
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  /* Single scroll surface = scrollbar on the panel edge (not nested) */
+  .cc-modal {
+    width: 100%;
+    max-width: min(36rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 1.15rem 1.25rem 1.25rem;
+    background: var(--surface);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg, 10px);
+    box-shadow: var(--shadow-dropdown);
+  }
+
+  @media (min-width: 768px) {
+    .cc-modal {
+      max-width: min(38rem, calc(100vw - 2rem));
+      /* Tall enough that typical desktop viewports show everything without scrolling */
+      max-height: min(92vh, 56rem);
+    }
+  }
+
+  .cc-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .cc-modal-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: var(--font-weight-semibold, 600);
+    letter-spacing: -0.03em;
+  }
+
+  /* Match ProductDetail `.detail-close-btn` */
+  .cc-modal-close {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-hover);
+    border: 1px solid var(--border-subtle);
+    color: var(--foreground);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+  }
+
+  .cc-modal-close:hover {
+    background: var(--brand-violet);
+    color: white;
+    border-color: var(--brand-violet);
+    transform: rotate(90deg);
+  }
+
+  .cc-modal-close:focus-visible {
+    outline: 2px solid var(--brand-violet);
+    outline-offset: 2px;
+  }
+
+  .cc-modal-intro {
+    margin: 0 0 0.85rem;
+    font-size: 0.8125rem;
+    opacity: 0.72;
+    line-height: 1.5;
+  }
+
+  .cc-modal-acceptall {
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 0.55rem 1rem;
+    background: var(--brand-violet);
+    color: #fff;
+    border: none;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: var(--font-weight-medium, 500);
+    border-radius: var(--radius-md, 6px);
+    cursor: pointer;
+    transition:
+      filter 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.12s ease;
+  }
+
+  .cc-modal-acceptall:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 4px 16px rgba(132, 128, 255, 0.35);
+  }
+
+  .cc-modal-acceptall:active {
+    transform: scale(0.99);
+  }
+
+  .cc-categories {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .cc-cat {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  @media (min-width: 768px) {
+    .cc-cat {
+      padding: 0.55rem 0;
+    }
+  }
+
+  .cc-cat-text {
+    min-width: 0;
+  }
+
+  .cc-cat-name {
+    display: block;
+    font-weight: var(--font-weight-semibold, 600);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .cc-cat-desc {
+    font-size: 0.75rem;
+    opacity: 0.72;
+    line-height: 1.45;
+  }
+
+  .cc-cat-locked {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-semibold, 600);
+    align-self: center;
+    white-space: nowrap;
+    color: var(--brand-violet);
+  }
+
+  /* Capsule switch: OFF = plain white knob; ON = brand violet + glow (former hover look) */
+  .cc-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 30px;
+    align-self: center;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .cc-switch-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 56px;
+    height: 30px;
+    margin: 0;
+    cursor: pointer;
+    z-index: 3;
+  }
+
+  .cc-switch-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background-color: var(--surface-muted);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition:
+      background-color 0.4s ease,
+      box-shadow 0.3s ease;
+    pointer-events: none;
+  }
+
+  .cc-switch-knob {
+    width: 24px;
+    height: 24px;
+    background-color: var(--switch-knob);
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    transition:
+      background-color 0.3s ease,
+      transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.3s ease;
+    pointer-events: none;
+  }
+
+  /* OFF: no violet — optional tiny lift on hover only */
+  .cc-switch:hover .cc-switch-input:not(:checked) + .cc-switch-track .cc-switch-knob {
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.16);
+  }
+
+  .cc-switch:hover .cc-switch-input:not(:checked) + .cc-switch-track {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ON: violet knob + outer glow (same as previous hover-active styling) */
+  .cc-switch-input:checked + .cc-switch-track .cc-switch-knob {
+    transform: translateX(26px);
+    background-color: var(--brand-violet);
+    box-shadow: 0 2px 12px rgba(132, 128, 255, 0.45);
+  }
+
+  .cc-switch-input:checked + .cc-switch-track {
+    background-color: var(--surface-icon-box);
+    box-shadow:
+      inset 0 2px 8px rgba(81, 79, 158, 0.3),
+      0 0 12px rgba(132, 128, 255, 0.18);
+  }
+
+  .cc-switch:hover .cc-switch-input:checked + .cc-switch-track .cc-switch-knob {
+    filter: brightness(1.06);
+  }
+
+  .cc-switch-input:focus-visible + .cc-switch-track {
+    outline: 2px solid var(--brand-violet);
+    outline-offset: 2px;
+  }
+
+  .cc-modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.25rem;
+  }
+
+  .cc-modal-footer .cc-btn {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    padding: 0.55rem 0.85rem;
+  }
+
+  .cc-modal-footer .cc-btn-primary:hover {
+    filter: brightness(1.12);
+    box-shadow: 0 2px 10px rgba(14, 10, 35, 0.14);
+  }
+
+  [data-theme="dark"] .cc-modal-footer .cc-btn-primary:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  /*
+   * Mobile: same inset left & right (20px + safe-area) — full width between margins, no asymmetry.
+   */
+  @media (max-width: 768px) {
+    .cc-banner {
+      left: max(20px, env(safe-area-inset-left, 0px));
+      right: max(20px, env(safe-area-inset-right, 0px));
+      width: auto;
+      max-width: none;
+      padding: 0.9rem 1rem;
+      text-align: center;
+      box-shadow: var(--shadow-island);
+    }
+
+    .cc-banner-title {
+      text-align: center;
+    }
+
+    .cc-banner-text {
+      text-align: center;
+      max-width: 42rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cc-banner-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 0.65rem;
+      align-items: stretch;
+      justify-items: stretch;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .cc-banner-actions .cc-btn-primary,
+    .cc-banner-actions .cc-btn-muted {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cc-banner-actions .cc-btn-text {
+      grid-column: 1 / -1;
+      justify-self: center;
+      margin: 0;
+      width: auto;
+      max-width: 100%;
+    }
+
+    .cc-fab {
+      left: max(24px, env(safe-area-inset-left, 0px));
+      bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  @media (max-width: 380px) {
+    .cc-banner-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .cc-banner-actions .cc-btn-text {
+      justify-self: stretch;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .cc-modal-footer {
+      flex-direction: column;
+    }
+
+    .cc-modal-footer .cc-btn {
+      width: 100%;
+    }
+  }
+
+  /* FAB position after decision — match main inset (desktop) */
+  @media (min-width: 481px) {
+    html[data-cookie-decided] .cc-fab {
+      bottom: var(--cc-fab-inset-y);
+      left: var(--cc-fab-inset-x);
+    }
+  }
+</style>
+
+<script>
+  (function initCookieConsent() {
+    const STORAGE_KEY = "visupair_cookie_v1";
+
+    function resetModalUi() {
+      const ov = document.getElementById("cc-overlay");
+      if (ov) {
+        ov.hidden = true;
+        ov.setAttribute("aria-hidden", "true");
+      }
+      document.body.style.overflow = "";
+    }
+
+    /** @returns {{ v: number, t: number, marketing: boolean, personalization: boolean, analytics: boolean } | null} */
+    function readStored() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const p = JSON.parse(raw);
+        if (p && typeof p === "object" && p.v === 1) return p;
+      } catch {
+        /* ignore */
+      }
+      return null;
+    }
+
+    function publishConsent(prefs) {
+      document.documentElement.setAttribute("data-cookie-decided", "");
+      window.__VISUPAIR_CONSENT__ = {
+        essential: true,
+        marketing: !!prefs.marketing,
+        personalization: !!prefs.personalization,
+        analytics: !!prefs.analytics,
+        updatedAt: prefs.t,
+      };
+      window.dispatchEvent(
+        new CustomEvent("visupair-consent-update", {
+          detail: window.__VISUPAIR_CONSENT__,
+        }),
+      );
+    }
+
+    function isCookiePolicyPage() {
+      return (
+        document.documentElement.hasAttribute("data-cc-cookie-policy-page") ||
+        location.pathname === "/legal/cookie-policy"
+      );
+    }
+
+    /** Hide the FAB after full “accept all”; keep it on the Cookie Policy page. */
+    function syncCookieFabVisibility(stored) {
+      const fullAccept =
+        !!stored &&
+        stored.marketing &&
+        stored.personalization &&
+        stored.analytics;
+      if (stored && fullAccept && !isCookiePolicyPage()) {
+        document.documentElement.setAttribute("data-cc-hide-cookie-fab", "");
+      } else {
+        document.documentElement.removeAttribute("data-cc-hide-cookie-fab");
+      }
+    }
+
+    /**
+     * Run on every script load + after view transitions.
+     * Banner setup used to live behind `ccInit`; a second evaluation could return early
+     * and leave the bar stuck invisible ([hidden] / opacity 0).
+     */
+    function applyBannerFromStorage() {
+      const b = document.getElementById("cc-banner");
+      if (!b) return;
+      const existing = readStored();
+      if (existing) {
+        publishConsent(existing);
+        syncCookieFabVisibility(existing);
+        b.hidden = true;
+        b.classList.remove("cc-banner--visible");
+      } else {
+        document.documentElement.removeAttribute("data-cookie-decided");
+        document.documentElement.removeAttribute("data-cc-hide-cookie-fab");
+        delete window.__VISUPAIR_CONSENT__;
+        b.hidden = false;
+        if (!b.classList.contains("cc-banner--visible")) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => b.classList.add("cc-banner--visible"));
+          });
+        }
+      }
+    }
+
+    resetModalUi();
+    applyBannerFromStorage();
+
+    const w = window;
+    function syncConsentAfterNavigation() {
+      resetModalUi();
+      applyBannerFromStorage();
+    }
+    if (!w["__visupairCookieAfterSwap"]) {
+      w["__visupairCookieAfterSwap"] = true;
+      document.addEventListener("astro:after-swap", syncConsentAfterNavigation);
+    }
+    if (!w["__visupairCookiePageLoad"]) {
+      w["__visupairCookiePageLoad"] = true;
+      document.addEventListener("astro:page-load", syncConsentAfterNavigation);
+    }
+
+    const root = document.querySelector("[data-cc-root]");
+    if (!root || root.dataset.ccInit === "1") return;
+    root.dataset.ccInit = "1";
+
+    const banner = document.getElementById("cc-banner");
+    const fab = document.getElementById("cc-fab");
+    const overlay = document.getElementById("cc-overlay");
+    const modal = document.getElementById("cc-modal");
+
+    const btnAcceptAll = document.getElementById("cc-accept-all");
+    const btnDeny = document.getElementById("cc-deny");
+    const btnManageBanner = document.getElementById("cc-manage-banner");
+    const btnModalAcceptAll = document.getElementById("cc-modal-accept-all");
+    const btnRejectAll = document.getElementById("cc-reject-all");
+    const btnConfirm = document.getElementById("cc-confirm");
+    const btnClose = document.getElementById("cc-modal-close");
+
+    const tMarketing = document.getElementById("cc-toggle-marketing");
+    const tPersonalization = document.getElementById("cc-toggle-personalization");
+    const tAnalytics = document.getElementById("cc-toggle-analytics");
+
+    function writeStored(prefs) {
+      const next = { v: 1, t: Date.now(), ...prefs };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      publishConsent(next);
+      syncCookieFabVisibility(next);
+    }
+
+    /** @param {{ marketing: boolean, personalization: boolean, analytics: boolean }} p */
+    function applyTogglesToForm(p) {
+      if (tMarketing) tMarketing.checked = p.marketing;
+      if (tPersonalization) tPersonalization.checked = p.personalization;
+      if (tAnalytics) tAnalytics.checked = p.analytics;
+    }
+
+    function readForm() {
+      return {
+        marketing: !!(tMarketing && tMarketing.checked),
+        personalization: !!(tPersonalization && tPersonalization.checked),
+        analytics: !!(tAnalytics && tAnalytics.checked),
+      };
+    }
+
+    function openModal() {
+      if (!overlay || !modal) return;
+      const existing = readStored();
+      if (existing) {
+        applyTogglesToForm({
+          marketing: existing.marketing,
+          personalization: existing.personalization,
+          analytics: existing.analytics,
+        });
+      } else {
+        applyTogglesToForm({ marketing: false, personalization: false, analytics: false });
+      }
+      overlay.hidden = false;
+      overlay.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      btnClose?.focus();
+    }
+
+    if (!w["__visupairCookieOpenPrefsListener"]) {
+      w["__visupairCookieOpenPrefsListener"] = true;
+      document.addEventListener("visupair-open-cookie-preferences", () => openModal());
+    }
+
+    function closeModal() {
+      resetModalUi();
+      if (fab && getComputedStyle(fab).display !== "none") {
+        fab.focus();
+      }
+    }
+
+    modal?.addEventListener("click", (e) => e.stopPropagation());
+
+    function decideAll(/** @type {boolean} */ allOptional) {
+      const prefs = {
+        marketing: allOptional,
+        personalization: allOptional,
+        analytics: allOptional,
+      };
+      writeStored(prefs);
+      applyTogglesToForm(prefs);
+      if (banner) {
+        banner.classList.remove("cc-banner--visible");
+        banner.hidden = true;
+      }
+      closeModal();
+    }
+
+    btnAcceptAll?.addEventListener("click", () => decideAll(true));
+    btnDeny?.addEventListener("click", () => decideAll(false));
+    btnManageBanner?.addEventListener("click", () => openModal());
+    fab?.addEventListener("click", () => openModal());
+
+    btnModalAcceptAll?.addEventListener("click", () => {
+      decideAll(true);
+    });
+    btnRejectAll?.addEventListener("click", () => {
+      const prefs = { marketing: false, personalization: false, analytics: false };
+      writeStored(prefs);
+      applyTogglesToForm(prefs);
+      if (banner) {
+        banner.classList.remove("cc-banner--visible");
+        banner.hidden = true;
+      }
+      closeModal();
+    });
+    btnConfirm?.addEventListener("click", () => {
+      writeStored(readForm());
+      if (banner) {
+        banner.classList.remove("cc-banner--visible");
+        banner.hidden = true;
+      }
+      closeModal();
+    });
+
+    btnClose?.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeModal();
+    });
+    overlay?.addEventListener("click", (e) => {
+      if (e.target === overlay) closeModal();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay && !overlay.hidden) closeModal();
+    });
+  })();
+</script>

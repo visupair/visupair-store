@@ -8,10 +8,18 @@ import Layout from "../layouts/Layout.astro";
       <div class="cart-inner">
         <!-- Empty State -->
         <div class="cart-empty" id="cart-empty">
-          <svg viewBox="0 -960 960 960" fill="currentColor">
+          <svg
+            viewBox="0 0 22 22"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
             <path
-              d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"
-            ></path>
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M10.9931 0C13.6631 0 15.8765 2.03316 16.1664 4.62858C16.1816 4.81653 16.1896 5.10071 16.1939 5.39511C16.1985 5.7138 16.4564 5.97161 16.7751 5.97161H17.936C19.2731 5.97161 20.386 6.97443 20.526 8.30511L21.9725 19.0918C22.0482 19.8231 21.81 20.557 21.317 21.1043C20.8235 21.6515 20.1188 21.9654 19.3824 21.9654H2.60384C1.8675 21.9653 1.16208 21.6521 0.669242 21.1055C0.175875 20.557 -0.0619183 19.8229 0.0138284 19.0918L1.46026 8.30511C1.60026 6.97398 2.71342 5.97186 4.05027 5.97161H5.21174C5.53047 5.97161 5.7883 5.71381 5.79277 5.39511C5.79689 5.10072 5.80466 4.81653 5.81989 4.62858C6.1098 2.03325 8.32334 0.00016274 10.9931 0ZM10.9931 1.73572C9.06591 1.73589 7.52171 3.27988 7.52171 5.20715V5.39304C7.52171 5.71258 7.78074 5.97161 8.10028 5.97161H13.886C14.2055 5.97161 14.4646 5.71258 14.4646 5.39304V5.20715C14.4646 3.27976 12.9205 1.73572 10.9931 1.73572Z"
+              fill="currentColor"
+            />
           </svg>
           <h2>Your cart is empty</h2>
           <p>Add some products to get started.</p>
@@ -225,7 +233,7 @@ import Layout from "../layouts/Layout.astro";
             productId: i.productId,
             name: i.name,
             price: currency === "PLN" ? i.pricePLN : i.price,
-            quantity: 1,
+            quantity: Math.max(1, i.quantity || 1),
             productType: i.productType,
             selectedSize: i.selectedSize,
           }));
@@ -236,7 +244,6 @@ import Layout from "../layouts/Layout.astro";
             body: JSON.stringify({
               items: cartItems,
               currency,
-              userEmail: session.data.user.email,
             }),
           });
 

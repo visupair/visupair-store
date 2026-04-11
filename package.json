@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
+    "dev:clean": "rm -rf node_modules/.vite && astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
@@ -11,11 +12,13 @@
     "format:check": "prettier --check .",
     "lint": "eslint 'src/**/*.{js,ts,tsx,astro}'",
     "lint:fix": "eslint 'src/**/*.{js,ts,tsx,astro}' --fix",
-    "db:migrate:local": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --local && wrangler d1 execute visupair-store --file=migrations/002_add_favorites_table.sql --local && wrangler d1 execute visupair-store --file=migrations/003_add_reviews.sql --local",
-    "db:migrate:remote": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --remote && wrangler d1 execute visupair-store --file=migrations/002_add_favorites_table.sql --remote && wrangler d1 execute visupair-store --file=migrations/003_add_reviews.sql --remote",
+    "db:migrate:local": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --local && wrangler d1 execute visupair-store --file=migrations/002_add_favorites_table.sql --local && wrangler d1 execute visupair-store --file=migrations/003_add_reviews.sql --local && wrangler d1 execute visupair-store --file=migrations/004_user_security_change_quota.sql --local",
+    "db:migrate:remote": "wrangler d1 execute visupair-store --file=migrations/001_better_auth_initial.sql --remote && wrangler d1 execute visupair-store --file=migrations/002_add_favorites_table.sql --remote && wrangler d1 execute visupair-store --file=migrations/003_add_reviews.sql --remote && wrangler d1 execute visupair-store --file=migrations/004_user_security_change_quota.sql --remote",
     "db:query:local": "wrangler d1 execute visupair-store --local",
     "db:query:remote": "wrangler d1 execute visupair-store --remote",
-    "test:auth": "bash test-auth.sh"
+    "test:auth": "bash test-auth.sh",
+    "check:env": "node scripts/check-production-env.mjs",
+    "check:stripe-sanity-prices": "node scripts/check-stripe-sanity-price-drift.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",
@@ -38,8 +41,11 @@
     "stripe": "^20.3.1",
     "typescript": "^5.9.3"
   },
+  "overrides": {
+    "@cloudflare/vite-plugin": "^1.31.0"
+  },
   "devDependencies": {
-    "@astrojs/cloudflare": "^13.1.4",
+    "@astrojs/cloudflare": "^13.1.7",
     "@better-auth/cli": "^1.4.18",
     "@types/node": "^25.2.2",
     "@typescript-eslint/parser": "^8.54.0",

@@ -1,8 +1,20 @@
+/**
+ * Store: subscribe in Stripe Dashboard to at least
+ * `checkout.session.completed` and `checkout.session.expired`
+ * (expired releases inventory reserved when Checkout was opened).
+ *
+ * Required env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SANITY_API_TOKEN
+ * (validated in stripeWebhookEnvGuard). Local checklist: `npm run check:env`.
+ */
 import type { APIRoute } from "astro";
 import Stripe from "stripe";
 import { createClient } from "@sanity/client";
 import { sendOrderNotification } from "../../../lib/email";
 import { ensureCourseRegistrationFromStripeSession } from "../../../lib/ensure-course-registration-from-stripe";
+import { decrementPhysicalProductStock } from "../../../lib/decrement-physical-stock";
+import { stripeSessionStockWasReserved } from "../../../lib/physical-stock-reservation";
+import { releaseInventoryIfHeld } from "../../../lib/checkout-inventory-release";
+import { stripeWebhookEnvGuard } from "../../../lib/production-env-check";
 
 const sanityWriteClient = createClient({
     projectId: "sovnyov1",
@@ -13,15 +25,19 @@ const sanityWriteClient = createClient({
 });
 
 export const POST: APIRoute = async (context) => {
-    const signature = context.request.headers.get("stripe-signature");
-    const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!signature || !webhookSecret) {
-        return new Response("Missing stripe signature or webhook secret", { status: 400 });
+    const misconfigured = stripeWebhookEnvGuard();
+    if (misconfigured) {
+        return misconfigured;
     }
 
+    const signature = context.request.headers.get("stripe-signature");
+    if (!signature) {
+        return new Response("Missing stripe-signature header", { status: 400 });
+    }
+
+    const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET as string;
     const body = await context.request.text();
-    const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY as string);
 
     let event: Stripe.Event;
 
@@ -152,24 +168,26 @@ export const POST: APIRoute = async (context) => {
                 const result = await sanityWriteClient.create(sanityOrder);
                 console.log("📦 Created Sanity Order:", result._id);
 
-                // Decrement stock for each purchased product
-                for (const item of orderItems) {
-                    const productRef = item.product?._ref;
-                    if (!productRef) continue;
-                    const qty = item.quantity || 1;
-
-                    try {
-                        const product = await sanityWriteClient.getDocument(productRef);
-                        if (product) {
-                            const currentStock = typeof product.stock === "number" ? product.stock : 1;
-                            const newStock = Math.max(0, currentStock - qty);
-                            const patch: Record<string, any> = { stock: newStock };
-                            if (newStock === 0) patch.inStock = false;
-                            await sanityWriteClient.patch(productRef).set(patch).commit();
-                            console.log(`📉 Stock updated: ${productRef} → ${newStock}${newStock === 0 ? " (SOLD OUT)" : ""}`);
+                // Stock was already reduced when Checkout opened (metadata flag)
+                if (!stripeSessionStockWasReserved(metadata)) {
+                    for (const item of orderItems) {
+                        const productRef = item.product?._ref;
+                        if (!productRef) continue;
+                        const qty = item.quantity || 1;
+                        try {
+                            const did = await decrementPhysicalProductStock(
+                                sanityWriteClient,
+                                productRef,
+                                qty,
+                            );
+                            if (did) {
+                                console.log(
+                                    `📉 Physical stock adjusted for ${productRef} (−${qty})`,
+                                );
+                            }
+                        } catch (stockErr) {
+                            console.error(`Failed to update stock for ${productRef}:`, stockErr);
                         }
-                    } catch (stockErr) {
-                        console.error(`Failed to update stock for ${productRef}:`, stockErr);
                     }
                 }
 
@@ -190,6 +208,19 @@ export const POST: APIRoute = async (context) => {
                     console.error("Failed to send order notification email:", emailErr);
                 }
 
+                break;
+            }
+
+            case "checkout.session.expired": {
+                const session = event.data.object as Stripe.Checkout.Session;
+                if (!stripeSessionStockWasReserved(session.metadata)) break;
+
+                await releaseInventoryIfHeld(
+                    sanityWriteClient,
+                    stripe,
+                    session.id,
+                    "webhook_expired",
+                );
                 break;
             }
 

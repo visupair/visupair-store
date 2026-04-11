@@ -1,22 +1,68 @@
 import type { APIRoute } from "astro";
 import Stripe from "stripe";
+import { createClient } from "@sanity/client";
+import { requireApiSession } from "../../lib/api-session";
+import { checkoutApisEnvGuard } from "../../lib/production-env-check";
+import type { CartCheckoutItem } from "../../lib/checkout-cart-types";
+import {
+    assertProductMatchesCartLine,
+    buildParcelFromCartPhysicalLines,
+    CheckoutMoneyError,
+    fetchProductsForCheckout,
+    minorUnitsForCatalogPrice,
+    normalizedCheckoutCurrency,
+    resolveShippingAmountMinorUnits,
+} from "../../lib/checkout-server-money";
+import {
+    tryReservePhysicalStock,
+    releasePhysicalStock,
+    StockReservationError,
+} from "../../lib/physical-stock-reservation";
+import {
+    buildCheckoutOriginAllowlist,
+    mergeCheckoutEnvFromContext,
+    resolveCheckoutOrigin,
+} from "../../lib/checkout-request-origin";
 
-interface CartCheckoutItem {
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    productType: "physical" | "digital";
-    selectedSize?: string;
+function aggregatePhysicalCartQuantities(
+    items: CartCheckoutItem[],
+): { ref: string; qty: number }[] {
+    const map = new Map<string, number>();
+    for (const item of items) {
+        if (item.productType !== "physical") continue;
+        const q = Math.max(1, item.quantity || 1);
+        map.set(item.productId, (map.get(item.productId) || 0) + q);
+    }
+    return [...map.entries()].map(([ref, qty]) => ({ ref, qty }));
 }
 
 export const POST: APIRoute = async (context) => {
     try {
+        const authResult = await requireApiSession(context);
+        if ("response" in authResult) {
+            return authResult.response;
+        }
+        const { user: sessionUser } = authResult;
+
+        const envBlock = checkoutApisEnvGuard();
+        if (envBlock) {
+            return envBlock;
+        }
+
+        const mergedEnv = await mergeCheckoutEnvFromContext(context);
+        const originAllowlist = buildCheckoutOriginAllowlist(mergedEnv);
+        const origin = resolveCheckoutOrigin(context.request, originAllowlist);
+        if (!origin) {
+            return new Response(JSON.stringify({ error: "Invalid request origin." }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
         const body = await context.request.json();
         const {
             items,
             currency,
-            userEmail,
             selectedShippingId,
             selectedShippingAmount,
             selectedShippingLabel,
@@ -24,7 +70,6 @@ export const POST: APIRoute = async (context) => {
         } = body as {
             items: CartCheckoutItem[];
             currency: string;
-            userEmail: string;
             selectedShippingId?: string;
             selectedShippingAmount?: string;
             selectedShippingLabel?: string;
@@ -47,39 +92,69 @@ export const POST: APIRoute = async (context) => {
             });
         }
 
-        if (!userEmail) {
-            return new Response(JSON.stringify({ error: "User email required" }), {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
+        const userEmail = sessionUser.email;
 
         const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
-        const origin = context.request.headers.get("origin") || "http://localhost:4321";
-        const resolvedCurrency = (currency || "EUR").toLowerCase();
+        const sanity = createClient({
+            projectId: "sovnyov1",
+            dataset: "production",
+            useCdn: false,
+            token: import.meta.env.SANITY_API_TOKEN,
+            apiVersion: "2024-03-01",
+        });
 
-        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => ({
-            price_data: {
-                currency: resolvedCurrency,
-                product_data: {
-                    name: item.selectedSize
-                        ? `${item.name} (${item.selectedSize})`
-                        : item.name,
-                },
-                unit_amount: Math.round(item.price * 100),
-            },
-            quantity: item.quantity,
-        }));
+        const checkoutCurrency = normalizedCheckoutCurrency(currency);
 
-        const shippingAmount = parseFloat(selectedShippingAmount || "0");
-        if (shippingAmount > 0) {
+        const productDocs = await fetchProductsForCheckout(
+            sanity,
+            items.map((i) => i.productId),
+        );
+        const byId = new Map(productDocs.map((d) => [d._id, d]));
+
+        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+        const pricedSummary: {
+            id: string;
+            name: string;
+            qty: number;
+            type: "physical" | "digital";
+            size: string;
+            price: number;
+        }[] = [];
+
+        for (const item of items) {
+            const doc = byId.get(item.productId);
+            assertProductMatchesCartLine(item, doc);
+
+            const qty = Math.max(1, item.quantity || 1);
+            const minor = minorUnitsForCatalogPrice(checkoutCurrency, doc.price, doc.pricePLN);
+            if (minor <= 0) {
+                return new Response(JSON.stringify({ error: "Invalid product price in catalog." }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            const displayName = item.selectedSize
+                ? `${doc.name} (${item.selectedSize})`
+                : doc.name;
+
             lineItems.push({
                 price_data: {
-                    currency: resolvedCurrency,
-                    product_data: { name: "Shipping" },
-                    unit_amount: Math.round(shippingAmount * 100),
+                    currency: checkoutCurrency,
+                    product_data: { name: displayName },
+                    unit_amount: minor,
                 },
-                quantity: 1,
+                quantity: qty,
+            });
+
+            const major = minor / 100;
+            pricedSummary.push({
+                id: item.productId,
+                name: doc.name,
+                qty,
+                type: item.productType,
+                size: item.selectedSize || "",
+                price: major,
             });
         }
 
@@ -87,14 +162,93 @@ export const POST: APIRoute = async (context) => {
         const hasDigital = items.some((i) => i.productType === "digital");
         const orderType = hasPhysical && hasDigital ? "mixed" : hasPhysical ? "physical" : "digital";
 
-        const cartItemsSummary = items.map((i) => ({
-            id: i.productId,
-            name: i.name,
-            qty: i.quantity,
-            type: i.productType,
-            size: i.selectedSize || "",
-            price: i.price,
-        }));
+        let shippingMinor = 0;
+        let shippingAmountMeta = "0";
+        let shippingLabelMeta = selectedShippingLabel || "";
+
+        if (hasPhysical) {
+            if (!shippingAddress) {
+                return new Response(JSON.stringify({ error: "Shipping address required." }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+            if (!selectedShippingId || !String(selectedShippingId).trim()) {
+                return new Response(JSON.stringify({ error: "Shipping method required." }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            const parcel = buildParcelFromCartPhysicalLines(items, byId);
+            const resolved = await resolveShippingAmountMinorUnits({
+                shippingAddress: {
+                    address: shippingAddress.address,
+                    city: shippingAddress.city,
+                    postalCode: shippingAddress.postalCode,
+                    country: shippingAddress.country,
+                },
+                selectedShippingId: String(selectedShippingId),
+                parcel,
+                checkoutCurrency,
+            });
+
+            shippingMinor = resolved.minorUnits;
+            if (shippingMinor <= 0) {
+                return new Response(JSON.stringify({ error: "Invalid shipping amount." }), {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            shippingLabelMeta = resolved.providerLabel || shippingLabelMeta;
+            shippingAmountMeta = (shippingMinor / 100).toFixed(2);
+
+            lineItems.push({
+                price_data: {
+                    currency: checkoutCurrency,
+                    product_data: { name: "Shipping" },
+                    unit_amount: shippingMinor,
+                },
+                quantity: 1,
+            });
+        }
+
+        const physicalLines = aggregatePhysicalCartQuantities(items);
+        const stockHolds: { ref: string; qty: number }[] = [];
+        let physicalStockReserved = false;
+
+        try {
+            for (const line of physicalLines) {
+                const held = await tryReservePhysicalStock(
+                    sanity,
+                    line.ref,
+                    line.qty,
+                );
+                if (held) {
+                    stockHolds.push({ ref: line.ref, qty: line.qty });
+                    physicalStockReserved = true;
+                }
+            }
+        } catch (invErr: any) {
+            for (const h of [...stockHolds].reverse()) {
+                try {
+                    await releasePhysicalStock(sanity, h.ref, h.qty);
+                } catch (e) {
+                    console.error("Rollback cart stock reservation:", e);
+                }
+            }
+            if (invErr instanceof StockReservationError) {
+                return new Response(
+                    JSON.stringify({
+                        error: invErr.message,
+                        code: invErr.code,
+                    }),
+                    { status: 409, headers: { "Content-Type": "application/json" } },
+                );
+            }
+            throw invErr;
+        }
 
         // Build shipping address metadata from our checkout form
         const shippingMeta: Record<string, string> = {};
@@ -110,31 +264,56 @@ export const POST: APIRoute = async (context) => {
             shippingMeta.lastName = shippingAddress.lastName || "";
         }
 
+        const sessionExpiresAt = Math.floor(Date.now() / 1000) + 30 * 60;
+
+        const cancelReturn = `${origin}/checkout/cancelled?session_id={CHECKOUT_SESSION_ID}&next=${encodeURIComponent(`${origin}/cart`)}`;
+
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
             mode: "payment",
             line_items: lineItems,
             success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${origin}/cart`,
-            customer_email: userEmail,
+            cancel_url: cancelReturn,
+            customer_email: sessionUser.email,
+            expires_at: sessionExpiresAt,
             metadata: {
                 checkoutType: "cart",
                 orderType,
                 userEmail,
                 selectedShippingId: selectedShippingId || "",
-                selectedShippingLabel: selectedShippingLabel || "",
-                selectedShippingAmount: selectedShippingAmount || "0",
-                cartItems: JSON.stringify(cartItemsSummary),
+                selectedShippingLabel: shippingLabelMeta,
+                selectedShippingAmount: shippingAmountMeta,
+                cartItems: JSON.stringify(pricedSummary),
+                physicalStockReserved: physicalStockReserved ? "true" : "false",
                 ...shippingMeta,
             },
         };
 
-        const session = await stripe.checkout.sessions.create(sessionParams);
+        let session: Stripe.Response<Stripe.Checkout.Session>;
+        try {
+            session = await stripe.checkout.sessions.create(sessionParams);
+        } catch (stripeErr) {
+            for (const h of [...stockHolds].reverse()) {
+                try {
+                    await releasePhysicalStock(sanity, h.ref, h.qty);
+                } catch (e) {
+                    console.error("Rollback cart stock after Stripe error:", e);
+                }
+            }
+            throw stripeErr;
+        }
 
         return new Response(JSON.stringify({ url: session.url }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
         });
     } catch (error: any) {
+        if (error instanceof CheckoutMoneyError) {
+            return new Response(JSON.stringify({ error: error.message }), {
+                status: error.status,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
         console.error("Cart checkout session error:", error);
 
         let userMessage = "Unable to start checkout. Please try again shortly.";

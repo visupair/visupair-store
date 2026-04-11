@@ -59,11 +59,12 @@ div[class*="product-grid-container"],
 .product-detail-panel,
 .course-detail-panel,
 .portfolio-sidebar,
-.popup-card {
+.popup-card,
+.cc-modal {
   /* Standard properties (Firefox) */
   scrollbar-width: thin;
   /* Fallback color if themes fail to load */
-  scrollbar-color: #1e1933 transparent;
+  scrollbar-color: #1a152c transparent;
 }
 
 /* WebKit styles (Chrome/Edge/Safari) */
@@ -74,7 +75,8 @@ div[class*="product-grid-container"]::-webkit-scrollbar,
 .product-detail-panel::-webkit-scrollbar,
 .course-detail-panel::-webkit-scrollbar,
 .portfolio-sidebar::-webkit-scrollbar,
-.popup-card::-webkit-scrollbar {
+.popup-card::-webkit-scrollbar,
+.cc-modal::-webkit-scrollbar {
   width: 4px !important;
   height: 4px !important;
   -webkit-appearance: none !important;
@@ -88,10 +90,11 @@ div[class*="product-grid-container"]::-webkit-scrollbar-thumb,
 .product-detail-panel::-webkit-scrollbar-thumb,
 .course-detail-panel::-webkit-scrollbar-thumb,
 .portfolio-sidebar::-webkit-scrollbar-thumb,
-.popup-card::-webkit-scrollbar-thumb {
+.popup-card::-webkit-scrollbar-thumb,
+.cc-modal::-webkit-scrollbar-thumb {
   border-radius: 999px !important;
   /* Fallback color */
-  background-color: #1e1933;
+  background-color: #1a152c;
 }
 
 body {

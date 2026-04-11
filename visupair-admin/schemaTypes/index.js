@@ -9,5 +9,6 @@ import proposal from './proposal'
 import contact from './contact'
 import supportSubmission from './supportSubmission'
 import order from './order'
+import checkoutInventoryRelease from './checkoutInventoryRelease'
 
-export const schemaTypes = [category, product, portfolioCategory, portfolioProject, course, courseRegistration, service, proposal, contact, supportSubmission, order]
+export const schemaTypes = [category, product, portfolioCategory, portfolioProject, course, courseRegistration, service, proposal, contact, supportSubmission, order, checkoutInventoryRelease]

@@ -6,12 +6,12 @@ import {
     getPortfolioCategories,
     getPortfolioProjects,
 } from "../../../lib/portfolio";
-import { slugify } from "../../../utils/slugs";
+import { pickPortfolioListOgImage } from "../../../lib/portfolio-seo";
+import { stripHtml, truncateMetaDescription } from "../../../lib/seo-utils";
 
 export const prerender = false;
 
 const { categoryId } = Astro.params;
-const searchQuery = Astro.url.searchParams.get("search") || "";
 
 if (!categoryId) {
     return Astro.redirect("/portfolio");
@@ -21,30 +21,29 @@ const sectionId = "portfolio";
 const categories = await getPortfolioCategories();
 const allItems = await getPortfolioProjects();
 
-// Filter items by category
-const filteredItems = allItems.filter((item: any) => {
-    // Must have the category in its path (which in our new data is categorySlug)
-    // Or check if item.categorySlug matches categoryId
-    if (item.categorySlug !== categoryId) {
-        return false;
-    }
+const filteredItems = allItems.filter(
+    (item: { categorySlug?: string }) => item.categorySlug === categoryId,
+);
 
-    // Search filter (future implementation)
-    if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (
-            !item.name.toLowerCase().includes(q) &&
-            !item.description?.toLowerCase().includes(q)
-        ) {
-            return false;
-        }
-    }
-
-    return true;
-});
+const categoryMeta = categories.find((c) => c.slug === categoryId);
+const categoryListTitle = categoryMeta
+    ? `${categoryMeta.title} | Portfolio | Visupair`
+    : `Portfolio | Visupair`;
+const categoryDescFallback = categoryMeta
+    ? `Selected work in ${categoryMeta.title} from the Visupair portfolio.`
+    : "Selected work from the Visupair portfolio.";
+const categoryDescription = categoryMeta?.description
+    ? truncateMetaDescription(stripHtml(categoryMeta.description))
+    : categoryDescFallback;
+const categoryOgImage = pickPortfolioListOgImage(filteredItems);
 ---
 
-<Layout title={`Portfolio | Visupair`}>
+<Layout
+    title={categoryListTitle}
+    description={categoryDescription}
+    canonicalURL={`/portfolio/category/${categoryId}`}
+    ogImage={categoryOgImage}
+>
     <div class="portfolio-layout">
         <PortfolioSidebar
             categories={categories}
@@ -85,8 +84,8 @@ const filteredItems = allItems.filter((item: any) => {
         .portfolio-layout {
             flex-direction: column;
             height: auto;
-            padding: 0 16px;
-            gap: 16px;
+            padding: 0 12px;
+            gap: 12px;
         }
 
         .portfolio-wrapper {

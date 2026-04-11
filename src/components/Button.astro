@@ -70,6 +70,36 @@ const tagProps = href ? { href, ...rest } : { type, ...rest };
         cursor: pointer;
     }
 
+    .vp-btn:focus-visible {
+        outline: 2px solid var(--brand-violet);
+        outline-offset: 3px;
+    }
+
+    .vp-btn--primary:focus-visible {
+        outline-color: #ffffff;
+        box-shadow:
+            0 0 0 3px var(--brand-violet),
+            inset 0 0 1.6em -0.6em rgba(60, 56, 180, 0.7);
+    }
+
+    :global([data-theme="dark"]) .vp-btn--primary:focus-visible {
+        box-shadow:
+            0 0 0 3px rgba(180, 175, 255, 0.9),
+            inset 0 0 1.6em -0.6em rgba(100, 96, 255, 0.55);
+    }
+
+    a.vp-btn--primary:any-link {
+        color: #ffffff;
+    }
+
+    a.vp-btn--secondary:any-link {
+        color: var(--foreground);
+    }
+
+    :global([data-theme="dark"]) a.vp-btn--secondary:any-link {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
     .vp-btn:not(:has(.vp-btn__icon)) {
         padding-right: 1.2em;
     }
@@ -152,6 +182,11 @@ const tagProps = href ? { href, ...rest } : { type, ...rest };
         transition:
             background 0.2s ease,
             color 0.2s ease;
+    }
+
+    /* Text-only secondary: center label when the button stretches (e.g. full-width stacks) */
+    .vp-btn--secondary:not(:has(.vp-btn__icon)) {
+        justify-content: center;
     }
 
     .vp-btn--secondary:has(.vp-btn__icon) {

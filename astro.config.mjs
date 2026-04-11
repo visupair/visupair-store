@@ -6,6 +6,8 @@ import sanity from '@sanity/astro';
 
 // https://astro.build/config
 export default defineConfig({
+  // Used for canonical URLs, sitemap, and import.meta.env.SITE (override in production via PUBLIC_SITE_URL)
+  site: process.env.PUBLIC_SITE_URL || 'https://visupair.com',
   integrations: [
     react(),
     sanity({
@@ -73,7 +75,7 @@ export default defineConfig({
                           status = 422;
                           message = 'Registration failed. Please try again.';
                         } else if (
-                          url.includes('/forget-password') ||
+                          url.includes('/request-password-reset') ||
                           url.includes('/reset-password')
                         ) {
                           message =
@@ -81,6 +83,12 @@ export default defineConfig({
                         } else if (url.includes('/sign-in')) {
                           status = 401;
                           message = 'Invalid email or password';
+                        } else if (url.includes('/change-password')) {
+                          message =
+                            'Could not change password (dev server link error). Try restarting `npm run dev` or use the same host as BETTER_AUTH_URL (localhost vs 127.0.0.1).';
+                        } else if (url.includes('/change-email')) {
+                          message =
+                            'Could not change email (dev server link error). Try restarting the dev server.';
                         }
                       } else if (url.startsWith('/api/favorites')) {
                         status = 401;
@@ -110,14 +118,19 @@ export default defineConfig({
         },
       },
     ],
-    // Stripe’s Node SDK breaks Vite’s SSR dep optimizer on Cloudflare dev
-    // (missing deps_ssr/stripe.js). Load it from node_modules instead.
+    // Stripe / Sanity: Vite SSR dep optimizer on Cloudflare dev can point at
+    // missing deps_ssr/*.js (race or incompatible prebundle). Load from source.
     optimizeDeps: {
-      exclude: ['stripe'],
+      exclude: ['stripe', '@sanity/image-url'],
+      // Fewer mid-serve optimize passes; see server.watch for WSL2 + Miniflare race.
+      ignoreOutdatedRequests: true,
+      holdUntilCrawlEnd: true,
     },
     ssr: {
       optimizeDeps: {
-        exclude: ['stripe'],
+        exclude: ['stripe', '@sanity/image-url'],
+        ignoreOutdatedRequests: true,
+        holdUntilCrawlEnd: true,
       },
     },
     build: {
@@ -141,7 +154,16 @@ export default defineConfig({
       },
     },
   },
-  server: {},
+  // WSL2 / cross-OS mounts: chokidar can fire bursts of file events → dep re-optimization →
+  // Miniflare disposed while Cloudflare middleware still runs ("Expected miniflare to be defined").
+  server: {
+    watch: {
+      usePolling: Boolean(
+        process.env.WSL_DISTRO_NAME || process.env.VISUPAIR_VITE_POLL,
+      ),
+      interval: 400,
+    },
+  },
   // Prefetch configuration for faster navigation
   prefetch: {
     prefetchAll: true,

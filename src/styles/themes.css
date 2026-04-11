@@ -7,25 +7,25 @@
   color-scheme: dark;
   --brand-lime: var(--brand-neon-lime);
   /* Reverts to Neon in Dark Mode */
-  --page-bg: #000016;
-  --surface: #151128;
+  --page-bg: #000011;
+  --surface: #120e23;
   /* Slightly lighter than bg */
-  --surface-hover: #221D3A;
-  --surface-muted: #1E1933;
+  --surface-hover: #1e1931;
+  --surface-muted: #1a152c;
   /* For capsule/dropdown bg */
-  --surface-icon-box: #2A2442;
+  --surface-icon-box: #26203c;
   /* Specific for icon squares */
   --foreground: #E9E8FF;
   --border-subtle: rgba(233, 232, 255, 0.08);
-  --input-bg: #0E0A23;
-  --input-border: #2A2442;
+  --input-bg: #0c081e;
+  --input-border: #26203c;
 
   --shadow-island: 0 8px 32px rgba(0, 0, 0, 0.4);
   --shadow-dropdown: 0 12px 40px rgba(0, 0, 0, 0.6);
   --shadow-capsule: 0 2px 10px rgba(0, 0, 0, 0.2);
 
   /* Switch Specific */
-  --switch-bg: #2A2442;
+  --switch-bg: #26203c;
   --switch-knob: #FFFFFF;
 }
 
@@ -77,8 +77,9 @@
 [data-theme="dark"] .product-detail-panel::-webkit-scrollbar-thumb,
 [data-theme="dark"] .course-detail-panel::-webkit-scrollbar-thumb,
 [data-theme="dark"] .portfolio-sidebar::-webkit-scrollbar-thumb,
-[data-theme="dark"] .popup-card::-webkit-scrollbar-thumb {
-  background-color: #1e1933 !important;
+[data-theme="dark"] .popup-card::-webkit-scrollbar-thumb,
+[data-theme="dark"] .cc-modal::-webkit-scrollbar-thumb {
+  background-color: #1a152c !important;
   border-radius: 999px;
   opacity: 1 !important;
   box-shadow: none !important;
@@ -92,8 +93,9 @@
 [data-theme="dark"] .product-detail-panel,
 [data-theme="dark"] .course-detail-panel,
 [data-theme="dark"] .portfolio-sidebar,
-[data-theme="dark"] .popup-card {
-  scrollbar-color: #1e1933 transparent;
+[data-theme="dark"] .popup-card,
+[data-theme="dark"] .cc-modal {
+  scrollbar-color: #1a152c transparent;
 }
 
 /* ===============================
@@ -109,7 +111,8 @@ html:not([data-theme="dark"]) .portfolio-detail-panel::-webkit-scrollbar-thumb,
 html:not([data-theme="dark"]) .product-detail-panel::-webkit-scrollbar-thumb,
 html:not([data-theme="dark"]) .course-detail-panel::-webkit-scrollbar-thumb,
 html:not([data-theme="dark"]) .portfolio-sidebar::-webkit-scrollbar-thumb,
-html:not([data-theme="dark"]) .popup-card::-webkit-scrollbar-thumb {
+html:not([data-theme="dark"]) .popup-card::-webkit-scrollbar-thumb,
+html:not([data-theme="dark"]) .cc-modal::-webkit-scrollbar-thumb {
   background-color: #cecdd2 !important;
   border-radius: 999px;
   opacity: 1 !important;
@@ -125,6 +128,7 @@ html:not([data-theme="dark"]) .portfolio-detail-panel,
 html:not([data-theme="dark"]) .product-detail-panel,
 html:not([data-theme="dark"]) .course-detail-panel,
 html:not([data-theme="dark"]) .portfolio-sidebar,
-html:not([data-theme="dark"]) .popup-card {
+html:not([data-theme="dark"]) .popup-card,
+html:not([data-theme="dark"]) .cc-modal {
   scrollbar-color: #cecdd2 transparent;
 }

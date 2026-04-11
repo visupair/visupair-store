@@ -1,11 +1,22 @@
 import type { APIRoute } from "astro";
 import { Resend } from "resend";
+import {
+  checkRateLimit,
+  RATE_LIMITS,
+  resolveVisupairKv,
+  tooManyRequestsResponse,
+} from "../../lib/rate-limit-kv";
 
 // Initialize Resend with API key from environment
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async (context) => {
+  const { request } = context;
   try {
+    const kv = await resolveVisupairKv(context);
+    const rl = await checkRateLimit(kv, request, RATE_LIMITS.restockNotification);
+    if (!rl.ok) return tooManyRequestsResponse(rl.retryAfterSeconds);
+
     const body = await request.json();
     const { email, productId, productName, productUrl } = body;
 

@@ -14,16 +14,23 @@ export const prerender = true;
     <script is:inline>
       (function () {
         try {
-          var theme = localStorage.getItem("theme") || "dark";
-          var link = document.createElement("link");
-          link.rel = "preload";
-          link.as = "image";
-          link.type = "image/webp";
-          link.href =
-            "/images/hero/bg-" +
-            (theme === "light" ? "light" : "dark") +
-            ".webp";
-          document.head.appendChild(link);
+          var t = window.visupairGetTheme
+            ? window.visupairGetTheme()
+            : "dark";
+          function preload(href, media) {
+            var l = document.createElement("link");
+            l.rel = "preload";
+            l.as = "image";
+            l.type = "image/webp";
+            l.href = href;
+            if (media) l.media = media;
+            document.head.appendChild(l);
+          }
+          preload("/images/hero/bg-" + t + ".webp", "(min-width: 401px)");
+          preload(
+            "/images/hero/preloader-" + t + "-forslowdivaces.webp",
+            "(max-width: 400px)",
+          );
         } catch (e) {}
       })();
     </script>
@@ -34,17 +41,17 @@ export const prerender = true;
       <div class="hero-content">
         <div class="hero-badge">Creative Platform</div>
 
-        <h1 class="hero-title animate-text" style="--anim-delay: 0s;">
+        <h1 class="hero-title animate-text above-fold-reveal" style="--anim-delay: 0s;">
           Welcome to<br />
           <span class="hero-accent">Visupair</span>
         </h1>
 
-        <p class="hero-subtitle animate-text" style="--anim-delay: 0.1s;">
+        <p class="hero-subtitle animate-text above-fold-reveal" style="--anim-delay: 0.1s;">
           Your creative portfolio and digital showcase. Explore unique designs,
           fashion, 3D models, and artworks from our studio.
         </p>
 
-        <div class="hero-actions animate-text" style="--anim-delay: 0.2s;">
+        <div class="hero-actions animate-text above-fold-reveal" style="--anim-delay: 0.2s;">
           <Button href="/store" variant="primary" label="Visit Store" />
           <Button
             href="/portfolio"
@@ -73,6 +80,27 @@ export const prerender = true;
           draggable="false"
           onload="this.parentElement?.classList.remove('loading')"
         />
+        <script is:inline>
+          (function () {
+            try {
+              var t = window.visupairGetTheme
+                ? window.visupairGetTheme()
+                : "dark";
+              var narrow =
+                typeof matchMedia !== "undefined" &&
+                matchMedia("(max-width: 400px)").matches;
+              var bg = document.getElementById("hero-bg-image");
+              var mob = document.getElementById("hero-static-mobile");
+              if (narrow) {
+                if (mob)
+                  mob.src =
+                    "/images/hero/preloader-" + t + "-forslowdivaces.webp";
+              } else {
+                if (bg) bg.src = "/images/hero/bg-" + t + ".webp";
+              }
+            } catch (e) {}
+          })();
+        </script>
         <div id="hero-lottie-container"></div>
       </div>
     </div>
@@ -134,7 +162,7 @@ export const prerender = true;
   <CategoryCarousel
     categories={[
       {
-        title: "Fashion Design",
+        title: "Garments",
         description:
           "Exclusive digital garments and futuristic apparel concepts.",
         image: "/images/hero/fashion_runway_scene.webp",
@@ -194,7 +222,7 @@ export const prerender = true;
                 ><polyline points="20 6 9 17 4 12"></polyline></svg
               >
             </span>
-            Fashion Design &amp; Illustration
+            Garments &amp; Illustration
           </li>
           <li>
             <span class="courses-feature-icon" aria-hidden="true">
@@ -268,6 +296,7 @@ export const prerender = true;
           class="courses-img"
           alt="Courses — creative tools, painting palette and 3D modelling"
           loading="lazy"
+          decoding="async"
           draggable="false"
           width="1080"
           height="1080"
@@ -424,42 +453,73 @@ export const prerender = true;
     let currentTheme: string | null = null;
     let themeObserver: MutationObserver | null = null;
     let intersectionObserver: IntersectionObserver | null = null;
+    let coursesImgLazyObserver: IntersectionObserver | null = null;
     let prefersColorSchemeMedia: MediaQueryList | null = null;
+    let hasCompletedHomeClientNav = false;
 
-    const getTheme = () => {
-      const saved = localStorage.getItem("theme");
-      return saved === "dark" || saved === "light"
-        ? saved
-        : document.documentElement.hasAttribute("data-theme")
-          ? "dark"
-          : "light";
-    };
+    const getTheme = () =>
+      document.documentElement.hasAttribute("data-theme") ? "dark" : "light";
 
-    const isMobile = () => window.innerWidth < 400;
+    /** Matches CSS hero mobile layout (max-width: 400px); keep in sync with @media there */
+    const isNarrowHero = () =>
+      window.matchMedia("(max-width: 400px)").matches;
 
-    const setImageSources = (theme: string) => {
+    const setHeroImageSources = (theme: string) => {
+      const narrow = isNarrowHero();
       const bgImage = document.getElementById(
         "hero-bg-image",
       ) as HTMLImageElement | null;
       const mobileImage = document.getElementById(
         "hero-static-mobile",
       ) as HTMLImageElement | null;
-      if (bgImage) bgImage.src = `/images/hero/bg-${theme}.webp`;
-      if (mobileImage)
-        mobileImage.src = `/images/hero/preloader-${theme}-forslowdivaces.webp`;
-
-      // Courses CTA: swap dark/light image based on theme
-      const coursesImg = document.getElementById(
-        "courses-img",
-      ) as HTMLImageElement | null;
-      if (coursesImg) {
-        const newSrc = `/images/hero/courses-${theme}.webp`;
-        if (coursesImg.src !== newSrc) coursesImg.src = newSrc;
+      if (narrow) {
+        bgImage?.removeAttribute("src");
+        if (mobileImage)
+          mobileImage.src = `/images/hero/preloader-${theme}-forslowdivaces.webp`;
+      } else {
+        if (bgImage) bgImage.src = `/images/hero/bg-${theme}.webp`;
+        mobileImage?.removeAttribute("src");
       }
     };
 
+    const updateCoursesImageTheme = (theme: string) => {
+      const coursesImg = document.getElementById(
+        "courses-img",
+      ) as HTMLImageElement | null;
+      if (!coursesImg?.dataset.loaded) return;
+      const path = `/images/hero/courses-${theme}.webp`;
+      if (!coursesImg.src.includes(path)) coursesImg.src = path;
+    };
+
+    const attachCoursesImageLazyLoad = () => {
+      coursesImgLazyObserver?.disconnect();
+      const wrap = document.querySelector(".courses-visual");
+      const coursesImg = document.getElementById(
+        "courses-img",
+      ) as HTMLImageElement | null;
+      if (!wrap || !coursesImg) return;
+
+      if (coursesImg.dataset.loaded === "1") {
+        updateCoursesImageTheme(getTheme());
+        return;
+      }
+
+      coursesImg.removeAttribute("src");
+      coursesImgLazyObserver = new IntersectionObserver(
+        (entries) => {
+          if (!entries[0]?.isIntersecting) return;
+          coursesImgLazyObserver?.disconnect();
+          coursesImgLazyObserver = null;
+          coursesImg.dataset.loaded = "1";
+          coursesImg.src = `/images/hero/courses-${getTheme()}.webp`;
+        },
+        { rootMargin: "180px 0px", threshold: 0.01 },
+      );
+      coursesImgLazyObserver.observe(wrap);
+    };
+
     const loadAnimation = async (theme: string) => {
-      if (isMobile()) return;
+      if (isNarrowHero()) return;
 
       const container = document.getElementById("hero-lottie-container");
       const wrapper = document.getElementById("hero-visual-wrapper");
@@ -503,23 +563,40 @@ export const prerender = true;
 
     const onThemeChange = () => {
       const theme = getTheme();
-      setImageSources(theme);
-      if (!isMobile() && theme !== currentTheme) loadAnimation(theme);
+      setHeroImageSources(theme);
+      updateCoursesImageTheme(theme);
+      if (!isNarrowHero() && theme !== currentTheme) loadAnimation(theme);
     };
 
     const cleanup = () => {
       themeObserver?.disconnect();
       intersectionObserver?.disconnect();
+      coursesImgLazyObserver?.disconnect();
       prefersColorSchemeMedia?.removeEventListener("change", onThemeChange);
       themeObserver = intersectionObserver = prefersColorSchemeMedia = null;
+      coursesImgLazyObserver = null;
+    };
+
+    /** CSS keyframe animations often do not restart after Astro view transitions — force reflow */
+    const restartAboveFoldReveal = (selector: string) => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+      document.querySelectorAll(selector).forEach((el) => {
+        const h = el as HTMLElement;
+        h.style.animation = "none";
+        void h.offsetHeight;
+        h.style.removeProperty("animation");
+      });
     };
 
     const init = () => {
       cleanup();
       const theme = getTheme();
-      setImageSources(theme);
+      setHeroImageSources(theme);
+      attachCoursesImageLazyLoad();
 
-      if (!isMobile()) {
+      if (!isNarrowHero()) {
         const container = document.getElementById("hero-lottie-container");
         if (container) {
           // After Astro page swap the DOM is fresh — the old anim instance
@@ -581,8 +658,26 @@ export const prerender = true;
       );
 
       document.querySelectorAll(".animate-text").forEach((el) => {
+        if (
+          el.classList.contains("is-visible") ||
+          el.classList.contains("above-fold-reveal")
+        ) {
+          return;
+        }
         textObserver.observe(el);
       });
+
+      // View transitions: replay keyframes when returning to home (first paint uses CSS only)
+      if (hasCompletedHomeClientNav) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            restartAboveFoldReveal(
+              ".hero-content .animate-text.above-fold-reveal",
+            );
+          });
+        });
+      }
+      hasCompletedHomeClientNav = true;
     };
 
     document.addEventListener("astro:page-load", init);
@@ -646,6 +741,36 @@ export const prerender = true;
     .animate-text.is-visible {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    /**
+     * Hero copy + CTAs: animate from first paint (no IntersectionObserver / JS delay).
+     */
+    .hero-content .animate-text.above-fold-reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: none;
+      animation: heroTextReveal 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: var(--anim-delay, 0s);
+    }
+
+    @keyframes heroTextReveal {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-content .animate-text.above-fold-reveal {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
     }
 
     @keyframes heroFadeIn {

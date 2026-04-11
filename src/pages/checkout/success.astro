@@ -3,6 +3,8 @@ import Layout from "../../layouts/Layout.astro";
 import Stripe from "stripe";
 import { createClient } from "@sanity/client";
 import { ensureCourseRegistrationFromStripeSession } from "../../lib/ensure-course-registration-from-stripe";
+import { decrementPhysicalProductStock } from "../../lib/decrement-physical-stock";
+import { stripeSessionStockWasReserved } from "../../lib/physical-stock-reservation";
 
 const { searchParams } = Astro.url;
 const sessionId = searchParams.get("session_id");
@@ -162,30 +164,19 @@ if (sessionId) {
                 console.log("📦 [success] Created order:", result._id);
                 orderSaved = true;
 
-                // 5. Decrement stock
-                for (const item of orderItems) {
-                    if (!item.product?._ref) continue;
-                    try {
-                        const prod = await sanity.getDocument(
-                            item.product._ref,
-                        );
-                        if (prod && typeof prod.stock === "number") {
-                            const newStock = Math.max(
-                                0,
-                                prod.stock - (item.quantity || 1),
+                // 5. Stock (skip if already reserved at Checkout — same as webhook)
+                if (!stripeSessionStockWasReserved(meta)) {
+                    for (const item of orderItems) {
+                        if (!item.product?._ref) continue;
+                        try {
+                            await decrementPhysicalProductStock(
+                                sanity,
+                                item.product._ref,
+                                item.quantity || 1,
                             );
-                            await sanity
-                                .patch(item.product._ref)
-                                .set({
-                                    stock: newStock,
-                                    ...(newStock === 0
-                                        ? { inStock: false }
-                                        : {}),
-                                })
-                                .commit();
+                        } catch (e) {
+                            console.error("Stock update error:", e);
                         }
-                    } catch (e) {
-                        console.error("Stock update error:", e);
                     }
                 }
                 }

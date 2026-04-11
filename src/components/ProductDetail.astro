@@ -1,36 +1,63 @@
 ---
 import type { Product } from "../lib/store-data";
-import type { Currency } from "../lib/server-currency";
-import { urlFor } from "../lib/sanity";
+import {
+  EUR_TO_PLN_RATE,
+  type Currency,
+} from "../lib/server-currency";
+import {
+  urlFor,
+  urlForDetailGalleryPreview,
+  urlForFullscreen,
+} from "../lib/sanity";
 import StarRating from "./StarRating.astro";
 import ShippingForm from "./checkout/ShippingForm.astro";
 import ReviewSection from "./ReviewSection.astro";
 import { drizzle } from "drizzle-orm/d1";
 import { review } from "../lib/auth-schema";
 import { eq } from "drizzle-orm";
+import { buildProductJsonLd } from "../lib/product-jsonld";
 
 interface Props {
   product: Product;
   backLink?: string;
   serverCurrency?: Currency;
+  /** Absolute canonical product URL (should use `site` origin for SEO). */
+  canonicalProductUrl?: string;
+  /**
+   * When the signed-in user already bought this digital product, the buy CTA
+   * becomes a link to My Purchases (downloads).
+   */
+  userOwnsDigital?: boolean;
 }
 
 const {
   product,
   backLink = "/store/fashion-design",
   serverCurrency,
+  canonicalProductUrl,
+  userOwnsDigital = false,
 } = Astro.props;
 // Extract section ID from product category path or backLink logic
 const sectionId = product.categoryPath[0] || "fashion-design";
 
-// Construct product URL for notifications
-const productUrl = `${Astro.url.origin}/store/${sectionId}/${product.slug || product.id}`;
+const siteBase = Astro.site?.origin ?? Astro.url.origin;
 
-// Select appropriate price to display
+// Public product URL (notifications, JSON-LD) — prefer canonical from parent
+const productUrl =
+  canonicalProductUrl ??
+  `${siteBase}/store/${sectionId}/${product.slug || product.id}`;
+
+/** PLN from Sanity when set; else same rule as checkout: round(EUR × 4.3). */
+const effectivePln =
+  typeof product.pricePLN === "number" && product.pricePLN > 0
+    ? product.pricePLN
+    : Math.round(Number(product.price) * EUR_TO_PLN_RATE);
+
+// Select appropriate price to display (server-detected currency on first paint)
 const displayPrice =
-  serverCurrency === "PLN" && product.pricePLN
-    ? `${product.pricePLN}zł`
-    : `€${product.price}`;
+  serverCurrency === "PLN"
+    ? `${effectivePln.toFixed(2)}zł`
+    : `€${Number(product.price).toFixed(2)}`;
 
 // Helper to generate placeholder image
 const getPlaceholderImage = (text: string, seed: number = 0) => {
@@ -39,16 +66,26 @@ const getPlaceholderImage = (text: string, seed: number = 0) => {
   return `https://placehold.co/1000x1200/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
 };
 
-// Use gallery images from Sanity or fallback to main image
-// Optimization: Prefer raw 'gallery' objects to request specific 1200px width
-const galleryImages =
+// Preview URLs are resized; fullscreen uses full Sanity resolution (see data-fullscreen-src).
+const gallerySlides: { preview: string; fullscreen: string }[] =
   product.gallery && product.gallery.length > 0
-    ? product.gallery.map((img: any) => urlFor(img).width(1200).url())
+    ? product.gallery.map((img: any) => ({
+        preview: urlForDetailGalleryPreview(img),
+        fullscreen: urlForFullscreen(img),
+      }))
     : product.images && product.images.length > 0
-      ? product.images
+      ? product.images.map((u: string) => ({
+          preview: u,
+          fullscreen: u,
+        }))
       : product.image
-        ? [product.image]
-        : [getPlaceholderImage(product.name)];
+        ? [{ preview: product.image, fullscreen: product.image }]
+        : [
+            {
+              preview: getPlaceholderImage(product.name),
+              fullscreen: getPlaceholderImage(product.name),
+            },
+          ];
 
 // Product Details (Specifications)
 const productDetails = product.details || {};
@@ -61,6 +98,9 @@ const inStock =
     product.stock === null ||
     (product.stock as number) > 0);
 const stockCount = product.stock ?? 1;
+
+const showDigitalLibraryCta =
+  product.productType === "digital" && userOwnsDigital;
 
 // Digital Twin Visibility
 const hasTwin = !!product.twinProduct;
@@ -109,8 +149,29 @@ try {
 } catch (error) {
   console.warn("Failed to fetch reviews:", error);
 }
+
+const jsonLdImageUrls = gallerySlides.map((s) =>
+  String(s.preview).startsWith("http")
+    ? String(s.preview)
+    : new URL(s.preview, siteBase).href,
+);
+
+const jsonLd = buildProductJsonLd({
+  product,
+  productPageUrl: productUrl,
+  currency:
+    (product.currency as string | undefined)?.toUpperCase() || "EUR",
+  price: typeof product.price === "number" ? product.price : 0,
+  inStock,
+  imageUrls: jsonLdImageUrls,
+  aggregateRating:
+    reviewCount > 0
+      ? { ratingValue: averageRating, reviewCount }
+      : undefined,
+});
 ---
 
+<script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 <div class="product-detail-panel" id="product-detail-panel">
   <!-- Close Button (Top Right, Sticky) -->
   <a
@@ -138,10 +199,14 @@ try {
     <!-- Left Column: Vertical Gallery (Desktop) / Horizontal Slider (Mobile) -->
     <div class="detail-gallery-column" id="detail-gallery">
       {
-        galleryImages.map((img, idx) => (
-          <div class="detail-large-image" data-image-index={idx}>
+        gallerySlides.map((slide, idx) => (
+          <div
+            class="detail-large-image detail-large-image--image"
+            data-image-index={idx}
+          >
             <img
-              src={img}
+              src={slide.preview}
+              data-fullscreen-src={slide.fullscreen}
               alt={`${product.name} view ${idx + 1}`}
               loading="lazy"
             />
@@ -184,7 +249,7 @@ try {
     <!-- Mobile Pagination Dots -->
     <div class="mobile-pagination" id="mobile-pagination">
       {
-        galleryImages.map((_, idx) => (
+        gallerySlides.map((_, idx) => (
           <div class="pagination-dot" data-dot-index={idx} />
         ))
       }
@@ -198,13 +263,11 @@ try {
           <h1 class="detail-title">{product.name}</h1>
           <span
             class="detail-price product-price-dynamic"
-            data-price-eur={product.price.toFixed(2)}
-            data-price-pln={(
-              product.pricePLN || Math.round(product.price * 4.3)
-            ).toFixed(2)}
+            data-price-eur={Number(product.price).toFixed(2)}
+            data-price-pln={effectivePln.toFixed(2)}
             data-server-currency={serverCurrency || ""}
           >
-            €{product.price.toFixed(2)}
+            €{Number(product.price).toFixed(2)}
           </span>
         </div>
 
@@ -228,9 +291,15 @@ try {
         <!-- Stock Status -->
         <div class="detail-stock">
           <span
-            class={`stock-indicator ${inStock ? "in-stock" : "out-of-stock"}`}
+            class={`stock-indicator ${showDigitalLibraryCta ? "in-stock" : inStock ? "in-stock" : "out-of-stock"}`}
           >
-            {inStock ? "In Stock" : "Sold Out"}
+            {
+              showDigitalLibraryCta
+                ? "Purchased"
+                : inStock
+                  ? "In Stock"
+                  : "Sold Out"
+            }
           </span>
         </div>
 
@@ -277,9 +346,36 @@ try {
           )
         }
 
-        <!-- Action Buttons: Conditional based on stock status -->
+        <!-- Action Buttons: digital (already bought) → My Purchases; else stock -->
         {
-          inStock ? (
+          showDigitalLibraryCta ? (
+            <div class="detail-actions-row">
+              <a
+                href="/account/purchases"
+                class="btn-brand btn-equal"
+                id="digital-purchases-link"
+                style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  <path d="M8 7h8" />
+                  <path d="M8 11h8" />
+                </svg>
+                Go to My Purchases
+              </a>
+            </div>
+          ) : inStock ? (
             <div class="detail-actions-row">
               <button
                 class="btn-brand btn-equal"
@@ -288,9 +384,7 @@ try {
                 data-product-name={product.name}
                 data-product-type={product.productType}
                 data-price-eur={product.price}
-                data-price-pln={
-                  product.pricePLN || (product.price * 4.3).toFixed(2)
-                }
+                data-price-pln={effectivePln.toFixed(2)}
                 data-product-image={
                   product.mainImage
                     ? urlFor(product.mainImage).width(400).url()
@@ -627,7 +721,19 @@ try {
     border: 1px solid var(--border-subtle);
     flex-shrink: 0;
     cursor: zoom-in;
-    transition: transform 0.2s;
+    transition:
+      transform 0.2s,
+      opacity 0.4s ease-out;
+  }
+
+  .detail-large-image--image:not(.is-loaded) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .detail-large-image--image.is-loaded {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .detail-large-image:hover {
@@ -639,6 +745,14 @@ try {
     width: 100%;
     height: auto;
     object-fit: cover;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .detail-large-image--image:not(.is-loaded) {
+      opacity: 1;
+      pointer-events: auto;
+      transition: transform 0.2s;
+    }
   }
 
   /* Right: Info Column (Sticky) */
@@ -901,15 +1015,34 @@ try {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   }
 
-  .btn-brand.go-to-cart {
-    background: var(--foreground);
-    color: var(--page-bg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  .btn-brand.remove-from-cart {
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid
+      color-mix(in srgb, #ef4444 45%, var(--border-subtle));
+    box-shadow: none;
   }
 
-  .btn-brand.go-to-cart:hover {
-    opacity: 0.85;
+  .btn-brand.remove-from-cart:hover {
+    background: color-mix(in srgb, #ef4444 14%, transparent);
+    border-color: #ef4444;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, #ef4444 20%, transparent);
+  }
+
+  /* Shorter label on narrow screens (innerHTML spans — use :global) */
+  :global(#add-to-cart-btn .remove-cart-label-mobile) {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    :global(#add-to-cart-btn .remove-cart-label-desktop) {
+      display: none;
+    }
+
+    :global(#add-to-cart-btn .remove-cart-label-mobile) {
+      display: inline;
+    }
   }
 
   .btn-brand-outline {
@@ -1318,6 +1451,51 @@ try {
       padding: 10px 16px;
     }
   }
+
+  /* Cart / wishlist CTAs — equal split gets very narrow; shrink type so labels stay one line */
+  @media (max-width: 480px) {
+    .detail-actions-row {
+      gap: 8px;
+    }
+
+    .detail-actions-row .btn-brand.btn-equal,
+    .detail-actions-row .btn-brand-outline.btn-equal {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 10px;
+      min-height: 48px;
+      height: auto;
+      line-height: 1.15;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .detail-actions-row .btn-brand.btn-equal,
+    .detail-actions-row .btn-brand-outline.btn-equal {
+      font-size: 13px;
+      padding: 10px 8px;
+      gap: 6px;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .detail-actions-row .btn-brand.btn-equal,
+    .detail-actions-row .btn-brand-outline.btn-equal {
+      font-size: 12px;
+      padding: 10px 6px;
+      min-height: 46px;
+      gap: 5px;
+      letter-spacing: -0.01em;
+    }
+
+    .detail-actions-row .btn-brand.btn-equal svg,
+    .detail-actions-row .btn-brand-outline.btn-equal svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+  }
+
   /* 3D Viewer Wrapper */
   .detail-3d-wrapper {
     width: 100%;
@@ -1497,6 +1675,7 @@ try {
     toggleFavorite,
     initFavorites,
   } from "../lib/favoritesStore";
+  import { showCheckoutToast } from "../lib/checkout-toast";
 
   // ==========================================
   // WISHLIST / FAVORITES LOGIC
@@ -1553,127 +1732,6 @@ try {
   // ==========================================
   // CLIENT-SIDE INTERACTIVITY
   // ==========================================
-
-  // ── Checkout Error Toast ─────────────────────────────────────────────────
-  // Shows a polished, theme-aware notification instead of a raw browser alert.
-  function showCheckoutToast(message: string) {
-    // Remove any existing toast first
-    document.getElementById("vs-checkout-toast")?.remove();
-
-    // Inject styles once
-    if (!document.getElementById("vs-toast-styles")) {
-      const s = document.createElement("style");
-      s.id = "vs-toast-styles";
-      s.textContent = `
-                #vs-checkout-toast {
-                    position: fixed;
-                    bottom: 28px;
-                    right: 28px;
-                    z-index: 9999;
-                    max-width: 400px;
-                    width: calc(100vw - 48px);
-                    background: var(--surface);
-                    border: 1px solid rgba(239,68,68,0.2);
-                    border-left: 4px solid #ef4444;
-                    border-radius: var(--radius-xl);
-                    box-shadow: var(--shadow-dropdown);
-                    padding: 16px 16px 16px 14px;
-                    font-family: var(--font-family);
-                    animation: vsToastIn 0.28s cubic-bezier(.4,0,.2,1);
-                    transition: opacity 0.2s;
-                }
-                @keyframes vsToastIn {
-                    from { transform: translateY(14px) scale(0.97); opacity: 0; }
-                    to   { transform: translateY(0)    scale(1);    opacity: 1; }
-                }
-                .vs-toast-inner {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 12px;
-                }
-                .vs-toast-icon {
-                    color: #ef4444;
-                    flex-shrink: 0;
-                    margin-top: 1px;
-                    line-height: 0;
-                }
-                .vs-toast-body {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 3px;
-                    min-width: 0;
-                }
-                .vs-toast-title {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: var(--foreground);
-                    line-height: 1.3;
-                }
-                .vs-toast-msg {
-                    font-size: 13px;
-                    color: var(--foreground);
-                    opacity: 0.65;
-                    line-height: 1.45;
-                    word-break: break-word;
-                }
-                .vs-toast-close {
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    color: var(--foreground);
-                    opacity: 0.45;
-                    padding: 0;
-                    flex-shrink: 0;
-                    line-height: 0;
-                    transition: opacity 0.15s;
-                    align-self: flex-start;
-                    margin-top: 1px;
-                }
-                .vs-toast-close:hover { opacity: 0.9; }
-                @media (max-width: 480px) {
-                    #vs-checkout-toast { bottom: 20px; right: 16px; left: 16px; width: auto; }
-                }
-            `;
-      document.head.appendChild(s);
-    }
-
-    const toast = document.createElement("div");
-    toast.id = "vs-checkout-toast";
-    toast.setAttribute("role", "alert");
-    toast.setAttribute("aria-live", "assertive");
-    toast.innerHTML = `
-            <div class="vs-toast-inner">
-                <div class="vs-toast-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                </div>
-                <div class="vs-toast-body">
-                    <span class="vs-toast-title">Payment failed</span>
-                    <span class="vs-toast-msg">${message}</span>
-                </div>
-                <button class="vs-toast-close" aria-label="Close notification">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-        `;
-    document.body.appendChild(toast);
-
-    const dismiss = () => {
-      toast.style.opacity = "0";
-      setTimeout(() => toast.remove(), 220);
-    };
-    toast.querySelector(".vs-toast-close")?.addEventListener("click", dismiss);
-    setTimeout(dismiss, 7000);
-  }
 
   // Currency detection
   type Currency = "EUR" | "PLN";
@@ -1775,12 +1833,32 @@ try {
   // Run currency detection on load
   updateProductPrices();
 
+  function markDetailGalleryImagesLoaded(root: ParentNode = document) {
+    root.querySelectorAll(".detail-large-image--image img").forEach((img) => {
+      const wrap = img.closest(".detail-large-image--image");
+      if (!wrap) return;
+      const done = () => wrap.classList.add("is-loaded");
+      if (
+        img instanceof HTMLImageElement &&
+        img.complete &&
+        img.naturalHeight > 0
+      ) {
+        done();
+      } else {
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      }
+    });
+  }
+
   const initProductDetail = () => {
     // Check if product detail panel exists on this page
     const productDetailPanel = document.querySelector("#product-detail-panel");
     if (!productDetailPanel) {
       return;
     }
+
+    markDetailGalleryImagesLoaded(productDetailPanel);
 
     // Refresh EUR / PLN on the detail price after View Transitions (only
     // .product-price-dynamic — never the Add to Cart button).
@@ -1805,10 +1883,14 @@ try {
     let currentMobileIndex = 0;
 
     // Get Image URLs from DOM
-    const galleryImageUrls = Array.from(galleryImages).map((div) => {
-      const img = div.querySelector("img");
-      return img ? img.src : "";
-    });
+    const galleryImageUrls = Array.from(galleryImages)
+      .map((div) => {
+        const img = div.querySelector("img") as HTMLImageElement | null;
+        if (!img) return "";
+        const full = img.dataset.fullscreenSrc?.trim();
+        return full || img.src;
+      })
+      .filter(Boolean);
 
     // Size Selection
     sizeBtns.forEach((btn) => {
@@ -1997,11 +2079,13 @@ try {
           isInCart,
           initCart: initCartStore,
           cartStore,
+          removeFromCart,
         } = await import("../lib/cartStore");
         initCartStore();
 
         const cartBtnEl = addToCartBtn as HTMLElement;
         const cartProductId = cartBtnEl.dataset.productId || "";
+        const initialAddToCartHTML = addToCartBtn!.innerHTML;
 
         function getSelectedSize(): string | undefined {
           const active = document.querySelector(
@@ -2010,14 +2094,38 @@ try {
           return active?.dataset.size;
         }
 
-        function switchToGoToCart() {
-          addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 0 22 22" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.9931 0C13.6631 0 15.8765 2.03316 16.1664 4.62858C16.1816 4.81653 16.1896 5.10071 16.1939 5.39511C16.1985 5.7138 16.4564 5.97161 16.7751 5.97161H17.936C19.2731 5.97161 20.386 6.97443 20.526 8.30511L21.9725 19.0918C22.0482 19.8231 21.81 20.557 21.317 21.1043C20.8235 21.6515 20.1188 21.9654 19.3824 21.9654H2.60384C1.8675 21.9653 1.16208 21.6521 0.669242 21.1055C0.175875 20.557 -0.0619183 19.8229 0.0138284 19.0918L1.46026 8.30511C1.60026 6.97398 2.71342 5.97186 4.05027 5.97161H5.21174C5.53047 5.97161 5.7883 5.71381 5.79277 5.39511C5.79689 5.10072 5.80466 4.81653 5.81989 4.62858C6.1098 2.03325 8.32334 0.00016274 10.9931 0ZM10.9931 1.73572C9.06591 1.73589 7.52171 3.27988 7.52171 5.20715V5.39304C7.52171 5.71258 7.78074 5.97161 8.10028 5.97161H13.886C14.2055 5.97161 14.4646 5.71258 14.4646 5.39304V5.20715C14.4646 3.27976 12.9205 1.73572 10.9931 1.73572Z"></path></svg> Go to Cart`;
-          addToCartBtn!.classList.remove("added");
-          addToCartBtn!.classList.add("go-to-cart");
+        const removeFromCartIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+
+        function switchToAddToCartUI() {
+          addToCartBtn!.innerHTML = initialAddToCartHTML;
+          addToCartBtn!.classList.remove(
+            "added",
+            "go-to-cart",
+            "remove-from-cart",
+          );
+          addToCartBtn!.removeAttribute("aria-label");
+          addToCartBtn!.removeEventListener("click", handleRemoveFromCart);
           addToCartBtn!.removeEventListener("click", handleAddToCart);
-          addToCartBtn!.addEventListener("click", () => {
-            window.location.href = "/cart";
-          });
+          addToCartBtn!.addEventListener("click", handleAddToCart);
+        }
+
+        function switchToRemoveFromCartUI() {
+          addToCartBtn!.innerHTML = `${removeFromCartIcon}<span class="remove-cart-label-desktop">Remove from cart</span><span class="remove-cart-label-mobile">Remove item</span>`;
+          addToCartBtn!.classList.remove("added", "go-to-cart");
+          addToCartBtn!.classList.add("remove-from-cart");
+          addToCartBtn!.setAttribute(
+            "aria-label",
+            "Remove this item from your cart",
+          );
+          addToCartBtn!.removeEventListener("click", handleAddToCart);
+          addToCartBtn!.removeEventListener("click", handleRemoveFromCart);
+          addToCartBtn!.addEventListener("click", handleRemoveFromCart);
+        }
+
+        function handleRemoveFromCart() {
+          const size = getSelectedSize();
+          removeFromCart(cartProductId, size);
+          switchToAddToCartUI();
         }
 
         function checkIfInCart() {
@@ -2037,13 +2145,17 @@ try {
                   (b as HTMLElement).dataset.size === cartItem.selectedSize,
               );
               if (match) match.classList.add("active");
-              switchToGoToCart();
+              switchToRemoveFromCartUI();
+            } else {
+              switchToAddToCartUI();
             }
             return;
           }
 
           if (isInCart(cartProductId, size)) {
-            switchToGoToCart();
+            switchToRemoveFromCartUI();
+          } else {
+            switchToAddToCartUI();
           }
         }
 
@@ -2121,13 +2233,12 @@ try {
           if (added) {
             addToCartBtn!.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Added!`;
             addToCartBtn!.classList.add("added");
-            setTimeout(() => switchToGoToCart(), 1200);
+            setTimeout(() => switchToRemoveFromCartUI(), 1200);
           } else {
-            switchToGoToCart();
+            switchToRemoveFromCartUI();
           }
         }
 
-        addToCartBtn.addEventListener("click", handleAddToCart);
         checkIfInCart();
       })();
     }
@@ -2239,18 +2350,20 @@ try {
         }
 
         try {
-          // Check session again to be sure
           const session = await authClient.getSession();
-          const userEmail =
-            session.data?.user.email || (shippingData.email as string);
-          const userName = `${shippingData.firstName} ${shippingData.lastName}`;
+          if (!session.data?.user?.email) {
+            window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+            if (submitBtn) {
+              submitBtn.textContent = originalText || "";
+              // @ts-ignore
+              submitBtn.disabled = false;
+            }
+            return;
+          }
 
-          // Call Checkout API with Shipping Data
           await initiateCheckout(
             productId,
             productType,
-            userEmail,
-            userName,
             shippingData as unknown as ShippingData,
           );
 
@@ -2273,14 +2386,11 @@ try {
     async function initiateCheckout(
       productId: string | undefined,
       productType: string | undefined,
-      userEmail: string,
-      userName: string,
       shippingAddress?: ShippingData,
     ) {
       console.log("initiateCheckout called", {
         productId,
         productType,
-        userEmail,
       });
 
       const button = document.getElementById("buy-btn");
@@ -2307,6 +2417,11 @@ try {
       )?.value;
       const shippingAmount = shippingAmtInput?.value || "0";
 
+      const sizeBtnActive = document.querySelector(
+        ".size-btn.active",
+      ) as HTMLElement | null;
+      const checkoutSelectedSize = sizeBtnActive?.dataset.size;
+
       try {
         const response = await fetch("/api/create-checkout", {
           method: "POST",
@@ -2318,12 +2433,12 @@ try {
               document.querySelector(".detail-product-name")?.textContent ||
               "Product",
             productType,
-            userEmail,
             price: selectedPrice,
             currency: userCurrency,
             shippingAddress: shippingAddress || null,
             selectedShippingId: selectedShippingId || null,
             selectedShippingAmount: shippingAmount,
+            selectedSize: checkoutSelectedSize || undefined,
           }),
         });
 

@@ -8,6 +8,27 @@ export const prerender = true;
   title="About Us — Visupair"
   description="We're two artists selling our own work — fashion, illustrations, 3D models, and more. No middlemen, just art."
 >
+  <Fragment slot="head">
+    <script is:inline>
+      (function () {
+        try {
+          var t = window.visupairGetTheme
+            ? window.visupairGetTheme()
+            : "dark";
+          function preload(href) {
+            var l = document.createElement("link");
+            l.rel = "preload";
+            l.as = "image";
+            l.href = href;
+            document.head.appendChild(l);
+          }
+          preload("/images/hero/Gul-" + t + ".svg");
+          preload("/images/hero/Vali-" + t + ".svg");
+        } catch (e) {}
+      })();
+    </script>
+  </Fragment>
+
   <div class="about-wrapper">
     <div class="about-island">
       <!-- Lamp Lottie — top center -->
@@ -21,8 +42,13 @@ export const prerender = true;
           <img
             id="about-gul"
             class="about-char__img"
+            src="/images/hero/Gul-dark.svg"
             alt="Gul — artist and co-founder of Visupair"
-            loading="lazy"
+            width="1352"
+            height="1761"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
             draggable="false"
             ondragstart="return false;"
           />
@@ -30,26 +56,27 @@ export const prerender = true;
 
         <!-- Center: text content -->
         <div class="about-content">
-          <div class="about-badge animate-text" style="--anim-delay: 0s;">
+          <div class="about-badge animate-text above-fold-reveal" style="--anim-delay: 0s;">
             About Us
           </div>
 
-          <h1 class="about-title animate-text" style="--anim-delay: 0.1s;">
+          <h1 class="about-title animate-text above-fold-reveal" style="--anim-delay: 0.1s;">
             Who We Are
           </h1>
 
-          <p class="about-subtitle animate-text" style="--anim-delay: 0.2s;">
+          <p class="about-subtitle animate-text above-fold-reveal" style="--anim-delay: 0.2s;">
             We're Gul and Vali — two artists making things we actually care
             about. Fashion, illustrations, digital art, 3D models. We sell it
             all ourselves, directly to you.
           </p>
 
-          <div class="about-actions animate-text" style="--anim-delay: 0.3s;">
-            <Button href="/store" variant="primary" label="See Our Work" />
+          <div class="about-actions animate-text above-fold-reveal" style="--anim-delay: 0.3s;">
+            <Button href="/portfolio" variant="primary" label="See Our Work" />
             <Button
-              href="/portfolio"
+              href="/contact"
               variant="secondary"
-              label="Explore Portfolio"
+              label="Contact Us"
+              icon={false}
             />
           </div>
         </div>
@@ -59,13 +86,272 @@ export const prerender = true;
           <img
             id="about-vali"
             class="about-char__img"
+            src="/images/hero/Vali-dark.svg"
             alt="Vali — artist and co-founder of Visupair"
-            loading="lazy"
+            width="1352"
+            height="1815"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
             draggable="false"
             ondragstart="return false;"
           />
         </div>
+        <script is:inline>
+          (function () {
+            try {
+              var t = window.visupairGetTheme
+                ? window.visupairGetTheme()
+                : "dark";
+              var gul = document.getElementById("about-gul");
+              var vali = document.getElementById("about-vali");
+              if (gul) gul.src = "/images/hero/Gul-" + t + ".svg";
+              if (vali) vali.src = "/images/hero/Vali-" + t + ".svg";
+            } catch (e) {}
+          })();
+        </script>
       </div>
+    </div>
+  </div>
+
+  <!-- Story section: image (left, TBD) + narrative (right) -->
+  <div class="about-dual-wrapper">
+    <div class="about-dual-layout">
+      <div class="about-dual-panel about-dual-panel--media">
+        <div class="about-dual-media-frame" data-about-media-spotlight>
+          <img
+            class="about-dual-media-img"
+            src="/images/hero/aboutus.webp"
+            alt="Gul and Vali — Visupair co-founders"
+            width="1200"
+            height="800"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="about-dual-media-overlay" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <article
+        class="about-dual-panel about-dual-panel--story"
+        aria-labelledby="about-story-heading"
+      >
+        <h2
+          class="about-story-heading animate-text"
+          id="about-story-heading"
+          style="--anim-delay: 0s;"
+        >
+          This space didn't start as a business idea.
+          <br />
+          <span class="about-story-heading__accent"
+            >It started as a life built around art.</span
+          >
+        </h2>
+
+        <div
+          class="about-story-body animate-text"
+          style="--anim-delay: 0.08s;"
+        >
+          <p>
+            For over a decade, painting has been woven into our everyday rhythm
+            &mdash; canvases, oils, and long quiet hours of learning to truly
+            see. How light shifts. How texture holds a feeling. How color can
+            say something words can't quite reach. That foundation shaped
+            everything that came after.
+          </p>
+          <p>
+            Curiosity kept pulling us forward. Six years ago we stepped into
+            digital creation and found a whole new language &mdash; one built
+            from visual design, technology, and the thrill of making something
+            that didn't exist before. Then fashion arrived. Not as a pivot, but
+            as a natural next step. For us, clothing has never felt separate
+            from art. It's just another surface where shapes, ideas, and
+            stories can take form &mdash; and be worn.
+          </p>
+          <p>
+            <strong>Visupair</strong> is where all of it comes together.
+          </p>
+          <p>
+            We design in 3D, build digital patterns, and bring them to life as
+            real garments and objects. But those same pieces can also live
+            entirely in the digital world &mdash; as 3D models, wearable
+            avatars, digital collectibles &mdash; because we're equally
+            fascinated by how fashion and art exist across both realities. We
+            call this <em>phygital</em> creation: the freedom to move an idea
+            from screen to material, and back again, without losing any of its
+            meaning.
+          </p>
+          <p>
+            We create our own pieces &mdash; garments, accessories, paintings,
+            digital works. Some of them are available to find a home with you,
+            in whichever form feels right.
+          </p>
+        </div>
+
+        <div
+          class="about-story-actions animate-text"
+          style="--anim-delay: 0.16s;"
+        >
+          <Button href="/store" variant="primary" label="Visit Store" />
+          <Button
+            href="/contact"
+            variant="secondary"
+            label="Contact Us"
+            icon={false}
+          />
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Services & collaboration -->
+  <div class="about-dual-wrapper">
+    <div class="about-dual-layout about-dual-layout--reverse-desktop">
+      <div class="about-dual-panel about-dual-panel--media">
+        <div class="about-dual-media-frame" data-about-media-spotlight>
+          <img
+            class="about-dual-media-img"
+            src="/images/hero/aboutservices.webp"
+            alt="Visupair creative services — collaboration with artists and brands"
+            width="1200"
+            height="800"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="about-dual-media-overlay" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <article
+        class="about-dual-panel about-dual-panel--story"
+        aria-labelledby="about-services-heading"
+      >
+        <h2
+          class="about-story-heading animate-text"
+          id="about-services-heading"
+          style="--anim-delay: 0s;"
+        >
+          We also work with others &mdash; and this side of what we do comes
+          straight from who we are.
+        </h2>
+
+        <div
+          class="about-story-body animate-text"
+          style="--anim-delay: 0.08s;"
+        >
+          <p>
+            We collaborate with artists, independent designers, and brands to
+            build the visual presence their work deserves. This means logos,
+            websites, color palettes, creative direction, lookbooks, and full
+            visual identities &mdash; everything that shapes how the world first
+            experiences what you do.
+          </p>
+          <p>
+            But what makes us different isn't the list of services. It's where
+            we come from.
+          </p>
+          <p>
+            We know what it feels like to be the artist on the other side
+            &mdash; to have work that matters deeply and struggle to show it in
+            a way that feels true. That experience sits at the heart of every
+            project we take on. We don't just design for you. We think with you,
+            understand your creative language, and build something that actually
+            feels like yours.
+          </p>
+          <p>
+            For artists and independent designers, we understand the particular
+            challenge of presenting creative work without it feeling
+            over-produced or disconnected from who you are. Whether you need a
+            portfolio, a brand identity, or a complete digital home for your
+            practice &mdash; we build it in a way that stays honest to your
+            vision.
+          </p>
+          <p>
+            For brands, we bring an artistic sensibility that goes beyond
+            aesthetics. We think about meaning, consistency, and the kind of
+            visual language that builds genuine recognition over time.
+          </p>
+        </div>
+
+        <div
+          class="about-story-actions about-story-actions--stacked animate-text"
+          style="--anim-delay: 0.16s;"
+        >
+          <Button href="/services" variant="primary" label="Explore Services" />
+          <Button
+            href="/contact"
+            variant="secondary"
+            label="Contact Us"
+            icon={false}
+          />
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Workshops & courses: image left + story (same layout as first dual section) -->
+  <div class="about-dual-wrapper">
+    <div class="about-dual-layout">
+      <div class="about-dual-panel about-dual-panel--media">
+        <div class="about-dual-media-frame" data-about-media-spotlight>
+          <img
+            class="about-dual-media-img"
+            src="/images/hero/aboutcourses.webp"
+            alt="Visupair workshops and courses — oil painting, digital design, and creative sessions"
+            width="1200"
+            height="800"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="about-dual-media-overlay" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <article
+        class="about-dual-panel about-dual-panel--story"
+        aria-labelledby="about-courses-heading"
+      >
+        <h2
+          class="about-story-heading animate-text"
+          id="about-courses-heading"
+          style="--anim-delay: 0s;"
+        >
+          We love sharing what we know — and we believe that
+          <br />
+          <span class="about-story-heading__accent"
+            >opening up a creative process is just as valuable as the finished work.</span
+          >
+        </h2>
+
+        <div
+          class="about-story-body animate-text"
+          style="--anim-delay: 0.08s;"
+        >
+          <p>
+            We organise workshops and courses in oil painting, digital design,
+            and 3D &amp; phygital creation &mdash; as well as art nights, where
+            creativity happens in a relaxed, open atmosphere. Whether you're a
+            complete beginner or simply curious, there's a place for you here.
+          </p>
+          <p>
+            If you'd like to join us or find out what's coming up, we'd love to
+            hear from you.
+          </p>
+        </div>
+
+        <div
+          class="about-story-actions animate-text"
+          style="--anim-delay: 0.16s;"
+        >
+          <Button href="/courses" variant="primary" label="Explore Courses" />
+          <Button
+            href="/contact"
+            variant="secondary"
+            label="Contact Us"
+            icon={false}
+          />
+        </div>
+      </article>
     </div>
   </div>
 
@@ -78,15 +364,11 @@ export const prerender = true;
     let currentTheme: Theme | null = null;
     let themeObserver: MutationObserver | null = null;
     let intersectionObserver: IntersectionObserver | null = null;
+    let hasCompletedAboutClientNav = false;
+    let aboutSpotlightCleanup: (() => void) | null = null;
 
-    const getTheme = (): Theme => {
-      const saved = localStorage.getItem("theme");
-      return saved === "dark" || saved === "light"
-        ? saved
-        : document.documentElement.hasAttribute("data-theme")
-          ? "dark"
-          : "light";
-    };
+    const getTheme = (): Theme =>
+      document.documentElement.hasAttribute("data-theme") ? "dark" : "light";
 
     const swapSVGs = (theme: Theme) => {
       const gul = document.getElementById(
@@ -153,18 +435,163 @@ export const prerender = true;
 
     const onThemeChange = () => {
       const theme = getTheme();
-      if (theme !== currentTheme) {
-        applyTheme(theme);
-      }
+      swapSVGs(theme);
+      void loadLamp(theme);
     };
 
     // Only disconnect observers when user navigates away.
     // The animation KEEPS PLAYING during the transition — same as index.astro.
     const cleanupObservers = () => {
+      aboutSpotlightCleanup?.();
+      aboutSpotlightCleanup = null;
       themeObserver?.disconnect();
       themeObserver = null;
       intersectionObserver?.disconnect();
       intersectionObserver = null;
+    };
+
+    const initAboutMediaSpotlight = () => {
+      aboutSpotlightCleanup?.();
+      const frames = document.querySelectorAll<HTMLElement>(
+        "[data-about-media-spotlight]",
+      );
+      if (!frames.length) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const mqMobile = window.matchMedia("(max-width: 900px)");
+      const isMobileLayout = () => mqMobile.matches;
+
+      const GROW_MS = 4200;
+      const GROW_MS_MOBILE = 3200;
+      const TOP_BOOST = 0.55;
+      const TOP_BOOST_MOBILE = 0.35;
+
+      const disposers: (() => void)[] = [];
+
+      frames.forEach((frame) => {
+        let active = false;
+        let t0 = 0;
+        let py = 0;
+        let raf = 0;
+        let scrollYAtInteract = 0;
+
+        const reset = () => {
+          active = false;
+          cancelAnimationFrame(raf);
+          frame.style.removeProperty("--spotlight-r");
+          frame.classList.remove("is-spotlight-active");
+        };
+
+        const syncSpot = (cx: number, cy: number) => {
+          const r = frame.getBoundingClientRect();
+          py = cy;
+          frame.style.setProperty("--spot-x", `${Math.round(cx - r.left)}px`);
+          frame.style.setProperty("--spot-y", `${Math.round(cy - r.top)}px`);
+        };
+
+        const tick = () => {
+          if (!active) return;
+          const r = frame.getBoundingClientRect();
+          const w = r.width;
+          const h = r.height;
+          const mobile = isMobileLayout();
+          const growMs = mobile ? GROW_MS_MOBILE : GROW_MS;
+          const topBoost = mobile ? TOP_BOOST_MOBILE : TOP_BOOST;
+          const elapsed = performance.now() - t0;
+          const time = Math.min(1, elapsed / growMs);
+          const yN =
+            h > 0 ? Math.max(0, Math.min(1, (py - r.top) / h)) : 0.5;
+          const boost = (1 - yN) * topBoost;
+          const mix = Math.min(1, time + boost * time);
+          const tEase = 1 - (1 - mix) * (1 - mix);
+          const minR = Math.max(64, Math.min(w, h) * (mobile ? 0.14 : 0.11));
+          const maxR = Math.max(w, h) * (mobile ? 0.98 : 0.92);
+          const radiusPx = minR + (maxR - minR) * tEase;
+          frame.style.setProperty("--spotlight-r", `${Math.round(radiusPx)}px`);
+          if (mix < 0.999) raf = requestAnimationFrame(tick);
+        };
+
+        const begin = () => {
+          active = true;
+          t0 = performance.now();
+          scrollYAtInteract = window.scrollY;
+          frame.classList.add("is-spotlight-active");
+          cancelAnimationFrame(raf);
+          const r = frame.getBoundingClientRect();
+          const w = r.width;
+          const h = r.height;
+          const mobile = isMobileLayout();
+          const minR = Math.max(64, Math.min(w, h) * (mobile ? 0.14 : 0.11));
+          frame.style.setProperty("--spotlight-r", `${Math.round(minR)}px`);
+          tick();
+        };
+
+        const onEnter = () => {
+          if (isMobileLayout()) return;
+          const r = frame.getBoundingClientRect();
+          syncSpot(r.left + r.width / 2, r.top + r.height / 2);
+          begin();
+        };
+
+        const onMove = (e: MouseEvent) => {
+          if (isMobileLayout()) return;
+          syncSpot(e.clientX, e.clientY);
+        };
+
+        const onTouchStart = (e: TouchEvent) => {
+          const touch = e.touches[0];
+          if (!touch) return;
+          syncSpot(touch.clientX, touch.clientY);
+          if (isMobileLayout()) begin();
+          else if (!active) begin();
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+          const touch = e.touches[0];
+          if (!touch) return;
+          syncSpot(touch.clientX, touch.clientY);
+        };
+
+        const onTouchEnd = () => {
+          if (!isMobileLayout()) reset();
+        };
+
+        const onLeave = () => {
+          if (isMobileLayout()) return;
+          reset();
+        };
+
+        const onWindowScroll = () => {
+          if (!isMobileLayout() || !active) return;
+          if (window.scrollY > scrollYAtInteract + 28) reset();
+        };
+
+        frame.addEventListener("mouseenter", onEnter);
+        frame.addEventListener("mousemove", onMove);
+        frame.addEventListener("mouseleave", onLeave);
+        frame.addEventListener("touchstart", onTouchStart, { passive: true });
+        frame.addEventListener("touchmove", onTouchMove, { passive: true });
+        frame.addEventListener("touchend", onTouchEnd);
+        frame.addEventListener("touchcancel", onTouchEnd);
+        window.addEventListener("scroll", onWindowScroll, { passive: true });
+
+        disposers.push(() => {
+          window.removeEventListener("scroll", onWindowScroll);
+          reset();
+          frame.removeEventListener("mouseenter", onEnter);
+          frame.removeEventListener("mousemove", onMove);
+          frame.removeEventListener("mouseleave", onLeave);
+          frame.removeEventListener("touchstart", onTouchStart);
+          frame.removeEventListener("touchmove", onTouchMove);
+          frame.removeEventListener("touchend", onTouchEnd);
+          frame.removeEventListener("touchcancel", onTouchEnd);
+        });
+      });
+
+      aboutSpotlightCleanup = () => {
+        disposers.forEach((d) => d());
+        disposers.length = 0;
+      };
     };
 
     // Called after the old DOM is fully replaced — safe to destroy animation now.
@@ -174,6 +601,18 @@ export const prerender = true;
         lampAnim = null;
       }
       currentTheme = null;
+    };
+
+    const restartAboveFoldReveal = (selector: string) => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+      document.querySelectorAll(selector).forEach((el) => {
+        const h = el as HTMLElement;
+        h.style.animation = "none";
+        void h.offsetHeight;
+        h.style.removeProperty("animation");
+      });
     };
 
     const init = () => {
@@ -202,6 +641,12 @@ export const prerender = true;
       );
 
       document.querySelectorAll(".animate-text").forEach((el) => {
+        if (
+          el.classList.contains("is-visible") ||
+          el.classList.contains("above-fold-reveal")
+        ) {
+          return;
+        }
         textObserver.observe(el);
       });
 
@@ -219,6 +664,19 @@ export const prerender = true;
         );
         intersectionObserver.observe(container);
       }
+
+      initAboutMediaSpotlight();
+
+      if (hasCompletedAboutClientNav) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            restartAboveFoldReveal(
+              ".about-content .animate-text.above-fold-reveal",
+            );
+          });
+        });
+      }
+      hasCompletedAboutClientNav = true;
     };
 
     // Before transition starts: stop observing, but let animation finish visually
@@ -283,6 +741,33 @@ export const prerender = true;
     .animate-text.is-visible {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .about-content .animate-text.above-fold-reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: none;
+      animation: aboutTextReveal 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: var(--anim-delay, 0s);
+    }
+
+    @keyframes aboutTextReveal {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .about-content .animate-text.above-fold-reveal {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
     }
 
     @keyframes islandFadeIn {
@@ -548,12 +1033,309 @@ export const prerender = true;
       }
     }
 
+    /* ── Dual panels (match contact `.contact-form-side` — minimal, no gradients) ── */
+    .about-dual-wrapper {
+      width: 100%;
+      padding: 12px 12px 0;
+      box-sizing: border-box;
+    }
+
+    /* Desktop: equal-width columns (50% / 50%) */
+    .about-dual-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+      margin: 0 auto;
+      gap: 12px;
+      animation: islandFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) 0.12s both;
+    }
+
+    /* Third section: text column first, image second (same 50/50 track sizes) */
+    .about-dual-layout--reverse-desktop .about-dual-panel--story {
+      order: 1;
+    }
+
+    .about-dual-layout--reverse-desktop .about-dual-panel--media {
+      order: 2;
+    }
+
+    .about-dual-panel {
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      box-shadow: var(--shadow-island);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .about-dual-panel--media {
+      justify-content: flex-start;
+      align-items: stretch;
+      align-self: stretch;
+      padding: 0;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* flex-basis 0 so this column grows to match the story column; image fills via absolute + cover */
+    .about-dual-media-frame {
+      position: relative;
+      flex: 1 1 0;
+      width: 100%;
+      min-height: clamp(220px, 38vh, 520px);
+      min-width: 0;
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+    }
+
+    .about-dual-media-img {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transform: scale(1);
+      transform-origin: center center;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .about-dual-media-img {
+        transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .about-dual-media-frame:hover .about-dual-media-img,
+      .about-dual-media-frame.is-spotlight-active .about-dual-media-img {
+        transform: scale(1.045);
+      }
+    }
+
+    /* Hue blend; spotlight hole grows via --spotlight-r (JS), not opacity */
+    .about-dual-media-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      /* Same deep tint in light + dark (matches dark theme switch track) */
+      background: #26203c;
+      mix-blend-mode: hue;
+    }
+
+    .about-dual-media-frame.is-spotlight-active .about-dual-media-overlay {
+      -webkit-mask-image: radial-gradient(
+        circle var(--spotlight-r, 120px) at var(--spot-x, 50%) var(--spot-y, 50%),
+        transparent 0%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.32) 58%,
+        #000 100%
+      );
+      mask-image: radial-gradient(
+        circle var(--spotlight-r, 120px) at var(--spot-x, 50%) var(--spot-y, 50%),
+        transparent 0%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.32) 58%,
+        #000 100%
+      );
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+    }
+
+    .about-dual-panel--story {
+      justify-content: flex-start;
+      gap: clamp(20px, 3vw, 28px);
+      text-align: left;
+      align-items: stretch;
+    }
+
+    .about-story-heading {
+      font-family: var(--font-family);
+      font-size: clamp(22px, 2.75vw, 32px);
+      font-weight: 700;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+      margin: 0;
+      max-width: 42ch;
+    }
+
+    .about-story-heading__accent {
+      display: inline-block;
+      color: var(--brand-violet);
+    }
+
+    :global([data-theme="dark"]) .about-story-heading {
+      color: #ffffff;
+    }
+
+    .about-story-body {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1em;
+    }
+
+    .about-story-body p {
+      font-family: var(--font-family);
+      font-size: clamp(15px, 1.2vw, 17px);
+      line-height: 1.7;
+      color: var(--foreground);
+      opacity: 0.88;
+      margin: 0;
+      max-width: 62ch;
+    }
+
+    :global([data-theme="dark"]) .about-story-body p {
+      color: #e9e8ff;
+      opacity: 0.9;
+    }
+
+    .about-story-body strong {
+      font-weight: 700;
+      color: var(--foreground);
+      opacity: 1;
+    }
+
+    :global([data-theme="dark"]) .about-story-body strong {
+      color: #ffffff;
+    }
+
+    .about-story-body em {
+      font-style: italic;
+    }
+
+    .about-story-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-start;
+      margin-top: 0.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .about-dual-layout {
+        grid-template-columns: 1fr;
+      }
+
+      /* Undo desktop column order so image stays on top on phones */
+      .about-dual-layout--reverse-desktop .about-dual-panel--media {
+        order: 1;
+      }
+
+      .about-dual-layout--reverse-desktop .about-dual-panel--story {
+        order: 2;
+      }
+
+      .about-dual-panel {
+        padding: 24px;
+      }
+
+      /* Image panel: no inner padding — photo should bleed to card edges */
+      .about-dual-panel.about-dual-panel--media {
+        padding: 0;
+      }
+
+      .about-dual-panel--media {
+        order: 1;
+      }
+
+      .about-dual-panel--story {
+        order: 2;
+        text-align: center;
+        align-items: center;
+      }
+
+      .about-story-body {
+        align-items: center;
+      }
+
+      .about-story-body p {
+        text-align: center;
+      }
+
+      .about-dual-media-frame {
+        flex: 0 0 auto;
+        width: 100%;
+        min-height: 0;
+        /* Portrait-friendly frame: image fills edge-to-edge (cover), no side gutters */
+        aspect-ratio: 4 / 5;
+        max-height: min(82vh, 700px);
+        border-radius: var(--radius-xl);
+        touch-action: manipulation;
+      }
+
+      .about-dual-media-img {
+        object-fit: cover;
+        object-position: center center;
+      }
+
+      .about-story-heading {
+        max-width: none;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .about-story-body p {
+        max-width: none;
+      }
+
+      .about-story-actions {
+        flex-wrap: nowrap;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      /* Content-sized like desktop — do not flex-grow: primary buttons use an
+         absolutely positioned icon pill; stretching the row breaks padding. */
+      :global(.about-story-actions .vp-btn) {
+        flex: 0 1 auto;
+        min-width: 0;
+        width: auto;
+      }
+    }
+
+    /* Phones only: third section buttons stacked; slightly smaller type on very narrow screens */
+    @media (max-width: 600px) {
+      .about-dual-panel {
+        padding: 20px;
+      }
+
+      .about-dual-panel.about-dual-panel--media {
+        padding: 0;
+      }
+
+      .about-story-actions.about-story-actions--stacked {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      :global(.about-story-actions--stacked .vp-btn) {
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 0;
+      }
+
+      :global(.about-story-actions .vp-btn) {
+        font-size: clamp(13px, 1.35vw, 16px);
+      }
+    }
+
     /* ── Reduced motion ── */
     @media (prefers-reduced-motion: reduce) {
       .about-island::before,
       .about-island::after,
       .about-island {
         animation: none !important;
+      }
+
+      .about-dual-layout {
+        animation: none;
       }
     }
   </style>

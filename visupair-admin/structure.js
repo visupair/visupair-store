@@ -103,14 +103,14 @@ export const structure = (S) =>
                                         .title('Products by Department')
                                         .items([
                                             // ==========================
-                                            // FASHION DESIGN
+                                            // GARMENTS (department: fashion)
                                             // ==========================
                                             S.listItem()
-                                                .title('Fashion Design')
+                                                .title('Garments')
                                                 .icon(ComposeIcon)
                                                 .child(
                                                     S.list()
-                                                        .title('Fashion Design Products')
+                                                        .title('Garments — products')
                                                         .items([
                                                             // Physical Products
                                                             S.listItem()
@@ -144,14 +144,14 @@ export const structure = (S) =>
                                                                         )
                                                                 ),
 
-                                                            // All Fashion Products
+                                                            // All garments (fashion department) products
                                                             S.divider(),
                                                             S.listItem()
-                                                                .title('All Fashion Products')
+                                                                .title('All Garments Products')
                                                                 .icon(PackageIcon)
                                                                 .child(
                                                                     S.documentList()
-                                                                        .title('All Fashion Products')
+                                                                        .title('All Garments Products')
                                                                         .filter('_type == "product" && department == "fashion"')
                                                                 ),
                                                         ])
@@ -292,7 +292,7 @@ export const structure = (S) =>
                                                         .title('Brand Identity Design Projects')
                                                         .filter('_type == "portfolioProject" && category->title match "Brand Identity Design*"')
                                                 ),
-                                            // Fashion Design
+                                            // Fashion Design (portfolio category — store uses “Garments” separately)
                                             S.listItem()
                                                 .title('Fashion Design')
                                                 .icon(ComposeIcon)

@@ -1,6 +1,6 @@
 ---
 import type { Product, Category } from "../lib/store-data";
-import type { Currency } from "../lib/server-currency";
+import { EUR_TO_PLN_RATE, type Currency } from "../lib/server-currency";
 import { slugify } from "../utils/slugs";
 import { urlFor } from "../lib/sanity";
 
@@ -11,6 +11,8 @@ interface Props {
     categoryMode?: boolean;
     categories?: Category[];
     serverCurrency?: Currency;
+    /** When set (e.g. `2` for favorites), use this many columns between ~641–1024px width. */
+    tabletGridColumns?: number;
 }
 
 const {
@@ -20,6 +22,7 @@ const {
     categoryMode = false,
     categories = [],
     serverCurrency,
+    tabletGridColumns,
 } = Astro.props;
 
 // Helper to generate placeholder image
@@ -52,7 +55,7 @@ const getProductGroups = (products: Product[]) => {
     // Detect section from the first product (assuming homogeneous list per page)
     const sectionId = products[0].categoryPath?.[0];
 
-    // Special Handling for Fashion Design (Physical vs Digital types)
+    // Garments section (fashion-design): physical vs digital product types
     if (sectionId === "fashion-design") {
         const physical = products.filter(
             (p) => !p.productType || p.productType === "physical",
@@ -103,14 +106,22 @@ const getProductGroups = (products: Product[]) => {
 const groups = getProductGroups(products);
 
 // Determine if we should show headers (if more than 1 group, OR specific sections that always want headers)
-// For Fashion, we previously checks mixed types. Now user wants specific separation.
+// Garments (fashion-design): mixed physical/digital handling when needed.
 const showHeaders = groups.length > 1;
 
 // However, for single-group lists in specific sections, we might still want the title if it's a specific subset?
 // Actually simpler: if title is present, show it. If we fallback to default, title is empty.
 ---
 
-<div class="product-grid-container">
+<div
+    class="product-grid-container"
+    data-tablet-cols={tabletGridColumns ?? undefined}
+    style={
+        tabletGridColumns != null
+            ? `--pg-tablet-cols: ${tabletGridColumns}`
+            : undefined
+    }
+>
     {
         products.length === 0 ? (
             <div class="empty-state">
@@ -130,13 +141,19 @@ const showHeaders = groups.length > 1;
                             )}
                         <div class="product-grid">
                             {group.products.map((product, index) => (
-                                <a
-                                    href={getProductLink(product)}
+                                <div
                                     class="product-card"
                                     data-product-id={product.id}
                                     style={`--animation-delay: ${index * 50}ms`}
                                     transition:name={`product-${product.id}`}
                                 >
+                                    <a
+                                        class="product-card-hit"
+                                        href={getProductLink(product)}
+                                        aria-label={`View ${product.name}`}
+                                    >
+                                    </a>
+                                    <div class="product-card-inner">
                                     <div class="product-image">
                                         <img
                                             src={
@@ -185,12 +202,18 @@ const showHeaders = groups.length > 1;
                                             <span
                                                 class="product-price product-price-grid"
                                                 data-price-eur={product.price}
-                                                data-price-pln={
-                                                    product.pricePLN ||
-                                                    Math.round(
-                                                        product.price * 4.3,
-                                                    )
-                                                }
+                                                data-price-pln={(
+                                                    typeof product.pricePLN ===
+                                                        "number" &&
+                                                    product.pricePLN > 0
+                                                        ? product.pricePLN
+                                                        : Math.round(
+                                                              Number(
+                                                                  product.price,
+                                                              ) *
+                                                                  EUR_TO_PLN_RATE,
+                                                          )
+                                                ).toFixed(2)}
                                                 data-server-currency={
                                                     serverCurrency || ""
                                                 }
@@ -198,11 +221,150 @@ const showHeaders = groups.length > 1;
                                                 €{product.price}
                                             </span>
                                         </div>
-                                        <p class="product-desc">
-                                            {product.description}
-                                        </p>
+                                        <div class="product-desc-row">
+                                            <p class="product-desc">
+                                                {product.description}
+                                            </p>
+                                            {product.inStock !== false && (
+                                                <button
+                                                    type="button"
+                                                    class="grid-add-cart-btn"
+                                                    aria-label="Add to cart"
+                                                    data-product-id={product.id}
+                                                    data-product-url={getProductLink(
+                                                        product,
+                                                    )}
+                                                    data-product-name={
+                                                        product.name
+                                                    }
+                                                    data-product-type={
+                                                        product.productType ||
+                                                        "physical"
+                                                    }
+                                                    data-price-eur={product.price}
+                                                    data-price-pln={(
+                                                        typeof product.pricePLN ===
+                                                            "number" &&
+                                                        product.pricePLN > 0
+                                                            ? product.pricePLN
+                                                            : Math.round(
+                                                                  Number(
+                                                                      product.price,
+                                                                  ) *
+                                                                      EUR_TO_PLN_RATE,
+                                                              )
+                                                    ).toFixed(2)}
+                                                    data-product-image={
+                                                        product.mainImage
+                                                            ? urlFor(
+                                                                  product.mainImage,
+                                                              )
+                                                                  .width(400)
+                                                                  .url()
+                                                            : product.image ||
+                                                              ""
+                                                    }
+                                                    data-shipping-weight={
+                                                        product.shipping
+                                                            ?.weight ?? ""
+                                                    }
+                                                    data-shipping-length={
+                                                        product.shipping
+                                                            ?.length ?? ""
+                                                    }
+                                                    data-shipping-width={
+                                                        product.shipping
+                                                            ?.width ?? ""
+                                                    }
+                                                    data-shipping-height={
+                                                        product.shipping
+                                                            ?.height ?? ""
+                                                    }
+                                                    data-requires-size={
+                                                        product.sizes &&
+                                                        product.sizes.length > 0
+                                                            ? "true"
+                                                            : undefined
+                                                    }
+                                                    onclick="event.preventDefault(); event.stopPropagation();"
+                                                >
+                                                    <span
+                                                        class="grid-add-cart-btn__icons"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <svg
+                                                            class="grid-add-cart-btn__icon grid-add-cart-btn__icon--cart"
+                                                            width="16"
+                                                            height="16"
+                                                            viewBox="0 0 22 22"
+                                                            fill="currentColor"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                        >
+                                                            <path
+                                                                fill-rule="evenodd"
+                                                                clip-rule="evenodd"
+                                                                d="M10.9931 0C13.6631 0 15.8765 2.03316 16.1664 4.62858C16.1816 4.81653 16.1896 5.10071 16.1939 5.39511C16.1985 5.7138 16.4564 5.97161 16.7751 5.97161H17.936C19.2731 5.97161 20.386 6.97443 20.526 8.30511L21.9725 19.0918C22.0482 19.8231 21.81 20.557 21.317 21.1043C20.8235 21.6515 20.1188 21.9654 19.3824 21.9654H2.60384C1.8675 21.9653 1.16208 21.6521 0.669242 21.1055C0.175875 20.557 -0.0619183 19.8229 0.0138284 19.0918L1.46026 8.30511C1.60026 6.97398 2.71342 5.97186 4.05027 5.97161H5.21174C5.53047 5.97161 5.7883 5.71381 5.79277 5.39511C5.79689 5.10072 5.80466 4.81653 5.81989 4.62858C6.1098 2.03325 8.32334 0.00016274 10.9931 0ZM10.9931 1.73572C9.06591 1.73589 7.52171 3.27988 7.52171 5.20715V5.39304C7.52171 5.71258 7.78074 5.97161 8.10028 5.97161H13.886C14.2055 5.97161 14.4646 5.71258 14.4646 5.39304V5.20715C14.4646 3.27976 12.9205 1.73572 10.9931 1.73572Z"
+                                                            />
+                                                        </svg>
+                                                        <svg
+                                                            class="grid-add-cart-btn__icon grid-add-cart-btn__icon--plus"
+                                                            width="16"
+                                                            height="16"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
+                                                            <line
+                                                                x1="12"
+                                                                y1="5"
+                                                                x2="12"
+                                                                y2="19"
+                                                            />
+                                                            <line
+                                                                x1="5"
+                                                                y1="12"
+                                                                x2="19"
+                                                                y2="12"
+                                                            />
+                                                        </svg>
+                                                        <svg
+                                                            class="grid-add-cart-btn__icon grid-add-cart-btn__icon--check"
+                                                            width="16"
+                                                            height="16"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
+                                                            <polyline points="20 6 9 17 4 12" />
+                                                        </svg>
+                                                        <svg
+                                                            class="grid-add-cart-btn__icon grid-add-cart-btn__icon--trash"
+                                                            width="16"
+                                                            height="16"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <polyline points="3 6 5 6 21 6" />
+                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                        </svg>
+                                                    </span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                </a>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -297,8 +459,40 @@ const showHeaders = groups.length > 1;
         opacity: 0;
         animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         animation-delay: var(--animation-delay);
-        text-decoration: none;
-        position: relative; /* Ensure positioning context */
+        position: relative;
+    }
+
+    /* Full-card link behind content; buttons opt in with pointer-events: auto */
+    .product-card-hit {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        border-radius: inherit;
+        display: block;
+    }
+
+    .product-card-hit:focus {
+        outline: none;
+    }
+
+    .product-card-hit:focus-visible {
+        outline: 2px solid var(--brand-violet);
+        outline-offset: -2px;
+    }
+
+    .product-card-inner {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        pointer-events: none;
+    }
+
+    .product-card-inner .fav-btn,
+    .product-card-inner .grid-add-cart-btn {
+        pointer-events: auto;
     }
 
     .product-card:hover {
@@ -331,8 +525,8 @@ const showHeaders = groups.length > 1;
 
     .fav-btn {
         position: absolute;
-        top: 12px;
-        right: 12px;
+        top: 9px;
+        right: 9px;
         width: 32px;
         height: 32px;
         border-radius: 50%;
@@ -467,7 +661,7 @@ const showHeaders = groups.length > 1;
     }
 
     .product-info {
-        padding: 16px;
+        padding: 12px;
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -478,6 +672,196 @@ const showHeaders = groups.length > 1;
         justify-content: space-between;
         align-items: flex-start;
         gap: 8px;
+    }
+
+    .product-desc-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .product-desc-row .product-desc {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .product-desc-row .grid-add-cart-btn {
+        margin-top: 1px;
+        align-self: flex-start;
+    }
+
+    .grid-add-cart-btn {
+        width: 36px;
+        height: 36px;
+        aspect-ratio: 1;
+        padding: 0;
+        box-sizing: border-box;
+        border: 1px solid
+            color-mix(in srgb, var(--brand-violet) 42%, var(--border-subtle));
+        border-radius: var(--radius-md);
+        /* Slightly above card `--surface` so dark mode isn’t near-black like `--page-bg` */
+        background: var(--surface-muted);
+        color: var(--brand-violet);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition:
+            background 0.25s ease,
+            color 0.25s ease,
+            border-color 0.25s ease,
+            box-shadow 0.25s ease,
+            transform 0.15s ease;
+        box-shadow: 0 1px 2px rgba(15, 10, 40, 0.08);
+    }
+
+    .grid-add-cart-btn:hover:not(.grid-add-cart-btn--in-cart):not(
+            .grid-add-cart-btn--added
+        ) {
+        background: color-mix(
+            in srgb,
+            var(--brand-violet) 12%,
+            var(--surface-muted)
+        );
+        border-color: color-mix(in srgb, var(--brand-violet) 62%, var(--border-subtle));
+    }
+
+    .grid-add-cart-btn:hover {
+        transform: scale(1.04);
+    }
+
+    .grid-add-cart-btn:active {
+        transform: scale(0.96);
+    }
+
+    .grid-add-cart-btn__icons {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .grid-add-cart-btn__icon {
+        grid-area: 1 / 1;
+        transition:
+            opacity 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .grid-add-cart-btn__icon--plus,
+    .grid-add-cart-btn__icon--check,
+    .grid-add-cart-btn__icon--trash {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    .grid-add-cart-btn__icon--cart {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    @media (hover: hover) {
+        .grid-add-cart-btn:hover:not(.grid-add-cart-btn--in-cart):not(
+                .grid-add-cart-btn--added
+            )
+            .grid-add-cart-btn__icon--cart {
+            opacity: 0;
+            transform: scale(0.85);
+        }
+
+        .grid-add-cart-btn:hover:not(.grid-add-cart-btn--in-cart):not(
+                .grid-add-cart-btn--added
+            )
+            .grid-add-cart-btn__icon--plus {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .grid-add-cart-btn--added {
+        background: color-mix(in srgb, #22c55e 16%, var(--surface-muted));
+        color: #22c55e;
+        border-color: color-mix(in srgb, #22c55e 48%, var(--border-subtle));
+        pointer-events: none;
+        box-shadow: 0 1px 2px color-mix(in srgb, #22c55e 18%, transparent);
+    }
+
+    .grid-add-cart-btn--added .grid-add-cart-btn__icon--cart,
+    .grid-add-cart-btn--added .grid-add-cart-btn__icon--plus,
+    .grid-add-cart-btn--added .grid-add-cart-btn__icon--trash {
+        opacity: 0;
+    }
+
+    .grid-add-cart-btn--added .grid-add-cart-btn__icon--check {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* In cart: same outlined chip language as default, green check — not violet fill + cart */
+    .grid-add-cart-btn--in-cart {
+        background: color-mix(in srgb, #22c55e 12%, var(--surface-muted));
+        color: #22c55e;
+        border: 1px solid color-mix(in srgb, #22c55e 40%, var(--border-subtle));
+        box-shadow: 0 1px 2px color-mix(in srgb, #22c55e 12%, transparent);
+    }
+
+    /* Exclude both remove affordances — `:hover` can stick on touch and was overriding red trash */
+    .grid-add-cart-btn--in-cart:hover:not(
+            .grid-add-cart-btn--in-cart-remove
+        ):not(.grid-add-cart-btn--mobile-unveil-remove) {
+        background: color-mix(in srgb, #22c55e 18%, var(--surface-muted));
+        border-color: color-mix(in srgb, #22c55e 52%, var(--border-subtle));
+    }
+
+    .grid-add-cart-btn--in-cart .grid-add-cart-btn__icon--cart,
+    .grid-add-cart-btn--in-cart .grid-add-cart-btn__icon--plus,
+    .grid-add-cart-btn--in-cart .grid-add-cart-btn__icon--trash {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .grid-add-cart-btn--in-cart .grid-add-cart-btn__icon--check {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: none;
+    }
+
+    /* Desktop: hover adds --in-cart-remove. Touch: --mobile-unveil-remove after delay. */
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--in-cart-remove,
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--mobile-unveil-remove {
+        background: color-mix(in srgb, #ef4444 14%, var(--surface-muted));
+        color: #dc2626;
+        border: 1px solid
+            color-mix(in srgb, #ef4444 45%, var(--border-subtle));
+        box-shadow: 0 1px 2px color-mix(in srgb, #ef4444 14%, transparent);
+    }
+
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--in-cart-remove
+        .grid-add-cart-btn__icon--check,
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--mobile-unveil-remove
+        .grid-add-cart-btn__icon--check {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--in-cart-remove
+        .grid-add-cart-btn__icon--plus,
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--mobile-unveil-remove
+        .grid-add-cart-btn__icon--plus {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--in-cart-remove
+        .grid-add-cart-btn__icon--trash,
+    .grid-add-cart-btn--in-cart.grid-add-cart-btn--mobile-unveil-remove
+        .grid-add-cart-btn__icon--trash {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: none;
     }
 
     .product-name {
@@ -498,14 +882,15 @@ const showHeaders = groups.length > 1;
         color: var(--foreground);
         font-size: 13px;
         opacity: 0.6;
-        margin: 4px 0 0 0;
+        margin: 0;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
 
-    @media (max-width: 768px) {
+    /* Phones — two columns everywhere */
+    @media (max-width: 640px) {
         .product-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 16px;
@@ -516,7 +901,76 @@ const showHeaders = groups.length > 1;
         }
     }
 
-    @media (max-width: 380px) {
+    /*
+     * Tablet — explicit columns so the shop doesn’t collapse to 1-up with auto-fill.
+     * 641–833px: 2 columns (iPad mini / smaller tablets).
+     * 834–1024px: 3 columns (iPad Pro 11" portrait = 834pt, 12.9" = 1024pt).
+     */
+    @media (min-width: 641px) and (max-width: 1024px) {
+        .product-grid-container:not([data-tablet-cols]) .product-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .product-grid-container:not([data-tablet-cols]) {
+            padding: 16px;
+        }
+
+        .product-grid-container:not([data-tablet-cols]) .product-card {
+            min-width: 0;
+        }
+
+        /* Favorites / explicit `tabletGridColumns` */
+        .product-grid-container[data-tablet-cols] .product-grid {
+            grid-template-columns: repeat(
+                var(--pg-tablet-cols, 2),
+                minmax(0, 1fr)
+            );
+            gap: 12px;
+        }
+
+        .product-grid-container[data-tablet-cols] {
+            padding: 16px;
+        }
+
+        .product-grid-container[data-tablet-cols] .product-card {
+            min-width: 0;
+        }
+
+        .product-grid-container[data-tablet-cols] .product-name {
+            font-size: 14px;
+        }
+
+        .product-grid-container[data-tablet-cols] .product-price {
+            font-size: 14px;
+        }
+
+        .product-grid-container[data-tablet-cols] .product-info {
+            padding: 12px;
+        }
+
+        .product-grid-container[data-tablet-cols] .product-desc {
+            font-size: 12px;
+            -webkit-line-clamp: 2;
+        }
+
+        .product-grid-container[data-tablet-cols] .grid-add-cart-btn {
+            width: 32px;
+            height: 32px;
+        }
+    }
+
+    @media (min-width: 834px) and (max-width: 1024px) {
+        .product-grid-container:not([data-tablet-cols]) .product-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .product-grid-container[data-tablet-cols] .product-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 430px) {
         .product-row {
             flex-direction: column;
             gap: 2px;
@@ -556,6 +1010,11 @@ const showHeaders = groups.length > 1;
         color: var(--brand-violet);
         background: color-mix(in srgb, var(--brand-violet), transparent 55%);
     }
+
+    /* Quick add — keep icon colors correct after view transitions */
+    .grid-add-cart-btn {
+        -webkit-tap-highlight-color: transparent;
+    }
 </style>
 
 <script>
@@ -564,6 +1023,186 @@ const showHeaders = groups.length > 1;
         toggleFavorite,
         initFavorites,
     } from "../lib/favoritesStore";
+    import {
+        cartStore,
+        initCart,
+        addToCart,
+        isProductInCartAnySize,
+        removeAllLinesForProduct,
+    } from "../lib/cartStore";
+
+    function supportsFineHover(): boolean {
+        return window.matchMedia("(hover: hover)").matches;
+    }
+
+    /** Phones / touch-primary UI (`hover: none`) — no hover-to-reveal remove. */
+    function isTouchPrimaryUi(): boolean {
+        return window.matchMedia("(hover: none)").matches;
+    }
+
+    const MOBILE_REMOVE_UNVEIL_MS = 1000;
+
+    function clearMobileRemoveUnveil(btn: HTMLButtonElement) {
+        const t = (btn as any).__mobileRemoveUnveilTimer as
+            | ReturnType<typeof setTimeout>
+            | undefined;
+        if (t != null) window.clearTimeout(t);
+        (btn as any).__mobileRemoveUnveilTimer = undefined;
+        btn.classList.remove("grid-add-cart-btn--mobile-unveil-remove");
+    }
+
+    function scheduleMobileRemoveUnveil(btn: HTMLButtonElement) {
+        clearMobileRemoveUnveil(btn);
+        if (!isTouchPrimaryUi()) return;
+        if (!btn.classList.contains("grid-add-cart-btn--in-cart")) return;
+        (btn as any).__mobileRemoveUnveilTimer = window.setTimeout(() => {
+            (btn as any).__mobileRemoveUnveilTimer = undefined;
+            if (!btn.classList.contains("grid-add-cart-btn--in-cart")) return;
+            btn.classList.add("grid-add-cart-btn--mobile-unveil-remove");
+            btn.setAttribute("aria-label", "Remove from cart");
+        }, MOBILE_REMOVE_UNVEIL_MS);
+    }
+
+    function updateGridCartButtons() {
+        document.querySelectorAll(".grid-add-cart-btn").forEach((el) => {
+            const btn = el as HTMLButtonElement;
+            const id = btn.dataset.productId;
+            if (!id) return;
+            if (btn.classList.contains("grid-add-cart-btn--added")) return;
+
+            const needsSize = btn.dataset.requiresSize === "true";
+            if (isProductInCartAnySize(id)) {
+                const wasInCart = btn.classList.contains(
+                    "grid-add-cart-btn--in-cart",
+                );
+                btn.classList.add("grid-add-cart-btn--in-cart");
+                btn.classList.remove("grid-add-cart-btn--in-cart-remove");
+                btn.setAttribute("aria-label", "In cart — view cart");
+                if (!wasInCart) {
+                    scheduleMobileRemoveUnveil(btn);
+                }
+            } else {
+                clearMobileRemoveUnveil(btn);
+                btn.classList.remove("grid-add-cart-btn--in-cart");
+                btn.classList.remove("grid-add-cart-btn--in-cart-remove");
+                btn.setAttribute(
+                    "aria-label",
+                    needsSize
+                        ? "View product to choose options"
+                        : "Add to cart",
+                );
+            }
+        });
+    }
+
+    function handleGridCartBtnPointerEnter(e: Event) {
+        const btn = e.currentTarget as HTMLButtonElement;
+        if (!btn.classList.contains("grid-add-cart-btn--in-cart")) return;
+        if (!supportsFineHover()) return;
+        btn.classList.add("grid-add-cart-btn--in-cart-remove");
+        btn.setAttribute("aria-label", "Remove from cart");
+    }
+
+    function handleGridCartBtnPointerLeave(e: Event) {
+        const btn = e.currentTarget as HTMLButtonElement;
+        btn.classList.remove("grid-add-cart-btn--in-cart-remove");
+        if (btn.classList.contains("grid-add-cart-btn--in-cart")) {
+            btn.setAttribute("aria-label", "In cart — view cart");
+        }
+    }
+
+    function handleGridAddCartClick(e: Event) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const btn = e.currentTarget as HTMLButtonElement;
+        const productId = btn.dataset.productId || "";
+        const productUrl = btn.dataset.productUrl || "/store";
+
+        if (btn.classList.contains("grid-add-cart-btn--in-cart")) {
+            if (
+                supportsFineHover() &&
+                btn.classList.contains("grid-add-cart-btn--in-cart-remove")
+            ) {
+                removeAllLinesForProduct(productId);
+                btn.classList.remove("grid-add-cart-btn--in-cart-remove");
+                clearMobileRemoveUnveil(btn);
+                return;
+            }
+            if (
+                isTouchPrimaryUi() &&
+                btn.classList.contains(
+                    "grid-add-cart-btn--mobile-unveil-remove",
+                )
+            ) {
+                removeAllLinesForProduct(productId);
+                clearMobileRemoveUnveil(btn);
+                return;
+            }
+            window.location.href = "/cart";
+            return;
+        }
+
+        initCart();
+
+        const needsSize = btn.dataset.requiresSize === "true";
+        if (needsSize) {
+            if (isProductInCartAnySize(productId)) {
+                window.location.href = "/cart";
+            } else {
+                window.location.href = productUrl;
+            }
+            return;
+        }
+
+        if (btn.classList.contains("grid-add-cart-btn--added")) return;
+
+        const productType = (btn.dataset.productType || "physical") as
+            | "physical"
+            | "digital";
+        const shippingWeight = parseFloat(btn.dataset.shippingWeight || "0");
+        const shippingLength = parseFloat(btn.dataset.shippingLength || "0");
+        const shippingWidth = parseFloat(btn.dataset.shippingWidth || "0");
+        const shippingHeight = parseFloat(btn.dataset.shippingHeight || "0");
+        const hasShipping =
+            productType === "physical" &&
+            shippingWeight > 0 &&
+            shippingLength > 0 &&
+            shippingWidth > 0 &&
+            shippingHeight > 0;
+
+        const added = addToCart({
+            productId,
+            name: btn.dataset.productName || "",
+            price: parseFloat(btn.dataset.priceEur || "0"),
+            pricePLN: parseFloat(btn.dataset.pricePln || "0"),
+            image: btn.dataset.productImage || "",
+            productType,
+            selectedSize: undefined,
+            shipping: hasShipping
+                ? {
+                      weight: shippingWeight,
+                      length: shippingLength,
+                      width: shippingWidth,
+                      height: shippingHeight,
+                  }
+                : undefined,
+        });
+
+        if (added) {
+            btn.classList.add("grid-add-cart-btn--added");
+            window.setTimeout(() => {
+                btn.classList.remove("grid-add-cart-btn--added");
+                btn.classList.add("grid-add-cart-btn--in-cart");
+                btn.setAttribute("aria-label", "In cart — view cart");
+                scheduleMobileRemoveUnveil(btn);
+            }, 900);
+        } else {
+            btn.classList.add("grid-add-cart-btn--in-cart");
+            btn.setAttribute("aria-label", "In cart — view cart");
+            scheduleMobileRemoveUnveil(btn);
+        }
+    }
 
     // Logic to update all buttons based on store state
     function updateButtons(favorites: readonly string[]) {
@@ -606,16 +1245,19 @@ const showHeaders = groups.length > 1;
     // Subscribe to store changes globally (runs once per session)
     // This ensures that when the store updates (e.g. via toggle), the UI updates.
     favoritesStore.subscribe(updateButtons);
+    cartStore.subscribe(updateGridCartButtons);
 
     // --- Page Load Handling (View Transitions) ---
     // This runs on initial load AND after every navigation
     document.addEventListener("astro:page-load", () => {
         // 1. Initialize data
         initFavorites();
+        initCart();
 
         // 2. Apply current store state to the new DOM elements
         // (Subscription callback doesn't auto-run for new DOM unless store changes)
         updateButtons(favoritesStore.get());
+        updateGridCartButtons();
 
         // 3. Attach Event Listeners
         const buttons = document.querySelectorAll(".fav-btn");
@@ -623,6 +1265,15 @@ const showHeaders = groups.length > 1;
             // Remove old listeners just in case (though usually new DOM nodes)
             btn.removeEventListener("click", handleFavoriteClick);
             btn.addEventListener("click", handleFavoriteClick);
+        });
+
+        document.querySelectorAll(".grid-add-cart-btn").forEach((el) => {
+            el.removeEventListener("click", handleGridAddCartClick);
+            el.addEventListener("click", handleGridAddCartClick);
+            el.removeEventListener("pointerenter", handleGridCartBtnPointerEnter);
+            el.addEventListener("pointerenter", handleGridCartBtnPointerEnter);
+            el.removeEventListener("pointerleave", handleGridCartBtnPointerLeave);
+            el.addEventListener("pointerleave", handleGridCartBtnPointerLeave);
         });
 
         // 4. Currency Logic

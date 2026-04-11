@@ -27,7 +27,7 @@ export default defineType({
             type: 'string',
             options: {
                 list: [
-                    { title: 'Fashion Design', value: 'fashion' },
+                    { title: 'Garments', value: 'fashion' },
                     { title: '3D Models', value: '3d-models' },
                     { title: 'Artworks', value: 'artworks' },
                 ],

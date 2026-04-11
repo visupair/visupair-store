@@ -37,8 +37,8 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
                 src={cat.image}
                 alt={cat.title}
                 class="cc-slide__img"
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchpriority={i === 0 ? "high" : "auto"}
+                loading="lazy"
+                decoding="async"
                 draggable="false"
               />
               <div class="cc-slide__overlay" />
@@ -131,7 +131,8 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
         let busy = false; // animation lock
         let dragging = false;
         let dragStartX = 0;
-        let didDrag = false;
+        /** True only after a real horizontal swipe that changed the slide */
+        let suppressClickFromSwipe = false;
         let autoplayId: ReturnType<typeof setInterval> | null = null;
         let safetyTimer: ReturnType<typeof setTimeout> | null = null;
         const ac = new AbortController();
@@ -262,17 +263,8 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
           (e) => {
             if (e.button !== 0) return;
             dragging = true;
-            didDrag = false;
+            suppressClickFromSwipe = false;
             dragStartX = e.clientX;
-          },
-          { signal: sig },
-        );
-
-        document.addEventListener(
-          "pointermove",
-          (e) => {
-            if (!dragging) return;
-            if (Math.abs(e.clientX - dragStartX) > 10) didDrag = true;
           },
           { signal: sig },
         );
@@ -284,21 +276,21 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
             dragging = false;
             const diff = dragStartX - e.clientX;
             if (Math.abs(diff) > 50) {
-              didDrag = true;
+              suppressClickFromSwipe = true;
               move(diff > 0 ? 1 : -1);
             }
           },
           { signal: sig },
         );
 
-        // Prevent link click after drag
+        // Swallow the synthetic click only after a real swipe (not small pointer jitter)
         track.addEventListener(
           "click",
           (e) => {
-            if (didDrag) {
+            if (suppressClickFromSwipe) {
               e.preventDefault();
               e.stopPropagation();
-              didDrag = false;
+              suppressClickFromSwipe = false;
             }
           },
           { signal: sig, capture: true },

@@ -6,6 +6,10 @@ import {
     getPortfolioCategories,
     getPortfolioProject,
 } from "../../../../lib/portfolio";
+import {
+    metaDescriptionFromPortfolioBody,
+    portfolioProjectCanonicalPath,
+} from "../../../../lib/portfolio-seo";
 
 export const prerender = false;
 
@@ -33,9 +37,25 @@ if (item.categorySlug !== categoryId) {
 
 // Calculate back link - return to category view
 const backLink = `/portfolio/category/${categoryId}`;
+
+const detailMetaFallback = `${item.title} — Visupair portfolio project.`;
+const detailDescription = metaDescriptionFromPortfolioBody(
+    item.description,
+    detailMetaFallback,
+);
+const detailCanonical = portfolioProjectCanonicalPath(item);
+const detailOgImage =
+    typeof item.mainImage === "string" && item.mainImage.trim()
+        ? item.mainImage.trim()
+        : undefined;
 ---
 
-<Layout title={`${item.title} | Portfolio | Visupair`}>
+<Layout
+    title={`${item.title} | Portfolio | Visupair`}
+    description={detailDescription}
+    canonicalURL={detailCanonical}
+    ogImage={detailOgImage}
+>
     <div class="portfolio-layout">
         <div transition:persist="portfolio-sidebar">
             <PortfolioSidebar
@@ -62,8 +82,8 @@ const backLink = `/portfolio/category/${categoryId}`;
         .portfolio-layout {
             flex-direction: column;
             height: auto;
-            padding: 0 16px;
-            gap: 16px;
+            padding: 0 12px;
+            gap: 12px;
         }
     }
 </style>

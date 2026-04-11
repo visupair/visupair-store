@@ -1,6 +1,9 @@
 ---
 import type { PortfolioItem } from "../lib/store-data";
-import { urlFor } from "../lib/sanity-image";
+import {
+    urlForDetailGalleryPreview,
+    urlForFullscreen,
+} from "../lib/sanity-image";
 
 interface Props {
     item: PortfolioItem;
@@ -8,6 +11,21 @@ interface Props {
 }
 
 const { item, backLink = "/portfolio" } = Astro.props;
+
+const projectDisplayName = item.title || item.name || "Project";
+
+function videoIframeAccessibleTitle(
+    cmsTitle: string | undefined | null,
+    indexZeroBased: number,
+    totalVideos: number,
+): string {
+    const fromCms = typeof cmsTitle === "string" ? cmsTitle.trim() : "";
+    if (fromCms) return fromCms;
+    if (totalVideos > 1) {
+        return `Video: ${projectDisplayName} (${indexZeroBased + 1} of ${totalVideos})`;
+    }
+    return `Video: ${projectDisplayName}`;
+}
 
 // Helper to convert YouTube URLs to embed URLs
 const convertYouTubeToEmbed = (url: string): string => {
@@ -39,55 +57,63 @@ interface GalleryItem {
     type: "video";
     url: string;
     embedUrl: string;
+    iframeTitle: string;
 }
 
 interface ImageItem {
     type: "image";
     url: string;
+    fullscreenUrl: string;
 }
 
 type GalleryContent = GalleryItem | ImageItem;
 
 const galleryItems: GalleryContent[] = [];
 
-// Add videos first (if any)
-if (item.youtubeVideos && item.youtubeVideos.length > 0) {
-    item.youtubeVideos.forEach((video) => {
-        if (video.url) {
-            galleryItems.push({
-                type: "video",
-                url: video.url,
-                embedUrl: convertYouTubeToEmbed(video.url),
-            });
-        }
-    });
-}
-
-// Legacy support: if old youtubeUrl exists and no new videos
-if (!item.youtubeVideos || item.youtubeVideos.length === 0) {
-    if (item.youtubeUrl) {
+const videosFromCms = (item.youtubeVideos ?? []).filter((v) => v.url);
+if (videosFromCms.length > 0) {
+    videosFromCms.forEach((video, idx) => {
         galleryItems.push({
             type: "video",
-            url: item.youtubeUrl,
-            embedUrl: convertYouTubeToEmbed(item.youtubeUrl),
+            url: video.url,
+            embedUrl: convertYouTubeToEmbed(video.url),
+            iframeTitle: videoIframeAccessibleTitle(
+                video.title,
+                idx,
+                videosFromCms.length,
+            ),
         });
-    }
+    });
+} else if (item.youtubeUrl) {
+    galleryItems.push({
+        type: "video",
+        url: item.youtubeUrl,
+        embedUrl: convertYouTubeToEmbed(item.youtubeUrl),
+        iframeTitle: videoIframeAccessibleTitle(undefined, 0, 1),
+    });
 }
 
-// Add images after videos
-const images =
-    item.gallery && item.gallery.length > 0
-        ? item.gallery.map((img: any) => urlFor(img).width(1200).url())
-        : item.mainImage
-          ? [urlFor(item.mainImage).width(1200).url()]
-          : [0, 1, 2].map((i) => getPlaceholderImage(item.title || "Project", i));
-
-images.forEach((imageUrl) => {
+// Add images after videos (preview = optimized; fullscreen = full Sanity resolution)
+if (item.gallery && item.gallery.length > 0) {
+    item.gallery.forEach((img: any) => {
+        galleryItems.push({
+            type: "image",
+            url: urlForDetailGalleryPreview(img),
+            fullscreenUrl: urlForFullscreen(img),
+        });
+    });
+} else if (item.mainImage) {
     galleryItems.push({
         type: "image",
-        url: imageUrl,
+        url: urlForDetailGalleryPreview(item.mainImage),
+        fullscreenUrl: urlForFullscreen(item.mainImage),
     });
-});
+} else {
+    [0, 1, 2].forEach((i) => {
+        const ph = getPlaceholderImage(item.title || "Project", i);
+        galleryItems.push({ type: "image", url: ph, fullscreenUrl: ph });
+    });
+}
 
 // ── CTA mapping: portfolio category → service/store page ──
 const categorySlug = (item.categorySlug || "").toLowerCase();
@@ -111,7 +137,6 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
 ---
 
 <div class="portfolio-detail-panel" id="portfolio-detail-panel">
-    <!-- Close Button -->
     <a href={backLink} class="detail-close-btn" aria-label="Close">
         <svg
             width="24"
@@ -132,13 +157,13 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         <!-- Left: Gallery (Videos + Images) -->
         <div class="detail-gallery-column">
             {
-                galleryItems.map((item, idx) => (
-                    item.type === "video" ? (
+                galleryItems.map((entry, idx) =>
+                    entry.type === "video" ? (
                         <div class="detail-video-item">
                             <div class="detail-video-container">
                                 <iframe
-                                    src={item.embedUrl}
-                                    title="YouTube video player"
+                                    src={entry.embedUrl}
+                                    title={entry.iframeTitle}
                                     frameborder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                     referrerpolicy="strict-origin-when-cross-origin"
@@ -147,15 +172,19 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
                             </div>
                         </div>
                     ) : (
-                        <div class="detail-large-image" data-index={idx}>
+                        <div
+                            class="detail-large-image detail-large-image--image"
+                            data-index={idx}
+                        >
                             <img
-                                src={item.url}
-                                alt={`${item.type} ${idx + 1}`}
+                                src={entry.url}
+                                data-fullscreen-src={entry.fullscreenUrl}
+                                alt={`${item.title} — image ${idx + 1}`}
                                 loading="lazy"
                             />
                         </div>
-                    )
-                ))
+                    ),
+                )
             }
         </div>
 
@@ -210,9 +239,9 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
                     )
                 }
 
-                <!-- Featured -->
+                <!-- Featured (Sanity field: isFeatured) -->
                 {
-                    item.featured && (
+                    (item.isFeatured || item.featured) && (
                         <div class="featured-badge">
                             <svg
                                 width="16"
@@ -298,6 +327,8 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         z-index: 50;
         transition: all 0.2s;
         flex-shrink: 0;
+        text-decoration: none;
+        box-sizing: border-box;
     }
 
     .detail-close-btn:hover {
@@ -335,7 +366,20 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         border: 1px solid var(--border-subtle);
         flex-shrink: 0;
         cursor: zoom-in;
-        transition: transform 0.2s;
+        transition:
+            transform 0.2s,
+            opacity 0.4s ease-out;
+    }
+
+    /* Hide border/frame flash until Sanity image has pixels */
+    .detail-large-image--image:not(.is-loaded) {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .detail-large-image--image.is-loaded {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .detail-large-image:hover {
@@ -347,6 +391,14 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         width: 100%;
         height: auto;
         object-fit: cover;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .detail-large-image--image:not(.is-loaded) {
+            opacity: 1;
+            pointer-events: auto;
+            transition: transform 0.2s;
+        }
     }
 
     .detail-info-column {
@@ -374,15 +426,19 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
     .detail-header {
         border-bottom: 1px solid var(--border-subtle);
         padding-bottom: 20px;
-        padding-right: 40px;
+        padding-right: 0;
     }
 
     .detail-title {
-        font-size: 32px;
+        font-size: clamp(1.35rem, 4vw + 0.65rem, 2rem);
         font-weight: 700;
-        line-height: 1.1;
-        margin-bottom: 8px;
+        line-height: 1.2;
+        margin: 0 0 8px;
         color: var(--foreground);
+        overflow-wrap: break-word;
+        word-break: break-word;
+        hyphens: auto;
+        text-wrap: balance;
     }
 
     .detail-year {
@@ -402,9 +458,9 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
     .detail-video-item {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0;
         width: 100%;
-        background: var(--surface-muted);
+        background: #0a0a0c;
         border: 1px solid var(--border-subtle);
         border-radius: var(--radius-lg);
         overflow: hidden;
@@ -416,7 +472,7 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         width: 100%;
         padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
         height: 0;
-        background: black;
+        background: #000;
         flex-shrink: 0;
         margin: 0;
     }
@@ -428,6 +484,7 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
         width: 100%;
         height: 100%;
         border: none;
+        display: block;
     }
 
     .detail-section-title {
@@ -595,15 +652,20 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
 
         .detail-gallery-column {
             width: 100%;
-            padding: 0;
-            gap: 0;
+            padding: 16px 12px 20px;
+            gap: 16px;
             border-right: none;
             border-bottom: 1px solid var(--border-subtle);
+            box-sizing: border-box;
+        }
+
+        .detail-video-item {
+            border-radius: var(--radius-lg);
         }
 
         .detail-large-image {
-            border-radius: 0;
-            border: none;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
         }
 
         .detail-info-column {
@@ -611,20 +673,56 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
             width: 100%;
             position: static;
         }
+
+        .detail-info-content {
+            padding: 24px 16px 32px;
+            gap: 20px;
+        }
+
+        .detail-header {
+            padding-bottom: 16px;
+        }
+
+        .detail-title {
+            font-size: clamp(1.2rem, 3.6vw + 0.85rem, 1.75rem);
+        }
+
+        .detail-year {
+            font-size: 15px;
+        }
     }
 </style>
 
 <script>
+    function markDetailGalleryImagesLoaded(root: ParentNode = document) {
+        root.querySelectorAll(".detail-large-image--image img").forEach((img) => {
+            const wrap = img.closest(".detail-large-image--image");
+            if (!wrap) return;
+            const done = () => wrap.classList.add("is-loaded");
+            if (img instanceof HTMLImageElement && img.complete && img.naturalHeight > 0) {
+                done();
+            } else {
+                img.addEventListener("load", done, { once: true });
+                img.addEventListener("error", done, { once: true });
+            }
+        });
+    }
+
     const initPortfolioDetail = () => {
+        const panel = document.getElementById("portfolio-detail-panel");
+        markDetailGalleryImagesLoaded(panel ?? document);
+
         const galleryImages = document.querySelectorAll(".detail-large-image");
 
         if (!galleryImages.length) return;
 
         // Get Image URLs from DOM (excluding videos)
         const galleryImageUrls = Array.from(galleryImages).map((div) => {
-            const img = div.querySelector("img");
-            return img ? img.src : "";
-        }).filter(url => url); // Filter out empty URLs
+            const img = div.querySelector("img") as HTMLImageElement | null;
+            if (!img) return "";
+            const full = img.dataset.fullscreenSrc?.trim();
+            return full || img.src;
+        }).filter((url) => url);
 
         const projectTitle =
             document.querySelector(".detail-title")?.textContent || "Gallery";

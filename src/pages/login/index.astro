@@ -3,15 +3,62 @@ import Layout from "../../layouts/Layout.astro";
 ---
 
 <Layout title="Sign In - Visupair">
+  <Fragment slot="head">
+    <script is:inline>
+      (function () {
+        try {
+          var t = window.visupairGetTheme
+            ? window.visupairGetTheme()
+            : "dark";
+          function preload(href) {
+            var l = document.createElement("link");
+            l.rel = "preload";
+            l.as = "image";
+            l.type = "image/webp";
+            l.href = href;
+            document.head.appendChild(l);
+          }
+          preload("/images/hero/login-" + t + ".webp");
+        } catch (e) {}
+      })();
+    </script>
+  </Fragment>
+
   <div class="auth-layout">
     <!-- Left Visual Island -->
     <div class="auth-visual-side">
-      <div class="auth-quote">
-        <h1>Digital Craft <br /> Marketplace.</h1>
-        <p>
-          Join the community of creators, designers and innovators. Build your
-          portfolio with Visupair.
-        </p>
+      <div class="auth-visual-inner">
+        <div class="auth-quote">
+          <h1>Digital Craft <br /> Marketplace.</h1>
+          <p>
+            Join the community of creators, designers and innovators. Build your
+            portfolio with Visupair.
+          </p>
+        </div>
+
+        <div class="auth-visual-figure" aria-hidden="true">
+          <img
+            id="auth-hero-visual"
+            class="auth-hero-img"
+            alt=""
+            width="800"
+            height="800"
+            loading="eager"
+            decoding="async"
+            draggable="false"
+          />
+        </div>
+        <script is:inline>
+          (function () {
+            try {
+              var t = window.visupairGetTheme
+                ? window.visupairGetTheme()
+                : "dark";
+              var img = document.getElementById("auth-hero-visual");
+              if (img) img.src = "/images/hero/login-" + t + ".webp";
+            } catch (e) {}
+          })();
+        </script>
       </div>
     </div>
 
@@ -125,6 +172,33 @@ import Layout from "../../layouts/Layout.astro";
                 </svg>
               </button>
             </div>
+
+            <div
+              id="signup-password-extra"
+              class="signup-password-extra"
+              style="display: none;"
+            >
+              <p class="password-requirements">
+                Use at least <strong>8 characters</strong>.
+              </p>
+              <div
+                class="password-strength-panel"
+                id="password-strength-panel"
+                aria-live="polite"
+              >
+                <div class="strength-track">
+                  <div
+                    class="strength-fill tier-none"
+                    id="signup-strength-fill"
+                  >
+                  </div>
+                </div>
+                <div class="strength-label-row">
+                  <span class="strength-label" id="signup-strength-label"></span>
+                </div>
+              </div>
+            </div>
+
             <div class="password-footer">
               <span class="error-message" id="password-error"></span>
               <a
@@ -171,66 +245,205 @@ import Layout from "../../layouts/Layout.astro";
     }
   }
 
-  /* Left Visual Island */
-  .auth-visual-side {
-    flex: 1;
-    background: linear-gradient(135deg, #1a1635 0%, #2a2442 100%);
-    border-radius: var(--radius-xl);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 60px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-subtle);
+  @keyframes loginBlobDrift1 {
+    0% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    20% {
+      transform: translate(-12%, 18%) scale(1.08);
+    }
+    45% {
+      transform: translate(8%, -20%) scale(1.04);
+    }
+    70% {
+      transform: translate(-18%, -8%) scale(1.12);
+    }
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
   }
 
-  /* Abstract Art Elements */
-  .auth-visual-side::before {
-    content: "";
-    position: absolute;
-    top: -20%;
-    right: -20%;
-    width: 80%;
-    height: 80%;
-    background: radial-gradient(
-      circle,
-      var(--brand-violet) 0%,
-      transparent 70%
-    );
-    opacity: 0.15;
-    filter: blur(60px);
+  @keyframes loginBlobDrift2 {
+    0% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    25% {
+      transform: translate(15%, -15%) scale(1.06);
+    }
+    55% {
+      transform: translate(-10%, 20%) scale(1.1);
+    }
+    80% {
+      transform: translate(12%, 10%) scale(1.04);
+    }
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
   }
+
+  @keyframes authVisualFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Left visual island — same treatment as contact page (light surface / dark + drifting blobs) */
+  .auth-visual-side {
+    flex: 1;
+    min-height: 0;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 100px rgba(0, 0, 0, 0.02),
+      var(--shadow-island);
+    transition: box-shadow 0.4s ease;
+    animation: authVisualFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
+  }
+
+  :global([data-theme="dark"]) .auth-visual-side {
+    box-shadow:
+      inset 0 0 100px rgba(0, 0, 0, 0.2),
+      var(--shadow-island);
+  }
+
+  .auth-visual-side::before,
   .auth-visual-side::after {
     content: "";
     position: absolute;
-    bottom: -10%;
-    left: -10%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, var(--brand-lime) 0%, transparent 70%);
-    opacity: 0.1;
-    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    will-change: transform;
+  }
+
+  .auth-visual-side::before {
+    top: -60%;
+    right: -40%;
+    width: clamp(520px, 95vw, 1400px);
+    aspect-ratio: 1;
+    background: transparent;
+  }
+
+  .auth-visual-side::after {
+    bottom: -50%;
+    left: -35%;
+    width: clamp(480px, 85vw, 1200px);
+    aspect-ratio: 1;
+    background: transparent;
+  }
+
+  :global([data-theme="dark"]) .auth-visual-side::before {
+    background: radial-gradient(
+      closest-side,
+      rgba(163, 142, 255, 0.4) 0%,
+      rgba(163, 142, 255, 0.15) 35%,
+      rgba(163, 142, 255, 0.02) 70%,
+      rgba(163, 142, 255, 0) 100%
+    );
+    opacity: 0.5;
+    animation: loginBlobDrift1 22s infinite alternate ease-in-out;
+  }
+
+  :global([data-theme="dark"]) .auth-visual-side::after {
+    background: radial-gradient(
+      closest-side,
+      rgba(132, 128, 255, 0.35) 0%,
+      rgba(132, 128, 255, 0.12) 35%,
+      rgba(132, 128, 255, 0.02) 70%,
+      rgba(132, 128, 255, 0) 100%
+    );
+    opacity: 0.5;
+    animation: loginBlobDrift2 28s infinite alternate ease-in-out;
+  }
+
+  .auth-visual-inner {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: clamp(40px, 5vw, 60px) clamp(40px, 5vw, 60px) 0;
   }
 
   .auth-quote {
     position: relative;
-    z-index: 2;
-    color: #ffffff;
+    z-index: 1;
+    flex-shrink: 0;
     max-width: 400px;
+    color: var(--foreground);
   }
+
   .auth-quote h1 {
     font-size: 42px;
     font-weight: 700;
     line-height: 1.1;
-    margin-bottom: 20px;
+    margin: 0 0 20px 0;
     letter-spacing: -0.02em;
+    color: inherit;
   }
+
   .auth-quote p {
     font-size: 18px;
-    opacity: 0.7;
+    margin: 0;
     line-height: 1.6;
+    color: var(--foreground);
+    opacity: 0.65;
+  }
+
+  :global([data-theme="dark"]) .auth-quote,
+  :global([data-theme="dark"]) .auth-quote h1 {
+    color: #ffffff;
+  }
+
+  :global([data-theme="dark"]) .auth-quote p {
+    color: #ffffff;
+    opacity: 0.7;
+  }
+
+  .auth-visual-figure {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    align-self: stretch;
+    width: 100%;
+    margin-top: clamp(16px, 3vw, 28px);
+    pointer-events: none;
+  }
+
+  .auth-hero-img {
+    display: block;
+    width: min(130%, 760px);
+    max-width: none;
+    height: auto;
+    object-fit: contain;
+    object-position: bottom center;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .auth-visual-side::before,
+    .auth-visual-side::after {
+      animation: none !important;
+    }
+
+    .auth-visual-side {
+      animation: none;
+    }
   }
 
   /* Right Form Side */
@@ -361,14 +574,102 @@ import Layout from "../../layouts/Layout.astro";
     text-decoration: underline;
   }
 
+  .signup-password-extra {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 2px;
+    margin-bottom: 0;
+  }
+
+  .password-requirements {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.72;
+    color: var(--foreground);
+  }
+
+  .password-requirements strong {
+    font-weight: 600;
+    opacity: 1;
+  }
+
+  .password-strength-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .strength-track {
+    height: 4px;
+    background: var(--border-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .strength-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition:
+      width 0.25s ease,
+      background-color 0.25s ease;
+    background: var(--border-subtle);
+  }
+
+  .strength-fill.tier-none {
+    width: 8%;
+    background: var(--border-subtle);
+  }
+  .strength-fill.tier-weak {
+    width: 28%;
+    background: #f87171;
+  }
+  .strength-fill.tier-fair {
+    width: 55%;
+    background: #f59e0b;
+  }
+  .strength-fill.tier-good {
+    width: 78%;
+    background: #a3e635;
+  }
+  .strength-fill.tier-strong {
+    width: 100%;
+    background: #22c55e;
+  }
+
+  .strength-label-row {
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: left;
+    /* No min-height: empty label should not leave a large gap above the button */
+  }
+
+  .strength-label {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
   .password-footer {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
     margin-top: 4px;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     min-height: 18px;
+  }
+
+  /* Sign up: forgot link is hidden — tighter stack above the submit button */
+  .auth-form--signup .password-footer {
+    margin-top: 0;
+    margin-bottom: 4px;
+    min-height: 0;
+  }
+
+  .auth-form--signup .btn-primary {
+    margin-top: 4px;
   }
 
   .password-input-wrapper {
@@ -463,6 +764,8 @@ import Layout from "../../layouts/Layout.astro";
     font-size: 13px;
     color: #ef4444;
     display: block;
+    flex: 0 1 auto;
+    min-height: 0;
     height: 0;
     overflow: hidden;
     opacity: 0;
@@ -484,9 +787,11 @@ import Layout from "../../layouts/Layout.astro";
       height: auto;
     }
     .auth-visual-side {
-      min-height: 240px;
-      padding: 32px;
+      min-height: 260px;
       border-radius: var(--radius-xl);
+    }
+    .auth-visual-inner {
+      padding: 32px 32px 0;
     }
     .auth-quote h1 {
       font-size: 28px;
@@ -498,6 +803,8 @@ import Layout from "../../layouts/Layout.astro";
 </style>
 
 <script>
+  import { showVsToast } from "../../lib/vs-toast";
+
   const authForm = document.getElementById("auth-form") as HTMLFormElement;
   const toggleLink = document.getElementById("toggle-link");
   const authTitle = document.getElementById("auth-title");
@@ -523,10 +830,58 @@ import Layout from "../../layouts/Layout.astro";
   const lastNameError = document.getElementById("last-name-error");
   const emailError = document.getElementById("email-error");
   const passwordError = document.getElementById("password-error");
+  const signupPasswordExtra = document.getElementById("signup-password-extra");
+  const signupStrengthFill = document.getElementById("signup-strength-fill");
+  const signupStrengthLabel = document.getElementById("signup-strength-label");
 
   let isSignUp = false;
 
   const API_BASE = "/api/auth";
+
+  function scorePassword(password: string): number {
+    let s = 0;
+    if (password.length >= 8) s++;
+    if (password.length >= 12) s++;
+    if (/[A-Z]/.test(password)) s++;
+    if (/[a-z]/.test(password)) s++;
+    if (/\d/.test(password)) s++;
+    if (/[^A-Za-z0-9]/.test(password)) s++;
+    return s;
+  }
+
+  function renderSignupStrength(password: string) {
+    if (!signupStrengthFill || !signupStrengthLabel) return;
+
+    if (!password) {
+      signupStrengthFill.className = "strength-fill tier-none";
+      signupStrengthLabel.textContent = "";
+      return;
+    }
+
+    const score = scorePassword(password);
+    const tooShort = password.length < 8;
+
+    if (tooShort || score <= 2) {
+      signupStrengthFill.className = "strength-fill tier-weak";
+      signupStrengthLabel.textContent = "Too weak";
+      return;
+    }
+
+    if (score === 3) {
+      signupStrengthFill.className = "strength-fill tier-fair";
+      signupStrengthLabel.textContent = "Fair";
+      return;
+    }
+
+    if (score === 4) {
+      signupStrengthFill.className = "strength-fill tier-good";
+      signupStrengthLabel.textContent = "Good";
+      return;
+    }
+
+    signupStrengthFill.className = "strength-fill tier-strong";
+    signupStrengthLabel.textContent = "Strong";
+  }
 
   // Password visibility toggle
   const passwordToggle = document.getElementById("password-toggle");
@@ -553,6 +908,10 @@ import Layout from "../../layouts/Layout.astro";
     });
   }
 
+  passwordInput?.addEventListener("input", () => {
+    if (isSignUp) renderSignupStrength(passwordInput.value);
+  });
+
   // Clear all errors
   function clearErrors() {
     [emailInput, passwordInput, firstNameInput, lastNameInput].forEach(
@@ -577,13 +936,12 @@ import Layout from "../../layouts/Layout.astro";
     if (errorEl) errorEl.textContent = message;
   }
 
-  toggleLink?.addEventListener("click", (e) => {
-    e.preventDefault();
-    isSignUp = !isSignUp;
-    clearErrors();
+  /** Keep login / sign-up UI in sync with `isSignUp`. */
+  function applyAuthMode(nextIsSignUp: boolean) {
+    isSignUp = nextIsSignUp;
+    authForm?.classList.toggle("auth-form--signup", isSignUp);
 
     if (isSignUp) {
-      // Sign Up mode
       if (authTitle) authTitle.textContent = "Create an account";
       if (authSubtitle)
         authSubtitle.textContent =
@@ -594,12 +952,16 @@ import Layout from "../../layouts/Layout.astro";
       if (toggleText) toggleText.textContent = "Already have an account?";
       if (toggleLink) toggleLink.textContent = "Login";
       if (forgotPwd) forgotPwd.style.display = "none";
-
-      // Make name fields required for sign up
+      if (signupPasswordExtra) signupPasswordExtra.style.display = "flex";
+      if (passwordInput) {
+        passwordInput.minLength = 8;
+        passwordInput.placeholder = "At least 8 characters";
+        passwordInput.autocomplete = "new-password";
+      }
       if (firstNameInput) firstNameInput.required = true;
       if (lastNameInput) lastNameInput.required = true;
+      renderSignupStrength(passwordInput?.value || "");
     } else {
-      // Login mode
       if (authTitle) authTitle.textContent = "Welcome back";
       if (authSubtitle)
         authSubtitle.textContent = "Login with your Google account";
@@ -609,11 +971,22 @@ import Layout from "../../layouts/Layout.astro";
       if (toggleText) toggleText.textContent = "Don't have an account?";
       if (toggleLink) toggleLink.textContent = "Sign up";
       if (forgotPwd) forgotPwd.style.display = "inline-block";
-
-      // Remove required attribute for login (name fields are hidden)
+      if (signupPasswordExtra) signupPasswordExtra.style.display = "none";
+      if (passwordInput) {
+        passwordInput.minLength = 0;
+        passwordInput.placeholder = "••••••••";
+        passwordInput.autocomplete = "current-password";
+      }
+      renderSignupStrength("");
       if (firstNameInput) firstNameInput.required = false;
       if (lastNameInput) lastNameInput.required = false;
     }
+  }
+
+  toggleLink?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearErrors();
+    applyAuthMode(!isSignUp);
   });
 
   authForm?.addEventListener("submit", async (e) => {
@@ -639,6 +1012,14 @@ import Layout from "../../layouts/Layout.astro";
     }
 
     if (isSignUp) {
+      if (password && password.length < 8) {
+        showError(
+          passwordInput,
+          passwordError,
+          "Password must be at least 8 characters.",
+        );
+        hasError = true;
+      }
       if (!firstName) {
         showError(firstNameInput, firstNameError, "First name is required");
         hasError = true;
@@ -663,9 +1044,16 @@ import Layout from "../../layouts/Layout.astro";
       // Combine first and last name for Better Auth
       const fullName = isSignUp ? `${firstName} ${lastName}` : "";
 
+      const verifyCallback = `${window.location.origin}/account/profile`;
+
       const payload = isSignUp
-        ? { email, password, name: fullName }
-        : { email, password };
+        ? {
+            email,
+            password,
+            name: fullName,
+            callbackURL: verifyCallback,
+          }
+        : { email, password, callbackURL: verifyCallback };
 
       const response = await fetch(`${API_BASE}/${endpoint}`, {
         method: "POST",
@@ -685,8 +1073,19 @@ import Layout from "../../layouts/Layout.astro";
       }
 
       if (response.ok && contentType.includes("application/json")) {
-        // Success - redirect to dashboard or account page
-        window.location.href = "/account/profile";
+        if (isSignUp) {
+          showVsToast(
+            "Check your email and open the verification link. After that, you can sign in here.",
+            "success",
+          );
+          clearErrors();
+          applyAuthMode(false);
+          if (passwordInput) passwordInput.value = "";
+          if (firstNameInput) firstNameInput.value = "";
+          if (lastNameInput) lastNameInput.value = "";
+        } else {
+          window.location.href = "/account/profile";
+        }
       } else {
         // Handle specific error messages from Better Auth
         const errorMessage =
@@ -699,10 +1098,21 @@ import Layout from "../../layouts/Layout.astro";
         // IMPORTANT: Check from most specific to least specific
         const errorLower = errorMessage.toLowerCase();
 
-        // 1. Exact string matches (most specific)
-        if (errorLower === "invalid email or password") {
-          // Better Auth returns this for both wrong email and wrong password (security best practice)
-          // Mark both fields as error, show message under password
+        if (
+          response.status === 403 ||
+          errorLower.includes("email not verified") ||
+          errorLower.includes("not verified")
+        ) {
+          showError(
+            emailInput,
+            emailError,
+            "Verify your email to sign in. Check your inbox for the link.",
+          );
+          showVsToast(
+            "This email is not verified yet. Check your inbox (and spam) for the Visupair message.",
+            "error",
+          );
+        } else if (errorLower === "invalid email or password") {
           if (emailInput) emailInput.classList.add("error");
           showError(passwordInput, passwordError, "Invalid email or password");
         } else if (errorLower === "invalid password") {
@@ -779,4 +1189,35 @@ import Layout from "../../layouts/Layout.astro";
       }
     });
   }
+
+  const syncAuthHeroVisual = () => {
+    const img = document.getElementById(
+      "auth-hero-visual",
+    ) as HTMLImageElement | null;
+    if (!img) return;
+    const theme = document.documentElement.hasAttribute("data-theme")
+      ? "dark"
+      : "light";
+    img.src = `/images/hero/login-${theme}.webp`;
+  };
+
+  let authHeroThemeObserver: MutationObserver | null = null;
+
+  const cleanupAuthHeroVisual = () => {
+    authHeroThemeObserver?.disconnect();
+    authHeroThemeObserver = null;
+  };
+
+  const initAuthHeroVisual = () => {
+    cleanupAuthHeroVisual();
+    syncAuthHeroVisual();
+    authHeroThemeObserver = new MutationObserver(syncAuthHeroVisual);
+    authHeroThemeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  };
+
+  document.addEventListener("astro:page-load", initAuthHeroVisual);
+  document.addEventListener("astro:before-preparation", cleanupAuthHeroVisual);
 </script>

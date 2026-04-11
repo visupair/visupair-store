@@ -15,74 +15,38 @@ const { categories, selectedCategoryId, sectionId } = Astro.props;
         <h2 class="sidebar-title">Filter by Category</h2>
     </div>
 
-    <div class="category-tree">
-        {/* "All" Option */}
-        <div
-            class={`category-item ${selectedCategoryId === null ? "active" : ""}`}
-            data-category-id="all"
-            data-is-parent="false"
+    <nav class="category-tree" aria-label="Portfolio categories">
+        <a
+            href="/portfolio"
+            class:list={[
+                "category-item",
+                { active: selectedCategoryId === null },
+            ]}
+            aria-current={selectedCategoryId === null ? "page" : undefined}
         >
             <span class="category-text">All Works</span>
-        </div>
+        </a>
 
-        {/* Categories */}
         {
             categories.map((category) => (
-                <div
-                    class={`category-item ${selectedCategoryId === category.slug ? "active" : ""}`}
-                    data-category-id={category.slug}
-                    data-is-parent="false"
+                <a
+                    href={`/portfolio/category/${category.slug}`}
+                    class:list={[
+                        "category-item",
+                        { active: selectedCategoryId === category.slug },
+                    ]}
+                    aria-current={
+                        selectedCategoryId === category.slug
+                            ? "page"
+                            : undefined
+                    }
                 >
                     <span class="category-text">{category.title}</span>
-                </div>
+                </a>
             ))
         }
-    </div>
+    </nav>
 </aside>
-
-<script>
-    const initPortfolioSidebar = () => {
-        // Handle category item clicks - only from portfolio sidebar
-        const portfolioSidebar = document.querySelector(".portfolio-sidebar");
-        if (portfolioSidebar) {
-            // Remove existing listeners to avoid duplicates if any
-            const newSidebar = portfolioSidebar.cloneNode(true);
-            if (portfolioSidebar.parentNode) {
-                portfolioSidebar.parentNode.replaceChild(
-                    newSidebar,
-                    portfolioSidebar,
-                );
-            }
-
-            // Re-select after replacement
-            const activeSidebar = document.querySelector(".portfolio-sidebar");
-            if (!activeSidebar) return;
-
-            activeSidebar.addEventListener("click", function (e) {
-                const target = e.target;
-                if (!target || !(target instanceof Element)) return;
-
-                const categoryItem = target.closest("[data-category-id]");
-                if (categoryItem) {
-                    const categoryId =
-                        categoryItem.getAttribute("data-category-id");
-
-                    let newUrl = "";
-                    if (categoryId === "all") {
-                        newUrl = `/portfolio`;
-                    } else {
-                        newUrl = `/portfolio/category/${categoryId}`;
-                    }
-
-                    window.location.href = newUrl;
-                }
-            });
-        }
-    };
-
-    // Initialize on page load and after view transitions
-    document.addEventListener("astro:page-load", initPortfolioSidebar);
-</script>
 
 <style>
     .portfolio-sidebar {
@@ -128,9 +92,20 @@ const { categories, selectedCategoryId, sectionId } = Astro.props;
         font-family: var(--font-family);
         font-size: 15px;
         font-weight: 500;
+        text-decoration: none;
+        box-sizing: border-box;
         cursor: pointer;
         transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
         gap: 12px;
+    }
+
+    .category-item:focus-visible {
+        outline: 2px solid var(--brand-violet);
+        outline-offset: 2px;
+    }
+
+    .category-item:focus:not(:focus-visible) {
+        outline: none;
     }
 
     .category-text {
@@ -160,30 +135,72 @@ const { categories, selectedCategoryId, sectionId } = Astro.props;
         }
 
         .sidebar-header {
-            text-align: center;
+            text-align: left;
+            padding: 16px 12px 14px;
         }
 
+        .category-item {
+            min-width: 0;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            justify-content: flex-start;
+            text-align: left;
+        }
+
+        .category-text {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
+            line-height: 1.35;
+            word-break: break-word;
+            hyphens: auto;
+            text-align: left;
+        }
+    }
+
+    /* Phone — one column */
+    @media (max-width: 640px) {
         .category-tree {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            display: flex;
+            flex-direction: column;
             gap: 8px;
             padding: 12px;
         }
 
-        .category-item {
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
-            justify-content: center;
-            text-align: center;
+        .category-item:hover,
+        .category-item.active {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .category-item.active {
+            border-left: none;
+            border-bottom: 3px solid var(--brand-violet);
+        }
+    }
+
+    /* Tablet (stacked portfolio layout) — two columns */
+    @media (min-width: 641px) and (max-width: 768px) {
+        .category-tree {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 8px;
+            padding: 12px;
         }
 
         .category-item:first-child {
             grid-column: 1 / -1;
         }
 
+        .category-item {
+            justify-content: flex-start;
+            text-align: left;
+        }
+
         .category-item:hover,
         .category-item.active {
-            padding-left: 16px;
+            padding-left: 10px;
+            padding-right: 10px;
         }
 
         .category-item.active {

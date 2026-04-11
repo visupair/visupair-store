@@ -8,18 +8,49 @@ import Navigation from "../components/Navigation.astro";
 import Footer from "../components/Footer.astro";
 import AccountSidebar from "../components/AccountSidebar.astro";
 import FullscreenGallery from "../components/FullscreenGallery.astro";
+import CookieConsent from "../components/CookieConsent.astro";
 
 import { ClientRouter } from "astro:transitions";
 
 interface Props {
   title?: string;
   description?: string;
+  /** Preferred URL for this page (avoids duplicate signals when query strings exist). */
+  canonicalURL?: string | URL;
+  /** Absolute URL to Open Graph / Twitter image. */
+  ogImage?: string;
+  ogType?: string;
+  twitterCard?: "summary" | "summary_large_image";
+  noindex?: boolean;
+  /** When true, the cookie preferences control stays available even after “accept all”. */
+  cookiePolicyPage?: boolean;
 }
 
 const {
   title = "Visupair",
   description = "Creative portfolio and digital showcase. Explore unique designs, fashion, 3D models and artworks from Visupair studio.",
+  canonicalURL,
+  ogImage,
+  ogType = "website",
+  twitterCard = "summary_large_image",
+  noindex = false,
+  cookiePolicyPage = false,
 } = Astro.props;
+
+const siteOrigin =
+  Astro.site?.origin ??
+  new URL(Astro.url.pathname, Astro.url.origin).origin;
+
+const resolvedCanonical = canonicalURL
+  ? new URL(canonicalURL, siteOrigin).href
+  : new URL(Astro.url.pathname, Astro.url.origin).href;
+
+const resolvedOgImage =
+  ogImage && ogImage.startsWith("http")
+    ? ogImage
+    : ogImage
+      ? new URL(ogImage, siteOrigin).href
+      : undefined;
 
 // Try to get user from middleware (available only in SSR mode)
 // For prerendered pages, this will be undefined
@@ -35,7 +66,7 @@ function getUserInitials(name: string): string {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-cc-cookie-policy-page={cookiePolicyPage ? "" : undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,12 +82,32 @@ function getUserInitials(name: string): string {
     <link rel="icon" href="/favicon.ico" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <>{noindex && <meta name="robots" content="noindex, nofollow" />}</>
+    <link rel="canonical" href={resolvedCanonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <!-- Page-specific head injections (preload hints, etc.) -->
-    <slot name="head" />
-    <!-- Inline theme script to prevent flash -->
+    <meta property="og:url" content={resolvedCanonical} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="Visupair" />
+    <meta property="og:locale" content="en_US" />
+    {resolvedOgImage && <meta property="og:image" content={resolvedOgImage} />}
+    {
+      resolvedOgImage && (
+        <meta property="og:image:alt" content={title.replace(/\s*\|\s*Visupair\s*$/i, "").trim() || "Visupair"} />
+      )
+    }
+    <meta name="twitter:card" content={twitterCard} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {resolvedOgImage && <meta name="twitter:image" content={resolvedOgImage} />}
+    <!-- Theme before `slot name="head"` so page preloads can read `data-theme` / visupairGetTheme -->
     <script is:inline>
+      window.visupairGetTheme = function () {
+        return document.documentElement.hasAttribute("data-theme")
+          ? "dark"
+          : "light";
+      };
+
       const applyTheme = () => {
         const savedTheme = localStorage.getItem("theme");
         // Default to dark mode if no preference saved
@@ -84,15 +135,56 @@ function getUserInitials(name: string): string {
             currentTheme,
           );
         }
+        if (document.documentElement.hasAttribute("data-cookie-decided")) {
+          ev.newDocument.documentElement.setAttribute(
+            "data-cookie-decided",
+            "",
+          );
+        }
       });
 
       // Re-run full logic after swap to ensure consistency
       document.addEventListener("astro:after-swap", applyTheme);
     </script>
+    <!-- Page-specific head injections (preload hints, etc.) -->
+    <slot name="head" />
   </head>
   <ClientRouter />
 
   <body>
+    <script is:inline>
+      try {
+        const cookieRaw = localStorage.getItem("visupair_cookie_v1");
+        if (cookieRaw) {
+          document.documentElement.setAttribute("data-cookie-decided", "");
+          const p = JSON.parse(cookieRaw);
+          const onCookiePolicy =
+            location.pathname === "/legal/cookie-policy" ||
+            document.documentElement.hasAttribute("data-cc-cookie-policy-page");
+          const fullAccept =
+            p &&
+            typeof p === "object" &&
+            p.v === 1 &&
+            p.marketing &&
+            p.personalization &&
+            p.analytics;
+          if (fullAccept && !onCookiePolicy) {
+            document.documentElement.setAttribute("data-cc-hide-cookie-fab", "");
+          }
+          if (p && typeof p === "object" && p.v === 1) {
+            window.__VISUPAIR_CONSENT__ = {
+              essential: true,
+              marketing: !!p.marketing,
+              personalization: !!p.personalization,
+              analytics: !!p.analytics,
+              updatedAt: typeof p.t === "number" ? p.t : Date.now(),
+            };
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    </script>
     <!-- Global Navigation -->
     <Navigation />
 
@@ -109,6 +201,8 @@ function getUserInitials(name: string): string {
       <FullscreenGallery />
     </div>
 
+    <CookieConsent />
+
     <!-- Account Sidebar — rendered conditionally based on session -->
     <!-- For SSR pages: rendered immediately if user exists -->
     <!-- For static pages: rendered empty, filled by client-side JS -->
@@ -119,6 +213,7 @@ function getUserInitials(name: string): string {
             userName={user.name || "User"}
             userEmail={user.email}
             userInitials={getUserInitials(user.name || "User")}
+            userImageUrl={user.image ?? null}
           />
         ) : (
           <AccountSidebar userName="User" userEmail="" userInitials="U" />

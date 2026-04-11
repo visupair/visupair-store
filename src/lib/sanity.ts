@@ -23,6 +23,27 @@ export function urlFor(source: any) {
   return imageBuilder.image(source).quality(75).auto('format');
 }
 
+/** Lightbox / fullscreen: full resolution (no width/height), higher quality. */
+export function urlForFullscreen(source: any): string {
+  if (source == null) return '';
+  if (typeof source === 'string') {
+    return source.startsWith('http') ? source : '';
+  }
+  return imageBuilder.image(source).quality(100).auto('format').url();
+}
+
+/** Detail page main gallery — 1680px wide, quality 90 (matches sanity-image helper). */
+export function urlForDetailGalleryPreview(source: any): string {
+  if (source == null) return '';
+  const w = 1680;
+  const q = 90;
+  if (typeof source === 'string') {
+    if (!source.startsWith('http')) return '';
+    return imageBuilder.image(source).width(w).quality(q).auto('format').url();
+  }
+  return imageBuilder.image(source).width(w).quality(q).auto('format').url();
+}
+
 // GROQ Queries
 export const CATEGORIES_QUERY = `*[_type == "category" && !(_id in path("drafts.**"))] {
   _id,
@@ -41,6 +62,7 @@ export const PRODUCTS_QUERY = `*[_type == "product" && !(_id in path("drafts.**"
   name,
   "slug": slug.current,
   price,
+  pricePLN,
   currency,
   description,
   mainImage,
@@ -71,7 +93,8 @@ export const PRODUCTS_QUERY = `*[_type == "product" && !(_id in path("drafts.**"
 }`;
 
 export async function getProducts() {
-  const documents = await sanityClient.fetch(PRODUCTS_QUERY);
+  // No CDN so inventory / sold-out updates show quickly after checkout reservations
+  const documents = await sanityClient.withConfig({ useCdn: false }).fetch(PRODUCTS_QUERY);
 
   return documents.map((doc: any) => {
     // Construct category path array [grandparent, parent, current] filter out nulls
@@ -95,6 +118,7 @@ export async function getProducts() {
       id: doc._id,
       name: doc.name,
       price: doc.price,
+      pricePLN: typeof doc.pricePLN === 'number' ? doc.pricePLN : undefined,
       currency: doc.currency || 'EUR',
       description: doc.description,
       slug: doc.slug,

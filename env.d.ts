@@ -1,5 +1,17 @@
 /// <reference path="../.astro/types.d.ts" />
 
+interface VisupairConsentGlobal {
+  essential: true;
+  marketing: boolean;
+  personalization: boolean;
+  analytics: boolean;
+  updatedAt: number;
+}
+
+interface Window {
+  __VISUPAIR_CONSENT__?: VisupairConsentGlobal;
+}
+
 declare namespace App {
   // Note: 'import {} from ""' syntax does not work in .d.ts files.
   interface Locals {

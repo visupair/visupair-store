@@ -1,6 +1,12 @@
 import type { APIRoute } from 'astro';
 import { createClient } from "@sanity/client";
 import { Resend } from 'resend';
+import {
+    checkRateLimit,
+    RATE_LIMITS,
+    resolveVisupairKv,
+    tooManyRequestsResponse,
+} from "../../lib/rate-limit-kv";
 
 const sanityWriteClient = createClient({
     projectId: 'sovnyov1',
@@ -10,8 +16,13 @@ const sanityWriteClient = createClient({
     apiVersion: '2024-03-01',
 });
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async (context) => {
+    const { request, locals } = context;
     try {
+        const kv = await resolveVisupairKv(context);
+        const rl = await checkRateLimit(kv, request, RATE_LIMITS.support);
+        if (!rl.ok) return tooManyRequestsResponse(rl.retryAfterSeconds);
+
         const data = await request.json();
         const { firstName, lastName, email, subject, message } = data;
 

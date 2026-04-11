@@ -393,9 +393,30 @@ const getInitials = (name: string) => {
         border: 1px solid var(--border-subtle);
     }
 
-    @media (max-width: 900px) {
+    /* Phones — single column (unchanged) */
+    @media (max-width: 640px) {
         .course-grid {
             grid-template-columns: 1fr;
+            gap: 16px;
+        }
+    }
+
+    /* Tablets — was falling through old max-width:900px 1fr; iPads looked like mobile */
+    @media (min-width: 641px) and (max-width: 1024px) {
+        .course-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .course-card {
+            min-width: 0;
+        }
+    }
+
+    /* iPad Pro–class width — room for a third card */
+    @media (min-width: 834px) and (max-width: 1024px) {
+        .course-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 16px;
         }
     }

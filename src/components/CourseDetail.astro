@@ -1215,14 +1215,14 @@ const pricingLabels: Record<string, string> = {
     @media (max-width: 900px) {
         .course-detail-layout {
             flex-direction: column;
-            gap: 24px;
+            gap: 18px;
             min-height: auto;
         }
 
         .detail-gallery-column {
             flex: unset;
             width: 100%;
-            gap: 16px;
+            gap: 14px;
             height: auto;
             justify-content: flex-start;
         }
@@ -1231,26 +1231,66 @@ const pricingLabels: Record<string, string> = {
             width: 100%;
             padding-top: 0;
             padding-bottom: 0;
-            gap: 20px;
+            gap: 16px;
         }
 
-        .detail-title { font-size: 32px; }
+        .detail-header-block {
+            gap: 10px;
+            padding-bottom: 4px;
+        }
+
+        .detail-title {
+            font-size: clamp(1.4rem, 5.5vw, 1.85rem);
+            line-height: 1.12;
+            letter-spacing: -0.02em;
+        }
+
+        .price-tag {
+            font-size: 1.35rem;
+            gap: 6px;
+        }
+
+        .price-sub {
+            font-size: 13px;
+        }
+
+        .detail-desc {
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .course-badge,
+        .pricing-type-badge {
+            padding: 5px 10px;
+            font-size: 10px;
+        }
 
         .stats-container {
             grid-template-columns: 1fr;
-            gap: 12px;
+            gap: 10px;
         }
 
         .stat-box {
             flex-direction: row;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 16px;
+            padding: 10px 14px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+        }
+
+        .stat-value {
+            font-size: 13px;
+            gap: 6px;
         }
 
         .detail-close-btn {
             top: -8px;
             right: -8px;
+            width: 40px;
+            height: 40px;
             background: var(--surface);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
@@ -1261,33 +1301,202 @@ const pricingLabels: Record<string, string> = {
             z-index: 10;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border-radius: var(--radius-lg);
-            padding: 16px;
+            padding: 15px 16px;
+            font-size: 15px;
+            gap: 10px;
         }
 
         .instructor-card {
-            padding: 20px;
+            padding: 16px 14px;
             gap: 12px;
+        }
+
+        .instructor-avatar-large,
+        .instructor-avatar-large-img {
+            width: 48px;
+            height: 48px;
+            font-size: 17px;
+        }
+
+        .instructor-name {
+            font-size: 16px;
+        }
+
+        .instructor-title {
+            font-size: 12px;
         }
 
         .detail-large-image {
             aspect-ratio: 16/9;
+            min-height: 0;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .accordion-header {
+            font-size: 14px;
+            padding-bottom: 12px;
+        }
+
+        .curriculum-item {
+            gap: 12px;
+            padding: 12px 0;
+        }
+
+        .curr-week {
+            min-width: 52px;
+            font-size: 10px;
+        }
+
+        .curr-title {
+            font-size: 14px;
+        }
+
+        .reg-form-layout {
+            gap: 20px;
+            padding: 12px 0;
+        }
+
+        .reg-form-title {
+            font-size: clamp(1.35rem, 5vw, 1.6rem);
+        }
+
+        .reg-form-course-name {
+            font-size: 14px;
+        }
+
+        .reg-form-price-card {
+            padding: 14px 14px;
+        }
+
+        .reg-form-price-label {
+            font-size: 16px;
+        }
+
+        .reg-form-price-amount {
+            font-size: 17px;
+        }
+
+        .reg-form {
+            gap: 16px;
         }
 
         .reg-form-row {
             grid-template-columns: 1fr;
+            gap: 14px;
         }
 
-        .reg-form-title { font-size: 26px; }
+        .reg-field input {
+            padding: 12px 14px;
+            font-size: 14px;
+        }
+
+        .donation-section {
+            padding: 16px 14px;
+            gap: 12px;
+        }
+
+        .donation-heading {
+            font-size: 16px;
+        }
+
+        .donation-subtext {
+            font-size: 13px;
+        }
+
+        .donation-chip {
+            padding: 10px 16px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .reg-success {
+            padding: 28px 16px;
+            gap: 14px;
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+        }
+
+        .success-title {
+            font-size: 22px;
+        }
+
+        .success-text {
+            font-size: 14px;
+        }
 
         .donation-options {
             flex-direction: column;
             align-items: stretch;
         }
 
-        .donation-chip { width: 100%; }
+        .donation-custom-wrap {
+            width: 100%;
+        }
 
-        .donation-custom-wrap { width: 100%; }
-        .donation-custom-input { width: 100%; }
+        .donation-custom-input {
+            width: 100%;
+        }
+
+        .back-to-courses-link {
+            font-size: 12px;
+            padding: 7px 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .course-detail-layout {
+            gap: 14px;
+        }
+
+        .detail-title {
+            font-size: 1.3rem;
+        }
+
+        .price-tag {
+            font-size: 1.2rem;
+        }
+
+        .price-sub {
+            font-size: 12px;
+        }
+
+        .detail-desc {
+            font-size: 13px;
+        }
+
+        .btn-enroll {
+            padding: 13px 14px;
+            font-size: 14px;
+            bottom: 12px;
+        }
+
+        .instructor-card {
+            padding: 14px 12px;
+        }
+
+        .reg-form-title {
+            font-size: 1.25rem;
+        }
+
+        .reg-form-price-label {
+            font-size: 14px;
+        }
+
+        .reg-form-price-amount {
+            font-size: 15px;
+        }
+
+        .success-title {
+            font-size: 1.15rem;
+        }
+
+        .success-icon {
+            width: 56px;
+            height: 56px;
+        }
     }
 </style>
 
@@ -1410,37 +1619,45 @@ const pricingLabels: Record<string, string> = {
         toast.id = "vs-checkout-toast";
         if (isSuccess) toast.classList.add("toast-success");
         toast.setAttribute("role", "alert");
-        toast.innerHTML = `
-            <div class="vs-toast-inner">
-                <div class="vs-toast-icon" style="color: ${isSuccess ? '#22c55e' : '#ef4444'}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        ${isSuccess
-                            ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
-                            : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
-                        }
-                    </svg>
-                </div>
-                <div class="vs-toast-body">
-                    <span class="vs-toast-title">${isSuccess ? 'Success' : 'Error'}</span>
-                    <span class="vs-toast-msg">${message}</span>
-                </div>
-                <button class="vs-toast-close" aria-label="Close notification">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-        `;
+
+        const inner = document.createElement("div");
+        inner.className = "vs-toast-inner";
+
+        const iconWrap = document.createElement("div");
+        iconWrap.className = "vs-toast-icon";
+        iconWrap.style.color = isSuccess ? "#22c55e" : "#ef4444";
+        iconWrap.innerHTML = isSuccess
+            ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+            : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+
+        const body = document.createElement("div");
+        body.className = "vs-toast-body";
+        const titleEl = document.createElement("span");
+        titleEl.className = "vs-toast-title";
+        titleEl.textContent = isSuccess ? "Success" : "Error";
+        const msgEl = document.createElement("span");
+        msgEl.className = "vs-toast-msg";
+        msgEl.textContent = message;
+        body.appendChild(titleEl);
+        body.appendChild(msgEl);
+
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "vs-toast-close";
+        closeBtn.setAttribute("aria-label", "Close notification");
+        closeBtn.innerHTML =
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+        inner.appendChild(iconWrap);
+        inner.appendChild(body);
+        inner.appendChild(closeBtn);
+        toast.appendChild(inner);
         document.body.appendChild(toast);
 
         const dismiss = () => {
             toast.style.opacity = "0";
             setTimeout(() => toast.remove(), 220);
         };
-        toast.querySelector(".vs-toast-close")?.addEventListener("click", dismiss);
+        closeBtn.addEventListener("click", dismiss);
         setTimeout(dismiss, 7000);
     }
 
@@ -1675,8 +1892,25 @@ const pricingLabels: Record<string, string> = {
             const pricingType = (document.getElementById("reg-pricingType") as HTMLInputElement).value;
             const donationCheckout = getDonationCheckoutAmount();
 
+            const resetSubmitState = () => {
+                if (submitBtn) submitBtn.disabled = false;
+                updateSubmitBtnText();
+            };
+
+            const ensureSignedInForCheckout = async (): Promise<boolean> => {
+                const { authClient } = await import("../lib/auth-client");
+                const s = await authClient.getSession();
+                if (s.data?.user?.email) return true;
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                return false;
+            };
+
             try {
                 if (pricingType === "paid") {
+                    if (!(await ensureSignedInForCheckout())) {
+                        resetSubmitState();
+                        return;
+                    }
                     const paid = getPaidCheckoutAmount();
                     if (!paid || paid.amount <= 0) {
                         throw new Error("Could not determine course price. Please refresh and try again.");
@@ -1692,7 +1926,6 @@ const pricingLabels: Record<string, string> = {
                             priceId: paid.currency === "EUR" ? stripePriceId : undefined,
                             productName: courseName,
                             productType: "course",
-                            userEmail: email,
                             firstName,
                             lastName,
                             phone: phone || "",
@@ -1710,6 +1943,10 @@ const pricingLabels: Record<string, string> = {
                 }
 
                 if (pricingType === "donation" && donationCheckout && donationCheckout.amount > 0) {
+                    if (!(await ensureSignedInForCheckout())) {
+                        resetSubmitState();
+                        return;
+                    }
                     if (submitText) submitText.textContent = "Redirecting to checkout...";
                     const response = await fetch("/api/create-checkout", {
                         method: "POST",
@@ -1720,7 +1957,6 @@ const pricingLabels: Record<string, string> = {
                             productName: `Course donation — ${courseName}`,
                             price: donationCheckout.amount,
                             currency: donationCheckout.currency,
-                            userEmail: email,
                             firstName,
                             lastName,
                             phone: phone || "",

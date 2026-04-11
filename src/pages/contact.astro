@@ -3,64 +3,109 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Contact — Visupair">
+  <Fragment slot="head">
+    <script is:inline>
+      (function () {
+        try {
+          var t = window.visupairGetTheme
+            ? window.visupairGetTheme()
+            : "dark";
+          function preload(href) {
+            var l = document.createElement("link");
+            l.rel = "preload";
+            l.as = "image";
+            l.type = "image/webp";
+            l.href = href;
+            document.head.appendChild(l);
+          }
+          preload("/images/hero/contact-" + t + ".webp");
+        } catch (e) {}
+      })();
+    </script>
+  </Fragment>
+
   <div class="contact-layout">
     <!-- Left Block: Visual & Information -->
     <div class="contact-visual-side">
-      <div style="width: 100%;">
-        <div class="response-badge">
-          <div class="pulse-dot"></div>
-          Response within 24 hours
+      <div class="contact-visual-inner">
+        <div class="contact-visual-figure" aria-hidden="true">
+          <img
+            id="contact-hero-visual"
+            class="contact-hero-img"
+            alt=""
+            width="800"
+            height="800"
+            loading="eager"
+            decoding="async"
+            draggable="false"
+          />
         </div>
-      </div>
+        <script is:inline>
+          (function () {
+            try {
+              var t = window.visupairGetTheme
+                ? window.visupairGetTheme()
+                : "dark";
+              var img = document.getElementById("contact-hero-visual");
+              if (img) img.src = "/images/hero/contact-" + t + ".webp";
+            } catch (e) {}
+          })();
+        </script>
 
-      <!-- Moved Text to Bottom -->
-      <div class="contact-text-bottom-wrapper">
-        <span class="contact-label">CONTACT</span>
-        <h1 class="contact-heading">
-          Let's build something<br />
-          <span>exceptional</span> together
-        </h1>
-        <p class="contact-sub">
-          Share your project details and our team will reach out within one
-          business day. We are here to collaborate and craft meaningful
-          experiences.
-        </p>
+        <div class="contact-visual-top">
+          <div class="response-badge">
+            <div class="pulse-dot"></div>
+            Response within 24 hours
+          </div>
+        </div>
+
+        <div class="contact-text-bottom-wrapper">
+          <span class="contact-label">CONTACT</span>
+          <h1 class="contact-heading">
+            Let's build something<br />
+            <span class="contact-heading-accent">exceptional</span> together
+          </h1>
+          <p class="contact-sub">
+            Share your project details and our team will reach out within one
+            business day. We are here to collaborate and craft meaningful
+            experiences.
+          </p>
+        </div>
       </div>
     </div>
 
     <!-- Right Block: Contact Form -->
     <div class="contact-form-side">
       <h2 class="form-heading">Contact <span>Us</span></h2>
-      <!-- Top Buttons for Direct Contact -->
       <div class="contact-direct-links">
         <a href="mailto:info@visupair.com" class="direct-link-btn">
           <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
+            class="direct-link-icon"
+            viewBox="0 0 18 14"
             fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <path
-              d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
-            ></path>
-            <polyline points="22,6 12,13 2,6"></polyline>
+              d="M16 0C16.5304 0 17.039 0.210865 17.4141 0.585938C17.7891 0.96101 18 1.46957 18 2V2.20521C18 2.54537 17.8271 2.86221 17.541 3.04623L9.82617 8.00879C9.58346 8.16501 9.29563 8.25 8.99902 8.25C8.73948 8.25 8.48641 8.18536 8.26465 8.06445L8.17188 8.00879L0.458989 3.04721C0.172912 2.86318 0 2.54635 0 2.2062V2C0 1.46957 0.210865 0.96101 0.585938 0.585938C0.96101 0.210865 1.46957 0 2 0H16Z"
+              fill="currentColor"></path>
+            <path
+              d="M18 12C18 12.5304 17.7891 13.039 17.4141 13.4141C17.039 13.7891 16.5304 14 16 14H2C1.46957 14 0.96101 13.7891 0.585938 13.4141C0.210865 13.039 0 12.5304 0 12V5.45144C0 5.05577 0.437808 4.81686 0.770554 5.03096L7.35938 9.27051C7.84699 9.58443 8.4177 9.75 8.99902 9.75C9.58027 9.75 10.1501 9.58336 10.6377 9.26953L17.2295 5.02889C17.5622 4.81483 18 5.05374 18 5.44939V12Z"
+              fill="currentColor"></path>
           </svg>
           info@visupair.com
         </a>
         <a href="tel:+48539818790" class="direct-link-btn">
           <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
+            class="direct-link-icon"
+            viewBox="0 0 18 18"
             fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <path
-              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.12 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-            ></path>
+              d="M0 2C0 1.46957 0.210714 0.960859 0.585786 0.585786C0.960859 0.210714 1.46957 0 2 0H5.28C5.48979 0.000159293 5.69422 0.0662963 5.86436 0.18905C6.03449 0.311804 6.1617 0.484956 6.228 0.684L7.726 5.177C7.8019 5.40534 7.79293 5.65339 7.70072 5.87564C7.60851 6.0979 7.43925 6.27945 7.224 6.387L4.967 7.517C6.07332 9.96554 8.03446 11.9267 10.483 13.033L11.613 10.776C11.7205 10.5607 11.9021 10.3915 12.1244 10.2993C12.3466 10.2071 12.5947 10.1981 12.823 10.274L17.316 11.772C17.5152 11.8383 17.6885 11.9657 17.8112 12.136C17.934 12.3064 18.0001 12.511 18 12.721V16C18 16.5304 17.7893 17.0391 17.4142 17.4142C17.0391 17.7893 16.5304 18 16 18H15C6.716 18 0 11.284 0 3V2Z"
+              fill="currentColor"></path>
           </svg>
           +48 539 818 790
         </a>
@@ -175,41 +220,234 @@ import Layout from "../layouts/Layout.astro";
 <style>
   .contact-layout {
     display: flex;
-    width: calc(100% - 24px);
-    height: calc(100vh - 100px);
     margin: 0 auto;
     gap: 12px;
+    padding: 0 12px;
     animation: fadeIn 0.6s ease-out;
+  }
+
+  /* ── Hero-island-style background (matches homepage `.hero-island`) ── */
+  @keyframes contactBlobDrift1 {
+    0% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    20% {
+      transform: translate(-12%, 18%) scale(1.08);
+    }
+    45% {
+      transform: translate(8%, -20%) scale(1.04);
+    }
+    70% {
+      transform: translate(-18%, -8%) scale(1.12);
+    }
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+  }
+
+  @keyframes contactBlobDrift2 {
+    0% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    25% {
+      transform: translate(15%, -15%) scale(1.06);
+    }
+    55% {
+      transform: translate(-10%, 20%) scale(1.1);
+    }
+    80% {
+      transform: translate(12%, 10%) scale(1.04);
+    }
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+  }
+
+  @keyframes contactIslandFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Percent is relative to the image box; ~20% reads as “clearly higher” in the island */
+  @keyframes contactHeroFloat {
+    0%,
+    100% {
+      transform: translateY(-20%);
+    }
+    50% {
+      transform: translateY(calc(-20% + 10px));
+    }
+  }
+
+  /* Stacked layout: gentle float, no upward shift (avoids collision with copy) */
+  @keyframes contactHeroFloatNarrow {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(8px);
+    }
   }
 
   /* Visual Block (Left) */
   .contact-visual-side {
     flex: 1;
-    background: linear-gradient(135deg, #151128 0%, #0e0a23 100%);
     border-radius: var(--radius-xl);
-    padding: 48px;
+    padding: 0;
     display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
     border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-island);
+    background: var(--surface);
+    box-shadow:
+      inset 0 0 100px rgba(0, 0, 0, 0.02),
+      var(--shadow-island);
+    transition: box-shadow 0.4s ease;
+    animation: contactIslandFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
+    min-height: 0;
   }
 
-  /* Gradient Overlay for visual interest */
-  .contact-visual-side::before {
+  :global([data-theme="dark"]) .contact-visual-side {
+    box-shadow:
+      inset 0 0 100px rgba(0, 0, 0, 0.2),
+      var(--shadow-island);
+  }
+
+  .contact-visual-side::before,
+  .contact-visual-side::after {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(
-      circle at 100% 0%,
-      rgba(132, 128, 255, 0.15) 0%,
-      transparent 50%
-    );
     pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    will-change: transform;
+  }
+
+  .contact-visual-side::before {
+    top: -60%;
+    right: -40%;
+    width: clamp(520px, 95vw, 1400px);
+    aspect-ratio: 1;
+    background: transparent;
+  }
+
+  .contact-visual-side::after {
+    bottom: -50%;
+    left: -35%;
+    width: clamp(480px, 85vw, 1200px);
+    aspect-ratio: 1;
+    background: transparent;
+  }
+
+  :global([data-theme="dark"]) .contact-visual-side::before {
+    background: radial-gradient(
+      closest-side,
+      rgba(163, 142, 255, 0.4) 0%,
+      rgba(163, 142, 255, 0.15) 35%,
+      rgba(163, 142, 255, 0.02) 70%,
+      rgba(163, 142, 255, 0) 100%
+    );
+    opacity: 0.5;
+    animation: contactBlobDrift1 22s infinite alternate ease-in-out;
+  }
+
+  :global([data-theme="dark"]) .contact-visual-side::after {
+    background: radial-gradient(
+      closest-side,
+      rgba(132, 128, 255, 0.35) 0%,
+      rgba(132, 128, 255, 0.12) 35%,
+      rgba(132, 128, 255, 0.02) 70%,
+      rgba(132, 128, 255, 0) 100%
+    );
+    opacity: 0.5;
+    animation: contactBlobDrift2 28s infinite alternate ease-in-out;
+  }
+
+  .contact-visual-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    padding: 48px;
+  }
+
+  /* Full-panel art layer: does not participate in flex sizing, so the column height stays the same */
+  .contact-visual-figure {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3vw, 28px) 0;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  .contact-visual-top {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+  }
+
+  .contact-text-bottom-wrapper {
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+
+  .contact-hero-img {
+    display: block;
+    height: auto;
+    max-width: none;
+    object-fit: contain;
+    object-position: center center;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+    animation: contactHeroFloat 5.5s ease-in-out infinite;
+    /* Large “background” art: wider than the column; clipped by the island’s overflow */
+    width: min(104%, clamp(254px, 65vw, 369px));
+  }
+
+  @media (min-width: 901px) {
+    .contact-hero-img {
+      width: min(144%, clamp(360px, 39vw, 650px));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contact-visual-side::before,
+    .contact-visual-side::after {
+      animation: none !important;
+    }
+
+    .contact-hero-img {
+      animation: none;
+      transform: translateY(-20%);
+    }
+
+    @media (max-width: 1024px) {
+      .contact-hero-img {
+        transform: none;
+      }
+    }
+
+    .contact-visual-side {
+      animation: none;
+    }
   }
 
   .contact-label {
@@ -237,47 +475,98 @@ import Layout from "../layouts/Layout.astro";
     color: var(--brand-violet);
   }
 
+  .contact-direct-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .direct-link-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 18px;
+    text-decoration: none;
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .direct-link-btn:hover {
+    border-color: var(--brand-violet);
+    color: var(--brand-violet);
+    background: rgba(132, 128, 255, 0.05);
+    transform: translateY(-2px);
+  }
+
+  .direct-link-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    fill: currentColor;
+    stroke: none;
+  }
+
   .contact-heading {
     font-size: 48px;
     font-weight: 700;
     line-height: 1.1;
     margin-bottom: 24px;
-    color: white;
+    color: var(--foreground);
     letter-spacing: -0.02em;
   }
 
-  .contact-heading span {
-    color: var(--brand-violet);
+  .contact-heading-accent {
+    background: linear-gradient(135deg, var(--brand-violet) 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .contact-sub {
     font-size: 18px;
     line-height: 1.6;
-    opacity: 0.7;
+    opacity: 0.65;
     max-width: 90%;
-    color: #e9e8ff;
+    color: var(--foreground);
   }
 
-  /* New class to push text to bottom */
-  .contact-text-bottom-wrapper {
-    margin-top: auto;
+  :global([data-theme="dark"]) .contact-heading {
+    color: #ffffff;
+  }
+
+  :global([data-theme="dark"]) .contact-sub {
+    color: #ffffff;
+    opacity: 0.7;
   }
 
   .response-badge {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 8px 16px;
     border-radius: var(--radius-pill);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--brand-lime);
     width: fit-content;
-    margin-bottom: 32px;
+    margin-bottom: 0;
+    background: color-mix(in srgb, var(--brand-lime) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-lime) 28%, var(--border-subtle));
+    color: color-mix(in srgb, var(--brand-lime) 55%, var(--foreground));
+  }
+
+  :global([data-theme="dark"]) .response-badge {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--brand-lime);
   }
 
   .pulse-dot {
@@ -310,37 +599,6 @@ import Layout from "../layouts/Layout.astro";
     display: flex;
     flex-direction: column;
     justify-content: center;
-  }
-
-  /* Direct Contact Links (Top of Form) */
-  .contact-direct-links {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 40px;
-  }
-
-  .direct-link-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    background: var(--surface-muted);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    padding: 18px;
-    text-decoration: none;
-    color: var(--foreground);
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .direct-link-btn:hover {
-    border-color: var(--brand-violet);
-    color: var(--brand-violet);
-    background: rgba(132, 128, 255, 0.05);
-    transform: translateY(-2px);
   }
 
   .contact-form {
@@ -431,7 +689,7 @@ import Layout from "../layouts/Layout.astro";
   }
 
   .privacy-text {
-    font-size: 13px;
+    font-size: 12px;
     opacity: 0.5;
     text-align: center;
     margin-top: 24px;
@@ -508,8 +766,8 @@ import Layout from "../layouts/Layout.astro";
       flex-direction: row;
       min-height: auto;
       height: auto;
-      gap: 24px;
-      padding: 16px;
+      gap: 12px;
+      padding: 0 12px;
     }
 
     .direct-link-btn {
@@ -517,18 +775,154 @@ import Layout from "../layouts/Layout.astro";
     }
   }
 
-  /* ========= MOBILE RESPONSIVE ========= */
-  @media (max-width: 900px) {
-    .contact-layout {
-      flex-direction: column;
-      min-height: auto;
-      gap: 24px;
-      padding: 16px;
+  /* ========= TABLET & MOBILE: form + left headline ========= */
+  @media (max-width: 1024px) {
+    .contact-sub {
+      display: none;
+    }
+
+    .contact-heading {
+      font-size: 34px;
+      line-height: 1.15;
+      margin-bottom: 0;
+    }
+
+    .contact-label {
+      margin-bottom: 10px;
+    }
+
+    .form-heading {
+      font-size: clamp(28px, 6.4vw, 34px);
+      margin-bottom: 16px;
+      line-height: 1.12;
+    }
+
+    .contact-form-side {
+      padding: clamp(22px, 4vw, 32px);
+    }
+
+    .contact-form {
+      gap: 16px;
+    }
+
+    .form-row {
+      gap: 16px;
+    }
+
+    .form-label {
+      font-size: 13px;
+    }
+
+    .form-input {
+      padding: 10px 12px;
+      font-size: 14px;
+      border-radius: var(--radius-lg);
+    }
+
+    textarea.form-input {
+      min-height: 112px;
+    }
+
+    .btn-submit {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-radius: var(--radius-lg);
+      margin-top: 8px;
+    }
+
+    .btn-submit .btn-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .contact-direct-links {
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .direct-link-btn {
+      padding: 11px 12px;
+      font-size: 13px;
+      border-radius: var(--radius-lg);
+      gap: 8px;
+    }
+
+    .direct-link-icon {
+      width: 17px;
+      height: 17px;
+    }
+
+    .privacy-text {
+      font-size: 11px;
+      margin-top: 16px;
     }
 
     .contact-visual-side {
+      min-height: 0;
+    }
+
+    .contact-visual-inner {
+      gap: clamp(12px, 2.5vw, 20px);
+    }
+
+    .contact-visual-top {
+      order: 1;
+    }
+
+    /* Art between badge and headline */
+    .contact-visual-figure {
+      position: relative;
+      inset: auto;
+      order: 2;
+      flex: 0 1 auto;
+      min-height: 0;
+      padding: clamp(8px, 2vw, 16px) 0;
+    }
+
+    .contact-text-bottom-wrapper {
+      order: 3;
+      margin-top: 0;
+    }
+
+    .contact-hero-img {
+      animation-name: contactHeroFloatNarrow;
+      width: min(96%, clamp(240px, 72vw, 400px));
+    }
+
+    @media (min-width: 901px) and (max-width: 1024px) {
+      .contact-hero-img {
+        width: min(118%, clamp(280px, 42vw, 480px));
+      }
+    }
+  }
+
+  /* ========= TABLET RESPONSIVE ========= */
+  @media (max-width: 900px) {
+      .contact-visual-inner {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+    }
+    .contact-layout {
+      flex-direction: row;
+      min-height: auto;
+      gap: 12px;
+      padding: 0 12px;
+    }
+
+    .contact-heading {
+      font-size: 28px;
+      line-height: 1.15;
+      margin-bottom: 0;
+    }
+
+    .contact-visual-inner {
       padding: 32px;
-      min-height: 400px;
+    }
+
+    .contact-visual-side {
+      min-height: 0;
     }
 
     .contact-form-side {
@@ -540,13 +934,35 @@ import Layout from "../layouts/Layout.astro";
       gap: 24px;
     }
 
-    .contact-heading {
-      font-size: 36px;
-    }
-
     .contact-direct-links {
       grid-template-columns: 1fr;
+    }
+
+    .contact-form-side {
+      padding: 20px;
+    }
+
+    .form-input {
+      padding: 9px 11px;
+      font-size: 14px;
+    }
+
+    .btn-submit {
+      padding: 11px 14px;
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .contact-layout {
+      flex-direction: column;
+      min-height: auto;
       gap: 12px;
+      padding: 0 12px;
+    }
+
+    .contact-visual-inner {
+      padding: 20px;
     }
   }
 </style>
@@ -618,4 +1034,35 @@ import Layout from "../layouts/Layout.astro";
       }
     });
   }
+
+  const syncContactHeroVisual = () => {
+    const img = document.getElementById(
+      "contact-hero-visual",
+    ) as HTMLImageElement | null;
+    if (!img) return;
+    const theme = document.documentElement.hasAttribute("data-theme")
+      ? "dark"
+      : "light";
+    img.src = `/images/hero/contact-${theme}.webp`;
+  };
+
+  let contactThemeObserver: MutationObserver | null = null;
+
+  const cleanupContactVisual = () => {
+    contactThemeObserver?.disconnect();
+    contactThemeObserver = null;
+  };
+
+  const initContactVisual = () => {
+    cleanupContactVisual();
+    syncContactHeroVisual();
+    contactThemeObserver = new MutationObserver(syncContactHeroVisual);
+    contactThemeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  };
+
+  document.addEventListener("astro:page-load", initContactVisual);
+  document.addEventListener("astro:before-preparation", cleanupContactVisual);
 </script>

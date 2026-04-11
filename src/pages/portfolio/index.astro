@@ -6,18 +6,32 @@ import {
     getPortfolioCategories,
     getPortfolioProjects,
 } from "../../lib/portfolio";
+import {
+    PORTFOLIO_INDEX_DEFAULT_DESC,
+    pickPortfolioListOgImage,
+} from "../../lib/portfolio-seo";
+import { truncateMetaDescription } from "../../lib/seo-utils";
 
 const sectionId = "portfolio";
 const categories = await getPortfolioCategories();
 const allItems = await getPortfolioProjects();
 
-// Transform tools to string array if needed, although frontend currently just renders them.
-// The frontend uses tools.map, so if it's an object array {value: 'Tool'}, we need to handle that in the grid/detail.
-// However, index.astro passes items to PortfolioGrid, which might not use tools.
-// Let's check PortfolioGrid. It uses title, year, image. Tools are in Detail.
+const indexDescription =
+    allItems.length > 0
+        ? truncateMetaDescription(
+              `Browse ${allItems.length} projects in the Visupair portfolio — design, 3D, fashion, digital work, and more.`,
+          )
+        : PORTFOLIO_INDEX_DEFAULT_DESC;
+
+const portfolioOgImage = pickPortfolioListOgImage(allItems);
 ---
 
-<Layout title="Portfolio | Visupair">
+<Layout
+    title="Portfolio | Visupair"
+    description={indexDescription}
+    canonicalURL="/portfolio"
+    ogImage={portfolioOgImage}
+>
     <div class="portfolio-layout">
         <PortfolioSidebar
             categories={categories}

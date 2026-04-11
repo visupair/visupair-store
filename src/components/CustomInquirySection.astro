@@ -72,7 +72,8 @@ const { serviceId, serviceName } = Astro.props;
         margin: 0;
         line-height: 1.2;
         letter-spacing: -0.02em;
-        white-space: nowrap;
+        white-space: normal;
+        text-wrap: balance;
     }
 
     .inquiry-description {
@@ -108,26 +109,31 @@ const { serviceId, serviceName } = Astro.props;
     /* Mobile optimizations */
     @media (max-width: 768px) {
         .custom-inquiry-island {
-            padding: 40px 0;
+            padding: 0;
         }
 
         .inquiry-wrapper {
             grid-template-columns: 1fr;
-            gap: 32px;
-            padding: 48px 24px;
+            gap: 20px;
+            padding: 28px 16px;
         }
 
         .inquiry-content {
-            gap: 24px;
+            gap: 18px;
             max-width: 100%;
         }
 
+        .inquiry-header {
+            gap: 12px;
+        }
+
         .inquiry-title {
-            font-size: 28px;
+            font-size: clamp(1.25rem, 5vw, 1.65rem);
         }
 
         .inquiry-description {
             font-size: 14px;
+            line-height: 1.55;
         }
 
         .inquiry-decoration {
@@ -139,7 +145,11 @@ const { serviceId, serviceName } = Astro.props;
 
     @media (max-width: 600px) {
         .inquiry-wrapper {
-            padding: 40px 20px;
+            padding: 24px 14px;
+        }
+
+        .inquiry-content {
+            gap: 16px;
         }
 
         .inquiry-decoration {
@@ -147,7 +157,11 @@ const { serviceId, serviceName } = Astro.props;
         }
 
         .inquiry-title {
-            font-size: 24px;
+            font-size: 1.35rem;
+        }
+
+        .inquiry-description {
+            font-size: 13px;
         }
     }
 </style>

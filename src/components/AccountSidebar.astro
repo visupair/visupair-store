@@ -1,103 +1,88 @@
 ---
+import { getUserProfilePhotoUrl } from "../lib/user-avatar-url";
+
 interface Props {
   userName: string;
   userEmail: string;
   userInitials: string;
+  /** OAuth avatar URL (e.g. Google). When absent, initials are shown. */
+  userImageUrl?: string | null;
 }
 
-const { userName, userEmail, userInitials } = Astro.props;
+const { userName, userEmail, userInitials, userImageUrl = null } = Astro.props;
+const photoUrl = getUserProfilePhotoUrl(userImageUrl);
+
+const pathname = Astro.url.pathname;
+
+function isAccountNavActive(href: string): boolean {
+  if (href === "/account/profile") {
+    return pathname === "/account/profile" || pathname.startsWith("/account/profile/");
+  }
+  if (href === "/cart") {
+    return pathname === "/cart" || pathname.startsWith("/cart/");
+  }
+  if (href === "/account/favorites") {
+    return pathname.startsWith("/account/favorites");
+  }
+  if (href === "/account/purchases") {
+    return pathname.startsWith("/account/purchases");
+  }
+  if (href === "/support") {
+    return pathname.startsWith("/support");
+  }
+  return false;
+}
+
+const profileActive = isAccountNavActive("/account/profile");
 ---
 
 <div class="island-sidebar-backdrop" id="sidebar-backdrop"></div>
 <aside class="island-sidebar" id="account-sidebar">
-  <div class="user-profile-section">
-    <div class="user-avatar">{userInitials}</div>
+  <a
+    href="/account/profile"
+    class:list={["user-profile-section", "user-profile-section-link", profileActive && "active"]}
+    aria-label="Profile and account settings"
+    data-account-nav="profile"
+  >
+    <div class:list={["user-avatar", photoUrl && "user-avatar--photo"]}>
+      {
+        photoUrl ? (
+          <img
+            class="user-avatar-photo"
+            src={photoUrl}
+            alt=""
+            width="48"
+            height="48"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          />
+        ) : (
+          userInitials
+        )
+      }
+    </div>
     <div class="user-info">
       <h3>{userName}</h3>
       <p>{userEmail}</p>
     </div>
-  </div>
+  </a>
 
   <nav class="user-nav-group">
-    <a href="/cart" class="user-nav-item">
+    <a
+      href="/account/profile"
+      class:list={["user-nav-item", profileActive && "active"]}
+      aria-current={profileActive ? "page" : undefined}
+      data-account-nav="profile"
+    >
       <svg
         class="user-nav-icon"
-        viewBox="0 -960 960 960"
-        fill="currentColor"
-        stroke="none"
+        viewBox="0 0 18 22"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
         ><path
-          d="M240-80q-33 0-56.5-23.5T160-160v-480q0-33 23.5-56.5T240-720h80q0-66 47-113t113-47q66 0 113 47t47 113h80q33 0 56.5 23.5T800-640v480q0 33-23.5 56.5T720-80H240Zm0-80h480v-480h-80v80q0 17-11.5 28.5T600-520q-17 0-28.5-11.5T560-560v-80H400v80q0 17-11.5 28.5T360-520q-17 0-28.5-11.5T320-560v-80h-80v480Zm160-560h160q0-33-23.5-56.5T480-800q-33 0-56.5 23.5T400-720ZM240-160v-480 480Z"
-        ></path></svg
-      >
-      <span>My Cart</span>
-      <svg
-        class="user-nav-chevron"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg
-      >
-    </a>
-
-    <a href="/account/favorites" class="user-nav-item">
-      <svg
-        class="user-nav-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        ><path
-          d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-        ></path></svg
-      >
-      <span>My Favorites</span>
-      <svg
-        class="user-nav-chevron"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg
-      >
-    </a>
-
-    <a href="/account/purchases" class="user-nav-item">
-      <svg
-        class="user-nav-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        ><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-        ></path><line x1="3" y1="6" x2="21" y2="6"></line><path
-          d="M16 10a4 4 0 0 1-8 0"></path></svg
-      >
-      <span>My Purchases</span>
-      <svg
-        class="user-nav-chevron"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg
-      >
-    </a>
-
-    <a href="/account/profile" class="user-nav-item">
-      <svg
-        class="user-nav-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        ><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle
-          cx="12"
-          cy="7"
-          r="4"></circle></svg
+          d="M8.71091 -7.62939e-06C5.70409 -7.62939e-06 3.26659 2.43749 3.26659 5.44431C3.26659 8.45112 5.70409 10.8886 8.71091 10.8886C11.7177 10.8886 14.1552 8.45112 14.1552 5.44431C14.1552 2.43749 11.7177 -7.62939e-06 8.71091 -7.62939e-06ZM15.2555 13.0664H2.16629C0.971811 13.0664 0 14.0382 0 15.2326V16.0607C0 17.8639 1.02625 19.4231 2.8893 20.4505C4.4393 21.3063 6.50705 21.7773 8.71091 21.7773C12.9063 21.7773 17.4218 19.9883 17.4218 16.0607V15.2326C17.4218 14.0382 16.45 13.0664 15.2555 13.0664Z"
+          fill="currentColor"></path></svg
       >
       <span>Profile</span>
       <svg
@@ -109,21 +94,113 @@ const { userName, userEmail, userInitials } = Astro.props;
       >
     </a>
 
-    <a href="/support" class="user-nav-item">
+    <a
+      href="/cart"
+      class:list={[
+        "user-nav-item",
+        isAccountNavActive("/cart") && "active",
+      ]}
+      aria-current={isAccountNavActive("/cart") ? "page" : undefined}
+      data-account-nav="cart"
+    >
       <svg
         class="user-nav-icon"
+        viewBox="0 0 22 22"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        ><path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M10.9931 0C13.6631 0 15.8765 2.03316 16.1664 4.62858C16.1816 4.81653 16.1896 5.10071 16.1939 5.39511C16.1985 5.7138 16.4564 5.97161 16.7751 5.97161H17.936C19.2731 5.97161 20.386 6.97443 20.526 8.30511L21.9725 19.0918C22.0482 19.8231 21.81 20.557 21.317 21.1043C20.8235 21.6515 20.1188 21.9654 19.3824 21.9654H2.60384C1.8675 21.9653 1.16208 21.6521 0.669242 21.1055C0.175875 20.557 -0.0619183 19.8229 0.0138284 19.0918L1.46026 8.30511C1.60026 6.97398 2.71342 5.97186 4.05027 5.97161H5.21174C5.53047 5.97161 5.7883 5.71381 5.79277 5.39511C5.79689 5.10072 5.80466 4.81653 5.81989 4.62858C6.1098 2.03325 8.32334 0.00016274 10.9931 0ZM10.9931 1.73572C9.06591 1.73589 7.52171 3.27988 7.52171 5.20715V5.39304C7.52171 5.71258 7.78074 5.97161 8.10028 5.97161H13.886C14.2055 5.97161 14.4646 5.71258 14.4646 5.39304V5.20715C14.4646 3.27976 12.9205 1.73572 10.9931 1.73572Z"
+          fill="currentColor"></path></svg
+      >
+      <span>My Cart</span>
+      <svg
+        class="user-nav-chevron"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        ><circle cx="12" cy="12" r="10"></circle><path
-          d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line
-          x1="12"
-          y1="17"
-          x2="12.01"
-          y2="17"></line></svg
+        stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg
+      >
+    </a>
+
+    <a
+      href="/account/favorites"
+      class:list={[
+        "user-nav-item",
+        isAccountNavActive("/account/favorites") && "active",
+      ]}
+      aria-current={isAccountNavActive("/account/favorites") ? "page" : undefined}
+      data-account-nav="favorites"
+    >
+      <svg
+        class="user-nav-icon"
+        viewBox="0 0 22 19"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        ><path
+          d="M16.2411 0.0134513H16.245C18.0116 0.125081 19.6479 0.999001 20.7444 2.41344L20.7434 2.41442C22.6101 4.83522 22.3595 8.38062 20.0895 10.6616L12.7129 18.0285C12.2257 18.5155 11.6058 18.7487 10.9931 18.7449C10.3805 18.7487 9.76058 18.5155 9.27343 18.0285L1.8968 10.6616C-0.373292 8.38061 -0.623868 4.83523 1.24288 2.41442L1.2419 2.41344C2.33836 0.999009 3.97469 0.125067 5.74127 0.0134513H5.74518C7.40844 -0.0978413 9.06029 0.485407 10.3002 1.6219C10.6899 1.98734 11.2964 1.98734 11.6861 1.6219C12.926 0.485418 14.5779 -0.0978554 16.2411 0.0134513Z"
+          fill="currentColor"></path></svg
+      >
+      <span>My Favorites</span>
+      <svg
+        class="user-nav-chevron"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg
+      >
+    </a>
+
+    <a
+      href="/account/purchases"
+      class:list={[
+        "user-nav-item",
+        isAccountNavActive("/account/purchases") && "active",
+      ]}
+      aria-current={isAccountNavActive("/account/purchases") ? "page" : undefined}
+      data-account-nav="purchases"
+    >
+      <svg
+        class="user-nav-icon"
+        viewBox="0 0 21 19"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        ><path
+          d="M9.95279 3.77169C9.8174 3.90709 9.59788 3.9071 9.46248 3.7717C9.39747 3.70668 9.36094 3.6185 9.36094 3.52655V0.346701C9.36094 0.155223 9.51616 0 9.70764 0H12.4812C12.6727 0 12.8279 0.155223 12.8279 0.346701V3.52655C12.8279 3.6185 12.7914 3.70668 12.7264 3.7717C12.591 3.9071 12.3715 3.9071 12.2361 3.7717L12.033 3.56857C11.968 3.50354 11.8798 3.467 11.7878 3.467C11.6959 3.467 11.6077 3.50354 11.5427 3.56857L11.3396 3.77169C11.2042 3.90709 10.9847 3.90709 10.8493 3.7717L10.6462 3.56857C10.5812 3.50354 10.493 3.467 10.401 3.467C10.3091 3.467 10.2209 3.50354 10.1559 3.56857L9.95279 3.77169ZM13.8681 7.62742C14.3053 7.62566 14.7328 7.74235 15.1063 7.96243C15.2566 8.05104 15.4514 8.04112 15.5748 7.91771L16.8868 6.60566C16.9518 6.54064 16.9884 6.45245 16.9884 6.3605V1.0401C16.9867 0.466365 16.522 0.00167457 15.9483 0H13.8681C13.6766 0 13.5214 0.155223 13.5214 0.346701V3.81371C13.5214 3.90566 13.4848 3.99384 13.4198 4.05883L12.7264 4.75223C12.6614 4.81726 12.5732 4.8538 12.4812 4.8538C12.3893 4.8538 12.3011 4.81726 12.2361 4.75223L12.033 4.54912C11.8976 4.41373 11.6781 4.41373 11.5427 4.54912L11.3396 4.75225C11.2746 4.81729 11.1864 4.85382 11.0944 4.85382C11.0025 4.85382 10.9143 4.81729 10.8493 4.75225L10.6462 4.54913C10.5108 4.41373 10.2913 4.41373 10.1559 4.54913L9.95276 4.75225C9.88776 4.81729 9.79958 4.85382 9.70763 4.85382C9.61568 4.85382 9.5275 4.81729 9.4625 4.75225L8.7691 4.05885C8.70405 3.99385 8.66752 3.90566 8.66754 3.81371V0.346701C8.66754 0.155223 8.51231 0 8.32084 0H6.24063C5.66689 0.00167457 5.2022 0.466365 5.20053 1.0401V7.36519C5.20053 7.60173 5.43277 7.7691 5.66418 7.72009C5.96716 7.65593 6.27669 7.62476 6.58733 7.62742H13.8681ZM2.32533 10.1559C2.26033 10.0909 2.17215 10.0543 2.08021 10.0543C1.98826 10.0543 1.90008 10.0909 1.83508 10.1559L0.101573 11.8894C0.0365388 11.9544 0 12.0426 0 12.1345C0 12.2265 0.0365388 12.3147 0.101573 12.3797L5.64879 17.9269C5.71379 17.9919 5.80197 18.0285 5.89392 18.0285C5.98587 18.0285 6.07405 17.9919 6.13905 17.9269L7.87255 16.1934C7.93759 16.1284 7.97412 16.0402 7.97412 15.9483C7.97412 15.8563 7.93759 15.7681 7.87255 15.7031L2.32533 10.1559ZM20.386 6.47637C20.0881 6.16514 19.6762 5.98864 19.2454 5.98753C18.7699 5.98246 18.312 6.16712 17.973 6.50064L16.0433 8.42718C15.9227 8.54764 15.9101 8.73682 15.9926 8.88602C16.3793 9.58533 16.3989 10.4384 16.0293 11.1613C15.6145 11.9727 14.7794 12.4827 13.8681 12.4812H10.0543C9.86286 12.4812 9.70764 12.326 9.70764 12.1345C9.70764 11.9431 9.86286 11.7878 10.0543 11.7878H13.8681C14.8254 11.7878 15.6016 11.0117 15.6016 10.0543C15.6016 9.09694 14.8254 8.32082 13.8681 8.32082H6.58733C5.05838 8.32082 4.26443 9.1113 3.56756 9.80817L3.50762 9.86811C3.37223 10.0035 3.37223 10.223 3.50762 10.3584L7.72638 14.5772C7.84707 14.6979 8.03631 14.7071 8.19494 14.6441C8.34419 14.5848 8.50496 14.5563 8.66754 14.5614H14.5615C15.74 14.5633 16.835 13.9528 17.4529 12.9493C18.8987 10.8587 19.9145 9.3956 20.3895 8.71953C20.9373 7.93945 20.9373 7.0623 20.386 6.47637Z"
+          fill="currentColor"></path></svg
+      >
+      <span>My Purchases</span>
+      <svg
+        class="user-nav-chevron"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg
+      >
+    </a>
+
+    <a
+      href="/support"
+      class:list={[
+        "user-nav-item",
+        isAccountNavActive("/support") && "active",
+      ]}
+      aria-current={isAccountNavActive("/support") ? "page" : undefined}
+      data-account-nav="support"
+    >
+      <svg
+        class="user-nav-icon"
+        viewBox="0 0 19 18"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        ><path
+          d="M7.23044 5.03678e-05C6.04894 0.00517211 4.98954 0.341561 4.06255 1.00834C0.562323 3.52671 0.0554239 10.0867 0.000273651 12.7899C-0.0119317 13.3907 0.385272 13.9327 0.967062 14.1081L5.2642 15.3972C6.38528 16.7294 7.86297 17.5479 9.48628 17.5479C11.1096 17.5479 12.5868 16.7294 13.7084 15.3972L18.0064 14.1081C18.5877 13.9332 18.9845 13.3916 18.9723 12.7908C18.9167 10.0871 18.4102 3.52672 14.91 1.00834C13.4268 -0.0580474 11.6028 -0.279091 9.48628 0.348808C8.69191 0.113176 7.93935 -0.00302358 7.23044 5.03678e-05ZM4.18793 7.60281H14.7846C14.8705 8.11363 14.9109 8.64253 14.9109 9.18499C14.9109 9.41409 14.9001 9.64006 14.8853 9.86395C14.6748 11.6544 13.137 13.0274 11.2927 13.0274C11.2674 13.0274 11.2421 13.0266 11.2168 13.0265C11.0249 12.4851 10.5128 12.1232 9.93834 12.1233C9.18936 12.1233 8.58219 12.7305 8.58219 13.4795C8.58219 14.2285 9.18936 14.8356 9.93834 14.8356C10.5129 14.8351 11.0248 14.4725 11.2159 13.9306C11.2415 13.9307 11.2671 13.9315 11.2927 13.9315C12.3919 13.9315 13.4057 13.5335 14.1949 12.8756C13.2596 15.1231 11.5018 16.6438 9.48628 16.6438C6.4937 16.6438 4.06167 13.2987 4.06167 9.18499C4.06167 8.64253 4.10204 8.11363 4.18793 7.60281Z"
+          fill="currentColor"></path></svg
       >
       <span>Support</span>
       <svg
@@ -198,14 +275,39 @@ const { userName, userEmail, userInitials } = Astro.props;
     transform: translateX(0);
   }
 
-  /* User Profile Section */
-  .user-profile-section {
+  /* Profile header: same horizontal padding & gap rhythm as .user-nav-item */
+  .user-profile-section.user-profile-section-link {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border-subtle);
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    margin: 0 0 20px 0;
+    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    box-sizing: border-box;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    background: var(--surface-muted);
+    border: 1px solid transparent;
+    box-shadow: none;
+    transition:
+      background 0.22s ease,
+      border-color 0.22s ease,
+      box-shadow 0.22s ease;
+  }
+
+  .user-profile-section-link:hover {
+    background: var(--surface-muted);
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-capsule);
+  }
+
+  .user-profile-section-link:focus-visible {
+    outline: 2px solid var(--brand-violet);
+    outline-offset: 2px;
   }
 
   .user-avatar {
@@ -226,18 +328,40 @@ const { userName, userEmail, userInitials } = Astro.props;
     flex-shrink: 0;
     box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .user-avatar--photo {
+    padding: 0;
+    background: var(--surface-muted);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    text-shadow: none;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .user-avatar-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .user-info {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
+    text-align: left;
   }
 
   .user-info h3 {
     font-size: 18px;
     font-weight: 700;
-    margin-bottom: 2px;
+    margin: 0;
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -246,6 +370,8 @@ const { userName, userEmail, userInitials } = Astro.props;
 
   .user-info p {
     font-size: 13px;
+    margin: 0;
+    line-height: 1.25;
     opacity: 0.6;
     white-space: nowrap;
     overflow: hidden;
@@ -281,8 +407,11 @@ const { userName, userEmail, userInitials } = Astro.props;
   .user-nav-icon {
     width: 20px;
     height: 20px;
+    flex-shrink: 0;
     opacity: 0.6;
     transition: all 0.2s;
+    fill: currentColor;
+    stroke: none;
   }
 
   .user-nav-chevron {
@@ -301,13 +430,41 @@ const { userName, userEmail, userInitials } = Astro.props;
 
   .user-nav-item:hover .user-nav-icon {
     opacity: 1;
-    stroke: var(--brand-violet);
   }
 
   .user-nav-item:hover .user-nav-chevron {
     opacity: 1;
     transform: translateX(2px);
     stroke: var(--brand-violet);
+  }
+
+  .user-nav-item.active {
+    background: var(--surface-muted);
+    color: var(--foreground);
+    transform: none;
+  }
+
+  .user-nav-item.active .user-nav-icon {
+    opacity: 0.85;
+  }
+
+  .user-nav-item.active .user-nav-chevron {
+    opacity: 0.45;
+  }
+
+  .user-nav-item.active:hover {
+    background: var(--surface-muted);
+    color: var(--brand-violet);
+    transform: none;
+  }
+
+  .user-nav-item.active:hover .user-nav-icon {
+    opacity: 1;
+  }
+
+  .user-profile-section-link.active {
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-capsule);
   }
 
   /* Sign Out Button */
@@ -361,7 +518,11 @@ const { userName, userEmail, userInitials } = Astro.props;
   declare global {
     interface Window {
       toggleAccountSidebar?: () => void;
-      updateAccountSidebar?: (user: { name: string; email: string }) => void;
+      updateAccountSidebar?: (user: {
+        name: string;
+        email: string;
+        image?: string | null;
+      }) => void;
     }
   }
 
@@ -372,6 +533,39 @@ const { userName, userEmail, userInitials } = Astro.props;
     return parts.length >= 2
       ? (parts[0][0] + parts[1][0]).toUpperCase()
       : name[0].toUpperCase();
+  }
+
+  function profilePhotoUrl(image: string | null | undefined): string | null {
+    if (typeof image !== "string") return null;
+    const t = image.trim();
+    if (!t) return null;
+    if (!/^https?:\/\//i.test(t)) return null;
+    return t;
+  }
+
+  function setSidebarAvatar(
+    avatar: Element,
+    name: string,
+    image: string | null | undefined,
+  ) {
+    const url = profilePhotoUrl(image ?? null);
+    avatar.classList.toggle("user-avatar--photo", Boolean(url));
+    avatar.textContent = "";
+    const existing = avatar.querySelector("img.user-avatar-photo");
+    if (existing) existing.remove();
+    if (url) {
+      const img = document.createElement("img");
+      img.className = "user-avatar-photo";
+      img.src = url;
+      img.alt = "";
+      img.width = 48;
+      img.height = 48;
+      img.loading = "lazy";
+      img.referrerPolicy = "no-referrer";
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = getUserInitials(name);
+    }
   }
 
   // Initialize sidebar functionality once
@@ -389,12 +583,16 @@ const { userName, userEmail, userInitials } = Astro.props;
     };
 
     // Expose update function globally (for Navigation.astro to call)
-    window.updateAccountSidebar = (user: { name: string; email: string }) => {
+    window.updateAccountSidebar = (user: {
+      name: string;
+      email: string;
+      image?: string | null;
+    }) => {
       const avatar = sidebar.querySelector(".user-avatar");
       const nameEl = sidebar.querySelector(".user-info h3");
       const emailEl = sidebar.querySelector(".user-info p");
 
-      if (avatar) avatar.textContent = getUserInitials(user.name);
+      if (avatar) setSidebarAvatar(avatar, user.name, user.image);
       if (nameEl) nameEl.textContent = user.name;
       if (emailEl) emailEl.textContent = user.email;
     };
@@ -406,7 +604,9 @@ const { userName, userEmail, userInitials } = Astro.props;
     });
 
     // Close sidebar when clicking navigation links
-    const navLinks = sidebar.querySelectorAll(".user-nav-item");
+    const navLinks = sidebar.querySelectorAll(
+      ".user-nav-item, .user-profile-section-link",
+    );
     navLinks.forEach((link) => {
       link.addEventListener("click", () => {
         sidebar.classList.remove("active");
@@ -438,10 +638,41 @@ const { userName, userEmail, userInitials } = Astro.props;
         alert("An error occurred. Please try again.");
       }
     });
+
+    syncAccountSidebarActive();
   };
+
+  const accountNavMatchers: Record<string, (p: string) => boolean> = {
+    profile: (p) =>
+      p === "/account/profile" || p.startsWith("/account/profile/"),
+    cart: (p) => p === "/cart" || p.startsWith("/cart/"),
+    favorites: (p) => p.startsWith("/account/favorites"),
+    purchases: (p) => p.startsWith("/account/purchases"),
+    support: (p) => p.startsWith("/support"),
+  };
+
+  function syncAccountSidebarActive() {
+    const sidebar = document.getElementById("account-sidebar");
+    if (!sidebar) return;
+    const path = window.location.pathname;
+    sidebar.querySelectorAll("[data-account-nav]").forEach((el) => {
+      const key = el.getAttribute("data-account-nav");
+      if (!key || !accountNavMatchers[key]) return;
+      const active = accountNavMatchers[key](path);
+      el.classList.toggle("active", active);
+      if (el.classList.contains("user-nav-item")) {
+        if (active) el.setAttribute("aria-current", "page");
+        else el.removeAttribute("aria-current");
+      }
+    });
+  }
+
+  // Persisted sidebar: update current page highlight on every navigation
+  document.addEventListener("astro:page-load", syncAccountSidebarActive);
 
   // Initialize on first load
   initSidebar();
+  syncAccountSidebarActive();
 
   // Reinitialize on View Transitions
   document.addEventListener("astro:after-swap", initSidebar);

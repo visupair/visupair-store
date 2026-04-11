@@ -1,26 +1,48 @@
 import type { APIRoute } from "astro";
+import { createClient } from "@sanity/client";
 import { createAuth } from "~/lib/auth";
 import { review } from "~/lib/auth-schema";
 import { randomUUID } from "node:crypto";
-import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import {
+    checkRateLimit,
+    RATE_LIMITS,
+    resolveVisupairKv,
+} from "../../lib/rate-limit-kv";
+import { userOwnsStoreProduct } from "../../lib/user-owns-product";
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async (context) => {
+    const { request, locals } = context;
     try {
+        const kv = await resolveVisupairKv(context);
+        const rl = await checkRateLimit(kv, request, RATE_LIMITS.review);
+        if (!rl.ok) {
+            return new Response(
+                JSON.stringify({ error: "Too many requests. Please try again later." }),
+                {
+                    status: 429,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Retry-After": String(rl.retryAfterSeconds),
+                    },
+                },
+            );
+        }
+
         // @ts-ignore
         const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
         let dbBinding = cfEnv?.visupair_store;
         let envData = cfEnv || {};
 
         try {
-            if (!dbBinding && locals.runtime && typeof locals.runtime === 'object') {
-                const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, 'env');
-                if (descriptor && typeof descriptor.get !== 'function') {
+            if (!dbBinding && locals.runtime && typeof locals.runtime === "object") {
+                const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, "env");
+                if (descriptor && typeof descriptor.get !== "function") {
                     dbBinding = (locals.runtime as any).env?.visupair_store;
                     envData = (locals.runtime as any).env || {};
                 }
             }
-        } catch (e) { }
+        } catch (e) {}
 
         if (!dbBinding) {
             return new Response(JSON.stringify({ error: "Database not configured" }), { status: 500 });
@@ -33,24 +55,47 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const auth = createAuth(dbBinding, env as Record<string, string>);
         const session = await auth.api.getSession({ headers: request.headers });
 
-        if (!session) {
+        if (!session?.user?.email?.trim()) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
         }
+        const userEmail = session.user.email;
 
         const formData = await request.formData();
-        const productId = formData.get("productId") as string;
-        const rating = parseInt(formData.get("rating") as string);
+        const productId = String(formData.get("productId") || "").trim();
+        const rating = parseInt(String(formData.get("rating") || ""), 10);
         const comment = formData.get("comment") as string;
 
-        if (!productId || isNaN(rating) || rating < 1 || rating > 5) {
+        if (!productId || Number.isNaN(rating) || rating < 1 || rating > 5) {
             return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400 });
         }
 
-        // Initialize raw Drizzle to access custom table
-        const db = drizzle(dbBinding);
+        const sanityRead = createClient({
+            projectId: "sovnyov1",
+            dataset: "production",
+            useCdn: false,
+            token: import.meta.env.SANITY_API_TOKEN,
+            apiVersion: "2024-03-01",
+        });
 
-        // Check if user already reviewed this product? (Optional: prevent duplicates)
-        // For now, let's allow multiple or maybe unique? Let's keep it simple.
+        const productExists = await sanityRead.fetch<string | null>(
+            `*[_type == "product" && _id == $id][0]._id`,
+            { id: productId },
+        );
+        if (!productExists) {
+            return new Response(JSON.stringify({ error: "Product not found." }), { status: 404 });
+        }
+
+        const owns = await userOwnsStoreProduct(sanityRead, userEmail, productId);
+        if (!owns) {
+            return new Response(
+                JSON.stringify({
+                    error: "Only customers who purchased this product can leave a review.",
+                }),
+                { status: 403 },
+            );
+        }
+
+        const db = drizzle(dbBinding);
 
         const newReview = {
             id: randomUUID(),

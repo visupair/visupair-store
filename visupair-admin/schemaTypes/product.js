@@ -12,7 +12,7 @@ export default defineType({
             type: 'string',
             options: {
                 list: [
-                    { title: 'Fashion Design', value: 'fashion' },
+                    { title: 'Garments', value: 'fashion' },
                     { title: '3D Models', value: '3d-models' },
                     { title: 'Artworks', value: 'artworks' },
                 ],
@@ -90,7 +90,8 @@ export default defineType({
             name: 'stock',
             title: 'Stock Quantity',
             type: 'number',
-            description: 'How many pieces you have available. Automatically decreases when someone buys. Set to 0 for sold out.',
+            description:
+                'Physical products only: decreases automatically in Studio after each paid sale (Stripe). At 0, In stock is turned off. Digital products ignore this at checkout.',
             initialValue: 1,
             validation: (Rule) => Rule.min(0).integer(),
         }),
@@ -205,7 +206,8 @@ export default defineType({
         defineField({
             name: 'stripePriceId',
             title: 'Stripe Price ID',
-            description: 'The Price ID from Stripe (e.g. price_1OqXXXXXXXXXXXXX).',
+            description:
+                'The Price ID from Stripe (e.g. price_1OqXXXXXXXXXXXXX). Keep Price unit_amount in sync with Price (EUR) / Price (PLN) here — checkout charges the Stripe Price, not this number alone. Run: npm run check:stripe-sanity-prices',
             type: 'string',
             validation: (Rule) => Rule.required(),
         }),

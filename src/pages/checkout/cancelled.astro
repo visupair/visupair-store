@@ -1,0 +1,56 @@
+---
+/**
+ * Stripe cancel_url target. Releases held physical inventory immediately
+ * (so SKUs are not stuck as "sold out" until session.expires).
+ */
+import Stripe from "stripe";
+import { createClient } from "@sanity/client";
+import { releaseInventoryIfHeld } from "../../lib/checkout-inventory-release";
+
+export const prerender = false;
+
+const sessionId = Astro.url.searchParams.get("session_id");
+const nextRaw = Astro.url.searchParams.get("next");
+
+const siteOrigin = Astro.url.origin;
+
+function safeInternalPath(origin: string, nextParam: string | null, fallback: string): string {
+  if (!nextParam) return fallback;
+  try {
+    const base = new URL(origin);
+    const resolved = new URL(nextParam, origin);
+    if (resolved.origin !== base.origin) return fallback;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}` || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const redirectTarget = safeInternalPath(siteOrigin, nextRaw, "/cart");
+
+if (sessionId) {
+  try {
+    const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
+    const sanity = createClient({
+      projectId: "sovnyov1",
+      dataset: "production",
+      useCdn: false,
+      apiVersion: "2024-03-01",
+      token: import.meta.env.SANITY_API_TOKEN,
+    });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === "paid") {
+      return Astro.redirect(
+        `/checkout/success?session_id=${encodeURIComponent(sessionId)}`,
+      );
+    }
+
+    await releaseInventoryIfHeld(sanity, stripe, sessionId, "cancel_page");
+  } catch (err) {
+    console.error("[checkout/cancelled]", err);
+  }
+}
+
+return Astro.redirect(redirectTarget);
+---

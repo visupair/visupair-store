@@ -288,15 +288,28 @@ import Layout from "../../layouts/Layout.astro";
 </Layout>
 
 <script>
-  import { cartStore, initCart, getCombinedParcel } from "../../lib/cartStore";
+  import { cartStore, initCart } from "../../lib/cartStore";
   import type { CartItem } from "../../lib/cartStore";
+  import { showCheckoutToast } from "../../lib/checkout-toast";
 
-  function initCheckoutPage() {
+  async function initCheckoutPage() {
     initCart();
 
     const items = cartStore.get();
     if (items.length === 0) {
       window.location.href = "/cart";
+      return;
+    }
+
+    try {
+      const { authClient } = await import("../../lib/auth-client");
+      const sessionRes = await authClient.getSession();
+      if (!sessionRes.data?.user?.email) {
+        window.location.href = `/login?redirect=${encodeURIComponent("/cart/checkout")}`;
+        return;
+      }
+    } catch {
+      window.location.href = `/login?redirect=${encodeURIComponent("/cart/checkout")}`;
       return;
     }
 
@@ -450,8 +463,19 @@ import Layout from "../../layouts/Layout.astro";
 
         if (!country || !city || !postalCode || !address) return;
 
-        const parcel = getCombinedParcel();
-        if (!parcel) return;
+        const hasPhysical = items.some(
+          (i: CartItem) => i.productType === "physical",
+        );
+        if (!hasPhysical) return;
+
+        const quoteLineItems = items.map((i: CartItem) => ({
+          productId: i.productId,
+          name: i.name,
+          price: currency === "PLN" ? i.pricePLN : i.price,
+          quantity: Math.max(1, i.quantity || 1),
+          productType: i.productType,
+          selectedSize: i.selectedSize,
+        }));
 
         optionsSection.style.display = "block";
         loading.style.display = "flex";
@@ -461,12 +485,13 @@ import Layout from "../../layouts/Layout.astro";
           const res = await fetch("/api/shipping/rates", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({
               country,
               city,
               postalCode,
               address,
-              parcel,
+              cartItems: quoteLineItems,
             }),
           });
           const data = await res.json();
@@ -494,7 +519,7 @@ import Layout from "../../layouts/Layout.astro";
                 <div class="carrier-logo-wrapper">${logoHtml}</div>
                 <div class="option-details">
                   <span class="provider-name">${rate.provider}</span>
-                  ${rate.estimated_days ? `<span class="delivery-estimate">${rate.estimated_days} days</span>` : ""}
+                  <span class="delivery-estimate">3-5 days</span>
                 </div>
                 <span class="option-price">${rate.currency} ${rate.amount}</span>
               </label>
@@ -589,7 +614,10 @@ import Layout from "../../layouts/Layout.astro";
         !selectedShippingAmount ||
         parseFloat(selectedShippingAmount) <= 0
       ) {
-        alert("Please select a shipping method before proceeding.");
+        showCheckoutToast(
+          "Please select a shipping method before proceeding.",
+          "Shipping method required",
+        );
         return;
       }
 
@@ -604,15 +632,20 @@ import Layout from "../../layouts/Layout.astro";
       try {
         const { authClient } = await import("../../lib/auth-client");
         const session = await authClient.getSession();
-        const userEmail =
-          session.data?.user?.email ||
-          (form.querySelector('[name="email"]') as HTMLInputElement).value;
+        if (!session.data?.user?.email) {
+          showCheckoutToast(
+            "Please sign in to continue to payment.",
+            "Sign in required",
+          );
+          window.location.href = `/login?redirect=${encodeURIComponent("/cart/checkout")}`;
+          return;
+        }
 
         const cartItems = items.map((i: CartItem) => ({
           productId: i.productId,
           name: i.name,
           price: currency === "PLN" ? i.pricePLN : i.price,
-          quantity: 1,
+          quantity: Math.max(1, i.quantity || 1),
           productType: i.productType,
           selectedSize: i.selectedSize,
         }));
@@ -623,7 +656,6 @@ import Layout from "../../layouts/Layout.astro";
           body: JSON.stringify({
             items: cartItems,
             currency,
-            userEmail,
             selectedShippingId,
             selectedShippingAmount,
             selectedShippingLabel,
@@ -660,7 +692,10 @@ import Layout from "../../layouts/Layout.astro";
         if (data.url) {
           window.location.href = data.url;
         } else {
-          alert(data.error || "Failed to start checkout");
+          showCheckoutToast(
+            data.error || "Failed to start checkout.",
+            "Checkout",
+          );
           allPayBtns.forEach((btn) => {
             btn.textContent = "Continue to Payment";
             btn.disabled = false;
@@ -668,6 +703,10 @@ import Layout from "../../layouts/Layout.astro";
         }
       } catch (err) {
         console.error("Checkout error:", err);
+        showCheckoutToast(
+          "Something went wrong. Please try again.",
+          "Checkout",
+        );
         allPayBtns.forEach((btn) => {
           btn.textContent = "Continue to Payment";
           btn.disabled = false;

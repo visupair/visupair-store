@@ -63,6 +63,11 @@ export function isInCart(productId: string, selectedSize?: string): boolean {
     );
 }
 
+/** True if any cart line matches this product (any size variant). */
+export function isProductInCartAnySize(productId: string): boolean {
+    return cartStore.get().some((i) => i.productId === productId);
+}
+
 /**
  * Adds an item. Each product is unique — if already in cart, this is a no-op
  * and returns false. Returns true if the item was actually added.
@@ -86,6 +91,15 @@ export function removeFromCart(productId: string, selectedSize?: string) {
     const updated = current.filter(
         (i) => !(i.productId === productId && i.selectedSize === selectedSize)
     );
+    cartStore.set(updated);
+    saveToStorage(updated);
+}
+
+/** Remove every line item for this product (all size variants). */
+export function removeAllLinesForProduct(productId: string) {
+    const current = cartStore.get();
+    const updated = current.filter((i) => i.productId !== productId);
+    if (updated.length === current.length) return;
     cartStore.set(updated);
     saveToStorage(updated);
 }

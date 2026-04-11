@@ -1,7 +1,261 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+
+export const prerender = true;
+
+const lastUpdated = "April 2, 2026";
 ---
 
-<Layout>
-  <h1>Refund Policy</h1>
+<Layout
+  title="Refund Policy — Visupair"
+  description="How refunds and cancellations work for Visupair orders: physical goods, digital products, and services."
+>
+  <div class="account-page">
+    <div class="legal-island">
+      <article class="legal-page">
+        <header class="legal-header">
+          <p class="legal-kicker">Legal</p>
+          <h1 class="legal-title">Refund Policy</h1>
+          <p class="legal-meta">Last updated: {lastUpdated}</p>
+        </header>
+
+        <div class="legal-body">
+          <p>
+            This Refund Policy explains how <strong>Visupair</strong> handles
+            refunds and cancellations for orders placed on
+            <a href="https://visupair.com">visupair.com</a>. It works together
+            with the
+            <a href="/legal/terms-of-service">Terms of Service</a>. If
+            mandatory consumer laws in your country give you stronger rights,
+            those rights still apply.
+          </p>
+
+          <h2>1. How to request a refund or cancellation</h2>
+          <p>
+            Email
+            <a href="mailto:info@visupair.com">info@visupair.com</a> from the
+            address used for the order (or describe the order number and date).
+            Visupair will confirm eligibility and next steps. Approved refunds
+            are returned to the original payment method when possible; timing
+            depends on banks and the payment provider.
+          </p>
+
+          <h2>2. Physical products</h2>
+          <ul>
+            <li>
+              If an item is <strong>damaged</strong>, <strong>defective</strong>,
+              or <strong>not what you ordered</strong>, contact Visupair within
+              <strong>14 days</strong> of delivery with a short description and,
+              if helpful, photos. Visupair may offer a replacement, repair, or
+              refund, including reasonable return shipping where applicable under
+              the law.
+            </li>
+            <li>
+              For <strong>change of mind</strong>, EU/EEA/UK consumers often have
+              a <strong>14-day right of withdrawal</strong> for distance
+              contracts, with exceptions (for example sealed goods opened, or
+              custom-made items clearly personalised). Packaged goods must stay
+              in condition suitable for resale unless inspection was necessary. If
+              the law allows withdrawal, you may need to return the item; direct
+              costs of return may apply unless Visupair states otherwise or the
+              law requires otherwise.
+            </li>
+            <li>
+              <strong>Handmade or made-to-order</strong> items may be excluded
+              from withdrawal once production has clearly started with your
+              agreement, or as stated on the product page. Check the listing and
+              confirmation email.
+            </li>
+          </ul>
+
+          <h2>3. Digital products</h2>
+          <ul>
+            <li>
+              Digital goods (downloads, files, access links) are usually
+              delivered instantly or shortly after payment. In many places,
+              <strong>the right to withdraw ends once delivery has begun</strong>
+              if you explicitly agreed to immediate delivery and acknowledged
+              that you may lose the withdrawal right. By completing checkout for
+              digital products, you typically confirm that you want immediate
+              supply where that applies.
+            </li>
+            <li>
+              If you <strong>cannot access</strong> a purchase due to a technical
+              fault on Visupair’s side, email Visupair. Visupair will work to fix
+              access or, if that is not possible, may refund or credit at
+              Visupair’s reasonable discretion.
+            </li>
+            <li>
+              Refunds for digital products for <strong>change of mind</strong>
+              are generally <strong>not</strong> offered once the content has
+              been supplied, except where the law requires otherwise.
+            </li>
+          </ul>
+
+          <h2>4. Services and custom work</h2>
+          <ul>
+            <li>
+              Creative <strong>services</strong> and <strong>custom
+              commissions</strong> follow the cancellation rules on the relevant
+              service page or written agreement (including any deposit or
+              milestone payments).
+            </li>
+            <li>
+              If <strong>you cancel</strong> after Visupair has started work,
+              amounts covering work already performed or costs already incurred
+              may be retained where permitted by law and as described in the
+              offer.
+            </li>
+            <li>
+              If Visupair <strong>cannot deliver</strong> as agreed (for example
+              after a reasonable period and communication), Visupair will refund
+              amounts paid for undelivered work, unless the Terms or contract
+              say otherwise in line with the law.
+            </li>
+          </ul>
+
+          <h2>5. Orders cancelled by Visupair</h2>
+          <p>
+            If Visupair refuses or cancels an order (for example obvious price or
+            listing error, legal restriction, or stock issue), Visupair will
+            refund any payment taken for that order.
+          </p>
+
+          <h2>6. Courses (if applicable)</h2>
+          <p>
+            If Visupair sells or hosts <strong>courses</strong>, access and refund
+            rules for each course appear on that course’s page or at checkout.
+            Where no separate rule is stated, the digital-product section above
+            applies.
+          </p>
+
+          <h2>7. Chargebacks and abuse</h2>
+          <p>
+            Contacting Visupair first usually resolves issues faster than a bank
+            chargeback. Visupair may dispute chargebacks that do not match the
+            facts or this Policy. Abuse of refunds or payment systems may lead to
+            account restrictions or refusal of future orders.
+          </p>
+
+          <h2>8. Contact</h2>
+          <p>
+            Refund questions:
+            <a href="mailto:info@visupair.com">info@visupair.com</a>
+          </p>
+        </div>
+      </article>
+    </div>
+  </div>
 </Layout>
+
+<style>
+  .account-page {
+    padding: 0 12px;
+    margin: 0 auto;
+  }
+
+  .legal-island {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    min-height: calc(100vh - 420px);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: clamp(1.5rem, 3.5vw, 2.75rem) clamp(1.1rem, 3vw, 2.25rem);
+  }
+
+  .legal-page {
+    width: 100%;
+    max-width: min(90ch, 100%);
+    margin-inline: auto;
+    text-align: start;
+    padding-block: 0.25rem 1rem;
+    animation: legalFadeIn 0.45s ease-out;
+    flex: 1;
+  }
+
+  @keyframes legalFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .legal-header {
+    margin-bottom: 2.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: start;
+  }
+
+  .legal-kicker {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem;
+  }
+
+  .legal-title {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    line-height: 1.15;
+  }
+
+  .legal-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .legal-body {
+    font-size: clamp(1rem, 0.25vw + 0.96rem, 1.0625rem);
+    line-height: 1.75;
+    color: var(--text-secondary, var(--foreground));
+    text-align: start;
+    overflow-wrap: break-word;
+  }
+
+  .legal-body h2 {
+    font-size: 1.08rem;
+    font-weight: 600;
+    margin: 2.25rem 0 0.65rem;
+    line-height: 1.35;
+    color: var(--foreground);
+  }
+
+  .legal-body p {
+    margin: 0 0 1.1rem;
+  }
+
+  .legal-body ul {
+    margin: 0.25rem 0 1.25rem;
+    padding-inline-start: 1.35rem;
+    list-style-position: outside;
+  }
+
+  .legal-body li {
+    margin: 0 0 0.55rem;
+    padding-inline-start: 0.2rem;
+  }
+
+  .legal-body li:last-child {
+    margin-bottom: 0;
+  }
+
+  .legal-body a {
+    color: var(--accent, #a78bfa);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .legal-body a:hover {
+    opacity: 0.9;
+  }
+</style>

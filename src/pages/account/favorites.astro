@@ -91,6 +91,7 @@ if (!userSession) {
                         products={favoriteProducts}
                         baseUrl="/store/fashion-design"
                         categories={[]}
+                        tabletGridColumns={2}
                     />
                 </div>
             </div>
@@ -103,16 +104,15 @@ if (!userSession) {
                     : "display: flex;"}
             >
                 <svg
-                    viewBox="0 0 24 24"
+                    viewBox="0 0 22 19"
                     fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
                 >
                     <path
-                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                    ></path>
+                        d="M16.2411 0.0134513H16.245C18.0116 0.125081 19.6479 0.999001 20.7444 2.41344L20.7434 2.41442C22.6101 4.83522 22.3595 8.38062 20.0895 10.6616L12.7129 18.0285C12.2257 18.5155 11.6058 18.7487 10.9931 18.7449C10.3805 18.7487 9.76058 18.5155 9.27343 18.0285L1.8968 10.6616C-0.373292 8.38061 -0.623868 4.83523 1.24288 2.41442L1.2419 2.41344C2.33836 0.999009 3.97469 0.125067 5.74127 0.0134513H5.74518C7.40844 -0.0978413 9.06029 0.485407 10.3002 1.6219C10.6899 1.98734 11.2964 1.98734 11.6861 1.6219C12.926 0.485418 14.5779 -0.0978554 16.2411 0.0134513Z"
+                        fill="currentColor"
+                    />
                 </svg>
                 <h3>No favorites yet</h3>
                 <p>Items you add to your wishlist will appear here.</p>

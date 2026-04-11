@@ -4,6 +4,9 @@ import ProductDetail from "../../../../../components/ProductDetail.astro";
 import StoreSidebar from "../../../../../components/StoreSidebar.astro";
 import { storeSections } from "../../../../../lib/store-data";
 import { getProducts, getCategoriesTree } from "../../../../../lib/sanity";
+import { stripHtml, truncateMetaDescription } from "../../../../../lib/seo-utils";
+import { createClient } from "@sanity/client";
+import { userOwnsStoreProduct } from "../../../../../lib/user-owns-product";
 
 // SSR Mode: Dynamic Lookup
 export const prerender = false;
@@ -74,9 +77,49 @@ const sectionProducts = allProducts.filter((p) => {
 
 // Get server-detected currency from middleware
 const serverCurrency = Astro.locals.currency;
+
+let userOwnsDigital = false;
+const accountUser = Astro.locals.user;
+if (accountUser?.email && product.productType === "digital") {
+    const sanityOrders = createClient({
+        projectId: "sovnyov1",
+        dataset: "production",
+        useCdn: false,
+        apiVersion: "2024-03-01",
+        token: import.meta.env.SANITY_API_TOKEN,
+    });
+    userOwnsDigital = await userOwnsStoreProduct(
+        sanityOrders,
+        accountUser.email,
+        product.id,
+    );
+}
+
+const siteBase = Astro.site?.origin ?? Astro.url.origin;
+const productPath = `/store/${sectionId}/${product.slug || product.id}`;
+const canonicalURL = new URL(productPath, siteBase);
+const rawDesc = typeof product.description === "string" ? product.description : "";
+const metaDescription =
+    truncateMetaDescription(stripHtml(rawDesc)) ||
+    `Buy ${product.name} from Visupair — handmade and digital design.`;
+const firstImage =
+    (typeof product.image === "string" && product.image) ||
+    (product.images && product.images[0]) ||
+    undefined;
+const ogImage = firstImage
+    ? firstImage.startsWith("http")
+        ? firstImage
+        : new URL(firstImage, siteBase).href
+    : undefined;
 ---
 
-<Layout title={`${product.name} | Visupair`}>
+<Layout
+    title={`${product.name} | Visupair`}
+    description={metaDescription}
+    canonicalURL={canonicalURL}
+    ogImage={ogImage}
+    ogType="product"
+>
     <div class="store-layout">
         <!-- Sidebar with persistence -->
         <div transition:persist="store-sidebar">
@@ -93,6 +136,8 @@ const serverCurrency = Astro.locals.currency;
                 product={product}
                 backLink={backLink}
                 serverCurrency={serverCurrency}
+                canonicalProductUrl={canonicalURL.href}
+                userOwnsDigital={userOwnsDigital}
             />
         </div>
     </div>

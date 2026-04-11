@@ -4,6 +4,52 @@
 ---
 
 <div class="fullscreen-overlay" id="fullscreen-overlay" style="display: none;">
+    <div
+        class="fs-loader"
+        id="fs-loader"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading image"
+        hidden
+    >
+        <div class="fs-loader-inner">
+            <svg
+                class="fs-loader-mark"
+                width="67"
+                height="33"
+                viewBox="0 0 67 33"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+            >
+                <path
+                    d="M32.489 29.283L54.0977 29.8267C54.7934 29.8442 55.3418 29.2398 55.2556 28.5503L54.2167 20.2401C54.1338 19.5775 53.4991 19.1288 52.8454 19.2707L31.9362 23.8126C31.3691 23.9358 30.9857 24.4652 31.0463 25.0415L31.3858 28.266C31.4456 28.8335 31.9176 29.2686 32.489 29.283Z"
+                    fill="currentColor"
+                />
+                <path
+                    d="M34.511 2.74744L12.9023 2.20366C12.2065 2.18616 11.6582 2.79065 11.7444 3.48008L12.7833 11.7903C12.8662 12.4529 13.5009 12.9016 14.1546 12.7597L35.0638 8.21779C35.6309 8.0946 36.0143 7.56513 35.9537 6.98893L35.6142 3.7644C35.5544 3.19699 35.0824 2.76181 34.511 2.74744Z"
+                    fill="currentColor"
+                />
+                <path
+                    d="M56.3459 0.998994L59.0673 0.0588497C59.6838 -0.154124 60.3374 0.230814 60.4839 0.89311L66.9703 30.2179C67.1615 31.0822 66.398 31.8521 65.586 31.6138L60.4075 30.0943C59.9935 29.9729 59.6859 29.6092 59.6188 29.1621L55.5896 2.29705C55.5045 1.72985 55.8256 1.17874 56.3459 0.998994Z"
+                    fill="currentColor"
+                />
+                <path
+                    d="M10.6541 31.0315L7.93272 31.9716C7.31624 32.1846 6.66259 31.7996 6.5161 31.1373L0.0297008 1.81256C-0.161497 0.94817 0.601976 0.17827 1.41404 0.416558L6.59251 1.93611C7.00649 2.05758 7.31408 2.42118 7.38115 2.86831L11.4104 29.7333C11.4955 30.3006 11.1744 30.8517 10.6541 31.0315Z"
+                    fill="currentColor"
+                />
+                <path
+                    d="M52.2415 15.3689L41.6392 17.5957C40.979 17.7343 40.3436 17.2725 40.2731 16.6027L38.911 3.66592C38.8418 3.00836 39.3475 2.43092 40.0095 2.41157L50.4785 2.10553C51.0604 2.08852 51.5614 2.51267 51.6395 3.08857L53.1349 14.1046C53.215 14.6946 52.8252 15.2464 52.2415 15.3689Z"
+                    fill="currentColor"
+                />
+                <path
+                    d="M14.7585 16.6608L25.3608 14.4341C26.021 14.2954 26.6564 14.7573 26.7269 15.427L28.089 28.3638C28.1582 29.0214 27.6525 29.5988 26.9905 29.6182L16.5215 29.9242C15.9396 29.9412 15.4386 29.5171 15.3605 28.9412L13.8651 17.9251C13.785 17.3351 14.1748 16.7834 14.7585 16.6608Z"
+                    fill="currentColor"
+                />
+            </svg>
+        </div>
+    </div>
+
     <div class="fullscreen-image-container" id="fullscreen-container">
         <img
             id="fullscreen-img"
@@ -93,7 +139,6 @@
     .fullscreen-img {
         object-fit: contain;
         box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-        transition: none;
         transform-origin: center center;
         user-select: none;
         -webkit-user-drag: none;
@@ -105,6 +150,103 @@
         max-height: 100%;
         width: auto;
         height: auto;
+    }
+
+    .fullscreen-img.fs-img-loading {
+        opacity: 0;
+    }
+
+    /* After load: simple fade-in (opacity only — transform is driven by pan/zoom JS) */
+    @keyframes fsImageReveal {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .fullscreen-img.fs-img-reveal {
+        animation: fsImageReveal 0.42s ease-out forwards;
+    }
+
+    /* Loader: nav mark, brand violet — same bouncy easing as .logo:hover, spin → pause ×3 */
+    .fs-loader {
+        position: absolute;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .fs-loader[hidden] {
+        display: none !important;
+    }
+
+    .fs-loader-inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+    }
+
+    .fs-loader-mark {
+        width: 30px;
+        height: auto;
+        display: block;
+        color: var(--brand-violet, #8480ff);
+        opacity: 0.5;
+        transform-origin: 50% 50%;
+        animation: fsLoaderLogoNav 3.5s infinite;
+    }
+
+    /**
+     * Matches navbar logo hover: cubic-bezier(0.34, 1.56, 0.64, 1) per ~360° burst.
+     * Three turns, pauses between; loops invisibly (1080° ≡ 0°).
+     */
+    @keyframes fsLoaderLogoNav {
+        0% {
+            transform: rotate(0deg);
+            animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        23% {
+            transform: rotate(360deg);
+            animation-timing-function: linear;
+        }
+        32% {
+            transform: rotate(360deg);
+            animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        55% {
+            transform: rotate(720deg);
+            animation-timing-function: linear;
+        }
+        64% {
+            transform: rotate(720deg);
+            animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        87% {
+            transform: rotate(1080deg);
+            animation-timing-function: linear;
+        }
+        100% {
+            transform: rotate(1080deg);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fs-loader-mark {
+            animation: none;
+            opacity: 0.5;
+        }
+
+        .fullscreen-img.fs-img-reveal {
+            animation: none;
+            opacity: 1;
+        }
     }
 
     /* Unified Fullscreen Toolbar (Bottom Center) */
@@ -219,6 +361,8 @@
             height: 16px;
         }
     }
+
+    @keyframes fadeIn {
         from {
             opacity: 0;
         }
@@ -244,7 +388,8 @@
         "fullscreen-container",
     );
     const fullscreenImg = document.getElementById("fullscreen-img") as HTMLImageElement;
-    
+    const fsLoader = document.getElementById("fs-loader");
+
     const fsCloseBtn = document.getElementById("fs-close-btn");
     const fsPrevBtn = document.getElementById("fs-prev-btn");
     const fsNextBtn = document.getElementById("fs-next-btn");
@@ -264,6 +409,67 @@
     let touchStartDistance = 0;
     let isGesture = false;
     const BASE_PAN_OFFSET = 300; // Базовое ограничение
+    let fullscreenLoadToken = 0;
+
+    function showFsLoader() {
+        fsLoader?.removeAttribute("hidden");
+        fullscreenImg?.classList.remove("fs-img-reveal");
+        fullscreenImg?.classList.add("fs-img-loading");
+    }
+
+    function hideFsLoader() {
+        fsLoader?.setAttribute("hidden", "");
+        if (!fullscreenImg) return;
+        fullscreenImg.classList.remove("fs-img-loading");
+
+        const reduceMotion =
+            typeof window !== "undefined" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduceMotion) {
+            return;
+        }
+
+        fullscreenImg.classList.remove("fs-img-reveal");
+        void fullscreenImg.offsetWidth;
+        const onRevealEnd = (ev: AnimationEvent) => {
+            if (ev.animationName !== "fsImageReveal") return;
+            fullscreenImg.removeEventListener("animationend", onRevealEnd);
+            fullscreenImg.classList.remove("fs-img-reveal");
+        };
+        fullscreenImg.addEventListener("animationend", onRevealEnd);
+        fullscreenImg.classList.add("fs-img-reveal");
+    }
+
+    /** Load high-res URL; show mark until decode, avoid stale onload races. */
+    function bindFullscreenImageSrc(url: string) {
+        if (!fullscreenImg) return;
+        const token = ++fullscreenLoadToken;
+        showFsLoader();
+
+        let settled = false;
+        const finish = () => {
+            if (token !== fullscreenLoadToken || settled) return;
+            settled = true;
+            hideFsLoader();
+            resetZoomPan();
+        };
+
+        fullscreenImg.onload = finish;
+        fullscreenImg.onerror = finish;
+        fullscreenImg.src = url;
+
+        fullscreenImg
+            .decode()
+            .then(() => {
+                if (token !== fullscreenLoadToken) return;
+                finish();
+            })
+            .catch(() => finish());
+
+        if (fullscreenImg.complete && fullscreenImg.naturalWidth > 0) {
+            queueMicrotask(finish);
+        }
+    }
 
     function updateImageTransform() {
         if (!fullscreenImg) return;
@@ -291,19 +497,18 @@
         if (!fullscreenOverlay || !fullscreenImg || galleryImageUrls.length === 0)
             return;
         currentFullscreenIndex = index;
-        fullscreenImg.src = galleryImageUrls[index];
         fullscreenImg.alt = `Fullscreen view ${index + 1}`;
         fullscreenOverlay.style.display = "flex";
         document.body.style.overflow = "hidden";
         resetZoomPan();
-
-        fullscreenImg.onload = () => {
-            resetZoomPan();
-        };
+        bindFullscreenImageSrc(galleryImageUrls[index]);
     }
 
     function closeFullscreen() {
         if (!fullscreenOverlay) return;
+        fullscreenLoadToken += 1;
+        fullscreenImg?.classList.remove("fs-img-reveal", "fs-img-loading");
+        fsLoader?.setAttribute("hidden", "");
         fullscreenOverlay.style.display = "none";
         document.body.style.overflow = "";
         resetZoomPan();
@@ -312,8 +517,9 @@
     function changeImage(index: number) {
         if (galleryImageUrls.length === 0) return;
         currentFullscreenIndex = Math.max(0, Math.min(index, galleryImageUrls.length - 1));
-        fullscreenImg.src = galleryImageUrls[currentFullscreenIndex];
+        fullscreenImg.alt = `Fullscreen view ${currentFullscreenIndex + 1}`;
         resetZoomPan();
+        bindFullscreenImageSrc(galleryImageUrls[currentFullscreenIndex]);
     }
 
     // Listen for custom event from ProductDetail

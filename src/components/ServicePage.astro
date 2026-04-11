@@ -628,22 +628,133 @@ const selectedServiceId = service ? service.id : null;
         }
     }
 
-    /* Mobile - 1 column */
+    /* Mobile — single column + scaled type (desktop sizes applied below 769px were too large) */
     @media (max-width: 768px) {
         .services-layout {
             flex-direction: column;
             height: auto;
             padding: 0 12px;
-            gap: 12px;
+            gap: 10px;
         }
 
         .services-wrapper {
             border-radius: var(--radius-md);
-            padding: 24px 12px;
+            padding: 20px 14px;
+        }
+
+        .service-header {
+            margin-bottom: 20px;
+        }
+
+        .service-title {
+            font-size: clamp(1.5rem, 6.2vw, 2rem);
+            margin-bottom: 10px;
+            line-height: 1.15;
+        }
+
+        .service-subtitle {
+            font-size: 15px;
+            line-height: 1.45;
         }
 
         .pricing-grid {
             grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .pricing-card {
+            padding: 20px 16px;
+            gap: 18px;
+        }
+
+        .pricing-card.highlight {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 36px rgba(132, 128, 255, 0.18);
+        }
+
+        .plan-header {
+            gap: 8px;
+        }
+
+        .plan-name {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            margin-bottom: 2px;
+        }
+
+        .plan-currency {
+            font-size: 18px;
+            margin-top: 4px;
+        }
+
+        .plan-amount {
+            font-size: 36px;
+        }
+
+        .plan-desc {
+            font-size: 13px;
+            min-height: 0;
+            max-width: 100%;
+        }
+
+        .feature-list {
+            gap: 10px;
+        }
+
+        .feature-list li {
+            font-size: 13px;
+            gap: 10px;
+        }
+
+        .feature-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-plan {
+            padding: 14px 16px;
+            font-size: 13px;
+        }
+
+        .popular-badge {
+            font-size: 9px;
+            padding: 4px 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .services-layout {
+            padding: 0 12px;
+            gap: 12px;
+        }
+
+        .services-wrapper {
+            padding: 16px 12px;
+        }
+
+        .service-title {
+            font-size: 1.45rem;
+        }
+
+        .service-subtitle {
+            font-size: 14px;
+        }
+
+        .pricing-grid {
+            gap: 12px;
+        }
+
+        .pricing-card {
+            padding: 18px 14px;
+            gap: 14px;
+        }
+
+        .plan-amount {
+            font-size: 32px;
+        }
+
+        .plan-currency {
+            font-size: 16px;
         }
     }
 </style>

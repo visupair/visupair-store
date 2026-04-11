@@ -1,5 +1,11 @@
 import type { APIRoute } from "astro";
 import { createAuth } from "~/lib/auth";
+import {
+  assertEmailChangeAllowed,
+  assertPasswordChangeAllowed,
+  recordEmailChangeSuccess,
+  recordPasswordChangeSuccess,
+} from "~/lib/user-security-change-quota";
 
 /**
  * Better Auth API route handler
@@ -48,13 +54,76 @@ export const ALL: APIRoute = async ({ request, locals }) => {
     // Create auth instance with D1 binding and environment variables
     const auth = createAuth(dbBinding, env);
 
-    // Handle the request — auth.handler() only takes a Request.
-    // Env is already captured inside the auth instance via createAuth().
+    const reqUrl = new URL(request.url);
+    const pathname = reqUrl.pathname;
+    let quotaUserId: string | null = null;
+
+    if (request.method === "POST") {
+      if (pathname.endsWith("/change-email") || pathname.endsWith("/change-password")) {
+        try {
+          const session = await auth.api.getSession({ headers: request.headers });
+          if (session?.user?.id) {
+            quotaUserId = session.user.id;
+            if (pathname.endsWith("/change-email")) {
+              const gate = await assertEmailChangeAllowed(dbBinding, quotaUserId);
+              if (!gate.ok) {
+                return new Response(JSON.stringify({ message: gate.message }), {
+                  status: 422,
+                  headers: { "Content-Type": "application/json" },
+                });
+              }
+            } else {
+              const gate = await assertPasswordChangeAllowed(dbBinding, quotaUserId);
+              if (!gate.ok) {
+                return new Response(JSON.stringify({ message: gate.message }), {
+                  status: 422,
+                  headers: { "Content-Type": "application/json" },
+                });
+              }
+            }
+          }
+        } catch (e) {
+          /* Quota table missing, getSession hiccup, etc. — do not block auth */
+          console.error("[AUTH] Pre-handler quota/session check failed:", e);
+          quotaUserId = null;
+        }
+      }
+    }
+
+    // Do not use request.clone() here — on Workers + Vite dev the cloned POST body can be empty.
     const response = await auth.handler(request);
+
+    if (response.ok && request.method === "POST") {
+      const isEmail = pathname.endsWith("/change-email");
+      const isPassword = pathname.endsWith("/change-password");
+      if (isEmail || isPassword) {
+        let uid = quotaUserId;
+        if (!uid && isPassword) {
+          try {
+            const body = (await response.clone().json()) as { user?: { id?: string } };
+            if (body?.user?.id) uid = body.user.id;
+          } catch {
+            /* non-JSON success */
+          }
+        }
+        if (uid) {
+          try {
+            if (isEmail) await recordEmailChangeSuccess(dbBinding, uid);
+            else await recordPasswordChangeSuccess(dbBinding, uid);
+          } catch (e) {
+            console.error("[AUTH] Failed to record security change quota:", e);
+          }
+        }
+      }
+    }
 
     if (request.method === "POST") {
       const path = new URL(request.url).pathname;
-      if (path.includes("sign-in") || path.includes("sign-up")) {
+      if (
+        path.includes("sign-in") ||
+        path.includes("sign-up") ||
+        path.endsWith("/change-password")
+      ) {
         console.log(`[AUTH] ${request.method} ${path} → ${response.status}`);
       }
     }

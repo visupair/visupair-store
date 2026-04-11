@@ -1,5 +1,14 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import {
+  formatAccountCreatedAtDisplay,
+  getProfileSignInMethods,
+  userHasCredentialPassword,
+  type D1Client,
+  type ProfileSignInMethod,
+} from "../../lib/profile-account-info";
+import { getSecurityChangeQuota } from "../../lib/user-security-change-quota";
+import { getUserProfilePhotoUrl } from "../../lib/user-avatar-url";
 
 // Check if user is logged in
 let userSession = null;
@@ -33,9 +42,72 @@ if (!userSession) {
 const nameParts = userSession.user.name?.split(" ") || ["", ""];
 const firstName = nameParts[0] || "";
 const lastName = nameParts.slice(1).join(" ") || "";
+
+// Real sign-in methods from Better Auth `account` rows (credential = email/password)
+let signInMethods: ProfileSignInMethod[] = [];
+let credentialHasPassword = false;
+let emailChangesRemaining = 2;
+let passwordChangesRemaining = 2;
+try {
+  // @ts-ignore — `cloudflare:workers` is resolved by the Cloudflare adapter
+  const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({
+    env: {},
+  }));
+  let dbBinding = (cfEnv as { visupair_store?: D1Client }).visupair_store;
+  if (!dbBinding && (Astro.locals as { runtime?: { env?: { visupair_store?: D1Client } } }).runtime) {
+    dbBinding = (Astro.locals as { runtime: { env?: { visupair_store?: D1Client } } })
+      .runtime.env?.visupair_store;
+  }
+  if (dbBinding) {
+    signInMethods = await getProfileSignInMethods(dbBinding, userSession.user.id);
+    if (signInMethods.includes("visupair")) {
+      try {
+        credentialHasPassword = await userHasCredentialPassword(
+          dbBinding,
+          userSession.user.id,
+        );
+      } catch {
+        credentialHasPassword = false;
+      }
+    }
+    try {
+      const q = await getSecurityChangeQuota(dbBinding, userSession.user.id);
+      emailChangesRemaining = q.email.remaining;
+      passwordChangesRemaining = q.password.remaining;
+    } catch {
+      /* quota table missing — keep defaults */
+    }
+  }
+} catch {
+  signInMethods = [];
+}
+if (signInMethods.length === 0) {
+  signInMethods = ["visupair"];
+}
+
+/** Linked credential row must actually store a password hash (Google + email linking edge case). */
+const canChangePassword =
+  signInMethods.includes("visupair") && credentialHasPassword;
+const visupairLinkedNoPassword =
+  signInMethods.includes("visupair") && !credentialHasPassword;
+
+const accountCreatedLabel = formatAccountCreatedAtDisplay(
+  userSession.user.createdAt,
+);
+const profilePhotoUrl = getUserProfilePhotoUrl(
+  (userSession.user as { image?: string | null }).image,
+);
 ---
 
 <Layout title="Profile — Visupair">
+  <div
+    id="account-profile-boot"
+    hidden
+    aria-hidden="true"
+    data-email-remaining={emailChangesRemaining}
+    data-password-remaining={passwordChangesRemaining}
+  >
+  </div>
   <div class="settings-layout">
     <!-- SECTION 1: PROFILE -->
     <div class="settings-section">
@@ -45,9 +117,26 @@ const lastName = nameParts.slice(1).join(" ") || "";
       </div>
 
       <div class="profile-row">
-        <!-- Visual: Initials from Session -->
-        <div class="avatar-xl" id="avatar-display">
-          {firstName.charAt(0)}{lastName.charAt(0)}
+        <!-- OAuth photo (e.g. Google) or initials for email/password accounts -->
+        <div
+          class:list={["avatar-xl", profilePhotoUrl && "avatar-xl--photo"]}
+          id="avatar-display"
+        >
+          {
+            profilePhotoUrl ? (
+              <img
+                class="profile-avatar-photo"
+                src={profilePhotoUrl}
+                alt=""
+                width="100"
+                height="100"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
+            ) : (
+              `${firstName.charAt(0)}${lastName.charAt(0)}`
+            )
+          }
         </div>
 
         <form id="profile-form" style="flex: 1; width: 100%;">
@@ -130,7 +219,12 @@ const lastName = nameParts.slice(1).join(" ") || "";
       <!-- Email Update Sub-Form -->
       <form id="email-form" class="form-group">
         <label class="form-label" for="email">Email Address</label>
-        <div style="display: flex; gap: 12px; align-items: stretch;">
+        <p class="profile-security-hint">
+          To change your email, we’ll send a secure link to your inbox (and for
+          verified accounts, a second link to your new address). You must click
+          those links to finish the update.
+        </p>
+        <div class="profile-email-actions">
           <input
             id="email"
             name="email"
@@ -143,74 +237,120 @@ const lastName = nameParts.slice(1).join(" ") || "";
           <button
             type="submit"
             class="btn-settings"
-            style="margin-top: 0;"
             id="email-submit"
+            disabled={emailChangesRemaining <= 0}
           >
             Update
           </button>
         </div>
+        <p
+          id="email-change-quota-hint"
+          class="profile-quota-warning"
+          hidden={emailChangesRemaining > 0}
+        >
+          {emailChangesRemaining <= 0
+            ? "You have used all email changes allowed for this month."
+            : ""}
+        </p>
       </form>
 
       <div class="settings-divider"></div>
 
-      <!-- Password Change Sub-Form -->
-      <form id="password-form">
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">
-          Change Password
-        </h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="currentPassword"
-              >Current Password</label
+      {
+        canChangePassword ? (
+          <form id="password-form" class="password-change-form">
+            <h3 class="password-change-title">Change Password</h3>
+            {
+              signInMethods.includes("google") ? (
+                <p class="profile-security-hint profile-dual-auth-password-note">
+                  This updates <strong>Visupair email/password</strong> sign-in only.
+                  Signing in with Google is unchanged.
+                </p>
+              ) : null
+            }
+            <p class="profile-security-hint">
+              Enter your current password, then choose a new one (at least 8
+              characters).
+            </p>
+            <div class="form-group password-current-field">
+              <label class="form-label" for="currentPassword">
+                Current Password
+              </label>
+              <input
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                class="form-input"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+            <div class="form-row password-new-pair">
+              <div class="form-group">
+                <label class="form-label" for="newPassword">New Password</label>
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  autocomplete="new-password"
+                  required
+                  minlength="8"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="confirmPassword">
+                  Confirm New Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  autocomplete="new-password"
+                  required
+                  minlength="8"
+                />
+              </div>
+            </div>
+            <div class="password-form-actions">
+              <button
+                type="submit"
+                class="btn-settings"
+                id="password-submit"
+                disabled={passwordChangesRemaining <= 0}
+              >
+                Change Password
+              </button>
+            </div>
+            <p
+              id="password-change-quota-hint"
+              class="profile-quota-warning"
+              hidden={passwordChangesRemaining > 0}
             >
-            <input
-              id="currentPassword"
-              name="currentPassword"
-              type="password"
-              class="form-input"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="newPassword">New Password</label>
-            <input
-              id="newPassword"
-              name="newPassword"
-              type="password"
-              class="form-input"
-              placeholder="••••••••"
-              autocomplete="new-password"
-              required
-            />
-          </div>
-        </div>
-        <!-- Confirm Password Field -->
-        <div class="form-group" style="margin-top: 16px;">
-          <label class="form-label" for="confirmPassword"
-            >Confirm New Password</label
-          >
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            class="form-input"
-            placeholder="••••••••"
-            autocomplete="new-password"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          class="btn-settings"
-          style="margin-top: 16px;"
-          id="password-submit"
-        >
-          Change Password
-        </button>
-      </form>
+              {passwordChangesRemaining <= 0
+                ? "You have used all password changes allowed for this month."
+                : ""}
+            </p>
+          </form>
+        ) : visupairLinkedNoPassword ? (
+          <p class="profile-security-hint profile-oauth-password-note">
+            Your account shows Visupair sign-in, but no password is stored yet (for
+            example after linking Google). To set a password for email sign-in, open
+            &ldquo;Forgot password&rdquo; on the login page with{" "}
+            <strong>{userSession.user.email}</strong>, then choose a new password.
+          </p>
+        ) : (
+          <p class="profile-security-hint profile-oauth-password-note">
+            You sign in with Google only. Your password isn’t stored on Visupair. To
+            add a password, use &ldquo;Forgot password&rdquo; on the login page with
+            this email, or contact support.
+          </p>
+        )
+      }
     </div>
 
     <!-- SECTION 3: ACCOUNT INFO -->
@@ -221,40 +361,85 @@ const lastName = nameParts.slice(1).join(" ") || "";
       </div>
 
       <div>
-        <div class="info-row">
+        <div class="info-row info-row--sign-in">
           <span class="info-label">Sign-in Method</span>
-          <span
-            class="info-value"
-            style="display: flex; align-items: center; gap: 6px;"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"></path>
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"></path>
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                fill="#FBBC05"></path>
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"></path>
-            </svg>
-            Google
+          <span class="info-value profile-sign-in-methods">
+            {
+              signInMethods.map((method) =>
+                method === "google" ? (
+                  <span class="profile-method-chip profile-method-google">
+                    <svg
+                      class="profile-method-google-icon"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      />
+                    </svg>
+                    <span>Google</span>
+                  </span>
+                ) : (
+                  <span class="profile-method-chip profile-method-visupair">
+                    <span class="profile-visupair-mark" aria-hidden="true">
+                      <svg
+                        width="24"
+                        height="12"
+                        viewBox="0 0 67 33"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M32.489 29.283L54.0977 29.8267C54.7934 29.8442 55.3418 29.2398 55.2556 28.5503L54.2167 20.2401C54.1338 19.5775 53.4991 19.1288 52.8454 19.2707L31.9362 23.8126C31.3691 23.9358 30.9857 24.4652 31.0463 25.0415L31.3858 28.266C31.4456 28.8335 31.9176 29.2686 32.489 29.283Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M34.511 2.74744L12.9023 2.20366C12.2065 2.18616 11.6582 2.79065 11.7444 3.48008L12.7833 11.7903C12.8662 12.4529 13.5009 12.9016 14.1546 12.7597L35.0638 8.21779C35.6309 8.0946 36.0143 7.56513 35.9537 6.98893L35.6142 3.7644C35.5544 3.19699 35.0824 2.76181 34.511 2.74744Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M56.3459 0.998994L59.0673 0.0588497C59.6838 -0.154124 60.3374 0.230814 60.4839 0.89311L66.9703 30.2179C67.1615 31.0822 66.398 31.8521 65.586 31.6138L60.4075 30.0943C59.9935 29.9729 59.6859 29.6092 59.6188 29.1621L55.5896 2.29705C55.5045 1.72985 55.8256 1.17874 56.3459 0.998994Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M10.6541 31.0315L7.93272 31.9716C7.31624 32.1846 6.66259 31.7996 6.5161 31.1373L0.0297008 1.81256C-0.161497 0.94817 0.601976 0.17827 1.41404 0.416558L6.59251 1.93611C7.00649 2.05758 7.31408 2.42118 7.38115 2.86831L11.4104 29.7333C11.4955 30.3006 11.1744 30.8517 10.6541 31.0315Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M52.2415 15.3689L41.6392 17.5957C40.979 17.7343 40.3436 17.2725 40.2731 16.6027L38.911 3.66592C38.8418 3.00836 39.3475 2.43092 40.0095 2.41157L50.4785 2.10553C51.0604 2.08852 51.5614 2.51267 51.6395 3.08857L53.1349 14.1046C53.215 14.6946 52.8252 15.2464 52.2415 15.3689Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M14.7585 16.6608L25.3608 14.4341C26.021 14.2954 26.6564 14.7573 26.7269 15.427L28.089 28.3638C28.1582 29.0214 27.6525 29.5988 26.9905 29.6182L16.5215 29.9242C15.9396 29.9412 15.4386 29.5171 15.3605 28.9412L13.8651 17.9251C13.785 17.3351 14.1748 16.7834 14.7585 16.6608Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </span>
+                    <span class="profile-visupair-wordmark">VISUPAIR</span>
+                  </span>
+                ),
+              )
+            }
           </span>
         </div>
         <div class="info-row">
           <span class="info-label">Account Created</span>
-          <span class="info-value"
-            >{
-              new Date(userSession.user.createdAt).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })
-            }</span
-          >
+          <span class="info-value">{accountCreatedLabel}</span>
         </div>
       </div>
     </div>
@@ -271,9 +456,82 @@ const lastName = nameParts.slice(1).join(" ") || "";
           certain.
         </p>
       </div>
-      <button class="btn-danger" id="delete-account-btn">
+      <button
+        type="button"
+        class="btn-danger"
+        id="delete-account-btn"
+        aria-haspopup="dialog"
+        aria-controls="delete-account-modal"
+      >
         Delete Account
       </button>
+    </div>
+  </div>
+
+  <!-- Delete account confirmation -->
+  <div
+    id="delete-account-modal"
+    class="delete-account-modal"
+    role="presentation"
+    hidden
+    aria-hidden="true"
+  >
+    <button
+      type="button"
+      class="delete-account-modal__backdrop"
+      id="delete-account-modal-backdrop"
+      aria-label="Close"
+      tabindex="-1"></button>
+    <div
+      class="delete-account-modal__dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-modal-title"
+      aria-describedby="delete-modal-desc"
+    >
+      <div class="delete-account-modal__icon" aria-hidden="true">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          ></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <h3 id="delete-modal-title" class="delete-account-modal__title">
+        Delete account permanently?
+      </h3>
+      <p id="delete-modal-desc" class="delete-account-modal__body">
+        This cannot be undone. <strong>Everything</strong> tied to this account
+        will be removed — your profile, saved sessions, purchase history access
+        in your account, favorites, and all other Visupair account data. You
+        will <strong>not</strong> be able to sign in again with this account.
+      </p>
+      <div class="delete-account-modal__actions">
+        <button
+          type="button"
+          class="delete-account-modal__btn cancel"
+          id="delete-account-modal-cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="delete-account-modal__btn confirm"
+          id="delete-account-modal-confirm"
+        >
+          Delete account
+        </button>
+      </div>
     </div>
   </div>
 </Layout>
@@ -362,6 +620,21 @@ const lastName = nameParts.slice(1).join(" ") || "";
     box-shadow: 0 0 20px rgba(132, 128, 255, 0.4);
     margin-bottom: 12px;
     border: 2px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+  }
+
+  .avatar-xl--photo {
+    padding: 0;
+    background: var(--surface-muted);
+    color: transparent;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .profile-avatar-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .info-row {
@@ -382,6 +655,46 @@ const lastName = nameParts.slice(1).join(" ") || "";
 
   .info-value {
     font-weight: 600;
+  }
+
+  .info-row--sign-in .info-value {
+    font-weight: 500;
+  }
+
+  .profile-sign-in-methods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    max-width: 62%;
+  }
+
+  .profile-method-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .profile-method-google-icon {
+    flex-shrink: 0;
+  }
+
+  .profile-method-visupair .profile-visupair-mark {
+    display: flex;
+    color: var(--foreground);
+    line-height: 0;
+  }
+
+  .profile-visupair-wordmark {
+    font-family: "Visupair", var(--font-family);
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1;
   }
 
   /* Purchase Widget */
@@ -484,6 +797,236 @@ const lastName = nameParts.slice(1).join(" ") || "";
     border-color: #ea4335;
   }
 
+  @keyframes delete-account-backdrop-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes delete-account-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes delete-account-backdrop-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes delete-account-dialog-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(14px) scale(0.96);
+    }
+  }
+
+  .delete-account-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .delete-account-modal[hidden] {
+    display: none !important;
+  }
+
+  .delete-account-modal:not([hidden]):not(.delete-account-modal--closing)
+    .delete-account-modal__backdrop {
+    animation: delete-account-backdrop-in 0.32s ease forwards;
+  }
+
+  .delete-account-modal:not([hidden]):not(.delete-account-modal--closing)
+    .delete-account-modal__dialog {
+    animation: delete-account-dialog-in 0.4s cubic-bezier(0.34, 1.15, 0.64, 1)
+      forwards;
+  }
+
+  .delete-account-modal--closing:not([hidden]) .delete-account-modal__backdrop {
+    animation: delete-account-backdrop-out 0.26s ease forwards;
+    pointer-events: none;
+  }
+
+  .delete-account-modal--closing:not([hidden]) .delete-account-modal__dialog {
+    animation: delete-account-dialog-out 0.32s
+      cubic-bezier(0.4, 0, 0.92, 0.58) forwards;
+    pointer-events: none;
+  }
+
+  .delete-account-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.42);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+  }
+
+  .delete-account-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid rgba(234, 67, 53, 0.35);
+    border-radius: var(--radius-xl);
+    box-shadow:
+      var(--shadow-island),
+      0 0 0 1px rgba(234, 67, 53, 0.06);
+    padding: 28px 24px 24px;
+    background-image: linear-gradient(
+      180deg,
+      rgba(234, 67, 53, 0.06) 0%,
+      transparent 48%
+    );
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    will-change: transform, opacity;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .delete-account-modal:not([hidden]):not(.delete-account-modal--closing)
+      .delete-account-modal__backdrop,
+    .delete-account-modal:not([hidden]):not(.delete-account-modal--closing)
+      .delete-account-modal__dialog {
+      animation: none;
+    }
+
+    .delete-account-modal--closing:not([hidden]) .delete-account-modal__backdrop,
+    .delete-account-modal--closing:not([hidden])
+      .delete-account-modal__dialog {
+      animation: none !important;
+    }
+
+    .delete-account-modal__backdrop,
+    .delete-account-modal__dialog {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .delete-account-modal__icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    background: rgba(234, 67, 53, 0.12);
+    color: #ea4335;
+  }
+
+  .delete-account-modal__icon svg {
+    flex-shrink: 0;
+  }
+
+  .delete-account-modal__title {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    color: #ea4335;
+    letter-spacing: -0.02em;
+  }
+
+  .delete-account-modal__body {
+    margin: 0 0 24px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--foreground);
+    opacity: 0.85;
+    text-align: center;
+  }
+
+  .delete-account-modal__body strong {
+    color: var(--foreground);
+    opacity: 1;
+  }
+
+  .delete-account-modal__actions {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: stretch;
+  }
+
+  .delete-account-modal__btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      border-color 0.2s,
+      opacity 0.2s;
+  }
+
+  .delete-account-modal__btn.cancel {
+    background: var(--surface-muted);
+    color: var(--foreground);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .delete-account-modal__btn.cancel:hover {
+    background: var(--surface-hover);
+  }
+
+  .delete-account-modal__btn.confirm {
+    background: #ea4335;
+    color: #fff;
+    border: 1px solid #ea4335;
+  }
+
+  .delete-account-modal__btn.confirm:hover {
+    opacity: 0.92;
+    filter: brightness(1.03);
+  }
+
+  .delete-account-modal__btn.confirm:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 480px) {
+    .delete-account-modal__actions {
+      flex-direction: column-reverse;
+    }
+
+    .delete-account-modal__btn {
+      width: 100%;
+    }
+  }
+
   /* Refined Button Style */
   .btn-settings {
     background: rgba(132, 128, 255, 0.05);
@@ -534,6 +1077,91 @@ const lastName = nameParts.slice(1).join(" ") || "";
     opacity: 0.9;
   }
 
+  .profile-security-hint {
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.65;
+    margin: 0 0 12px 0;
+    max-width: 100%;
+  }
+
+  .profile-quota-warning {
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 10px 0 0 0;
+    color: #ea4335;
+    max-width: 100%;
+  }
+
+  .profile-quota-warning[hidden] {
+    display: none !important;
+  }
+
+  .profile-oauth-password-note {
+    margin-bottom: 0;
+  }
+
+  /* Email field full width on small screens; button below, not squeezed beside input */
+  .profile-email-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .profile-email-actions .form-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .profile-email-actions .btn-settings {
+    margin-top: 0;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 640px) {
+    .profile-email-actions {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .profile-email-actions .form-input {
+      flex: 1;
+    }
+
+    .profile-email-actions .btn-settings {
+      width: auto;
+      align-self: center;
+      flex-shrink: 0;
+    }
+  }
+
+  .password-change-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+
+  .password-current-field {
+    margin-bottom: 16px;
+  }
+
+  .password-new-pair {
+    margin-top: 0;
+  }
+
+  .password-form-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 20px;
+  }
+
+  .password-form-actions .btn-settings {
+    margin-top: 0;
+  }
+
   .form-input {
     width: 100%;
     background: var(--surface-muted);
@@ -570,16 +1198,11 @@ const lastName = nameParts.slice(1).join(" ") || "";
   @media (max-width: 1024px) {
     .settings-layout {
       grid-template-columns: 1fr;
-      max-width: 600px;
     }
   }
 
   /* Mobile Responsive */
   @media (max-width: 900px) {
-    .settings-layout {
-      padding: 12px;
-    }
-
     .profile-row {
       flex-direction: column;
       align-items: center;
@@ -592,195 +1215,21 @@ const lastName = nameParts.slice(1).join(" ") || "";
     .form-row {
       grid-template-columns: 1fr;
     }
+
+    .info-row--sign-in {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .profile-sign-in-methods {
+      max-width: 100%;
+      justify-content: flex-start;
+    }
   }
 </style>
 
 <script>
-  import { authClient } from "../../lib/auth-client";
-  import { showVsToast } from "../../lib/vs-toast";
-
-  /**
-   * Layout uses `<ClientRouter />`. Module scripts can run once while the DOM
-   * is replaced on each navigation — bind listeners on `astro:page-load` and
-   * drop previous listeners with AbortController.
-   */
-  let profilePageAbort: AbortController | null = null;
-
-  function initAccountProfilePage() {
-    profilePageAbort?.abort();
-    profilePageAbort = new AbortController();
-    const { signal } = profilePageAbort;
-
-    const profileForm = document.getElementById(
-      "profile-form",
-    ) as HTMLFormElement | null;
-    const profileSubmit = document.getElementById(
-      "profile-submit",
-    ) as HTMLButtonElement | null;
-    const avatarDisplay = document.getElementById(
-      "avatar-display",
-    ) as HTMLDivElement | null;
-
-    if (profileForm && profileSubmit) {
-      profileForm.addEventListener(
-        "submit",
-        async (e) => {
-          e.preventDefault();
-
-          const formData = new FormData(profileForm);
-          const rawFirst = String(formData.get("firstName") ?? "").trim();
-          const rawLast = String(formData.get("lastName") ?? "").trim();
-          const fullName = [rawFirst, rawLast].filter(Boolean).join(" ").trim();
-
-          if (!rawFirst) {
-            showVsToast("First name is required.", "error");
-            return;
-          }
-
-          profileSubmit.disabled = true;
-          profileSubmit.textContent = "Saving...";
-
-          try {
-            const result = await authClient.updateUser({
-              name: fullName,
-            });
-
-            const err = (result as { error?: { message?: string } }).error;
-            if (err) {
-              showVsToast(
-                err.message || "Could not update your profile.",
-                "error",
-              );
-              return;
-            }
-
-            if (avatarDisplay) {
-              avatarDisplay.textContent = `${rawFirst.charAt(0)}${rawLast.charAt(0)}`;
-            }
-
-            showVsToast("Your name was saved.", "success");
-          } catch {
-            showVsToast(
-              "Could not update your profile. Please try again.",
-              "error",
-            );
-          } finally {
-            profileSubmit.disabled = false;
-            profileSubmit.textContent = "Save Changes";
-          }
-        },
-        { signal },
-      );
-    }
-
-    const emailForm = document.getElementById("email-form") as HTMLFormElement | null;
-    const emailSubmit = document.getElementById(
-      "email-submit",
-    ) as HTMLButtonElement | null;
-
-    if (emailForm && emailSubmit) {
-      emailForm.addEventListener(
-        "submit",
-        async (e) => {
-          e.preventDefault();
-
-          const formData = new FormData(emailForm);
-          const email = formData.get("email") as string;
-
-          emailSubmit.disabled = true;
-          emailSubmit.textContent = "Updating...";
-
-          // await authClient.changeEmail({ newEmail: email, callbackURL: '/account/profile' });
-          await new Promise((r) => setTimeout(r, 800));
-
-          emailSubmit.disabled = false;
-          emailSubmit.textContent = "Update";
-          showVsToast(`Verification email sent to ${email}.`, "success");
-        },
-        { signal },
-      );
-    }
-
-    const passwordForm = document.getElementById(
-      "password-form",
-    ) as HTMLFormElement | null;
-    const passwordSubmit = document.getElementById(
-      "password-submit",
-    ) as HTMLButtonElement | null;
-
-    if (passwordForm && passwordSubmit) {
-      passwordForm.addEventListener(
-        "submit",
-        async (e) => {
-          e.preventDefault();
-
-          const formData = new FormData(passwordForm);
-          const newPassword = formData.get("newPassword") as string;
-          const confirmPassword = formData.get("confirmPassword") as string;
-
-          if (newPassword !== confirmPassword) {
-            showVsToast("New passwords do not match.", "error");
-            return;
-          }
-
-          passwordSubmit.disabled = true;
-          passwordSubmit.textContent = "Updating...";
-
-          // await authClient.changePassword({ currentPassword, newPassword });
-          await new Promise((r) => setTimeout(r, 1000));
-
-          passwordSubmit.disabled = false;
-          passwordSubmit.textContent = "Change Password";
-          passwordForm.reset();
-          showVsToast("Password changed successfully.", "success");
-        },
-        { signal },
-      );
-    }
-
-    const deleteBtn = document.getElementById(
-      "delete-account-btn",
-    ) as HTMLButtonElement | null;
-
-    if (deleteBtn) {
-      deleteBtn.addEventListener(
-        "click",
-        async () => {
-          if (
-            !confirm(
-              "Are you sure you want to delete your account? This action cannot be undone.",
-            )
-          ) {
-            return;
-          }
-          deleteBtn.disabled = true;
-          deleteBtn.textContent = "Deleting...";
-
-          // await authClient.deleteUser();
-          await new Promise((r) => setTimeout(r, 1500));
-
-          showVsToast("Account deleted.", "success");
-          window.location.href = "/";
-        },
-        { signal },
-      );
-    }
-
-    const purchasesBtn = document.getElementById(
-      "purchases-btn",
-    ) as HTMLButtonElement | null;
-
-    if (purchasesBtn) {
-      purchasesBtn.addEventListener(
-        "click",
-        () => {
-          window.location.href = "/account/purchases";
-        },
-        { signal },
-      );
-    }
-  }
-
-  initAccountProfilePage();
-  document.addEventListener("astro:page-load", initAccountProfilePage);
+  import { mountAccountProfilePage } from "../../lib/account-profile-page";
+  mountAccountProfilePage();
 </script>

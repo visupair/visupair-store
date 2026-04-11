@@ -125,10 +125,13 @@ export interface PortfolioItem {
     isFeatured?: boolean;
     details?: Record<string, string>; // Additional info
     youtubeUrl?: string; // Legacy: single video
-    youtubeVideos?: Array<{ url: string }>; // New: multiple videos
+    /** Multiple videos; optional `title` is used for the iframe accessible name. */
+    youtubeVideos?: Array<{ url: string; title?: string }>;
+    /** Sanity document updated time (ISO); used for portfolio ordering ties / “recently added”. */
+    _updatedAt?: string;
 }
 
-// Fashion Design Structure
+// Garments store section (URL segment remains fashion-design)
 const fashionCategories: Category[] = [
     {
         id: 'fashion-physical',
@@ -162,7 +165,7 @@ const artCategories: Category[] = [
 ];
 
 export const storeSections: Record<string, StoreSection> = {
-    'fashion-design': { id: 'fashion-design', title: 'Fashion Design', categories: fashionCategories },
+    'fashion-design': { id: 'fashion-design', title: 'Garments', categories: fashionCategories },
     '3d-models': { id: '3d-models', title: '3D Models', categories: modelsCategories },
     'artworks': { id: 'artworks', title: 'Artworks', categories: artCategories }
 };
