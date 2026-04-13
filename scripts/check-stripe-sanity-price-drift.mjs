@@ -27,7 +27,7 @@ const projectId = "sovnyov1";
 const dataset = "production";
 const apiVersion = "2024-03-01";
 
-const groq = `*[_type == "product" && defined(stripePriceId) && stripePriceId != ""]{_id,name,price,pricePLN,stripePriceId}[0...80]`;
+const groq = `*[_type == "product" && defined(stripePriceId) && stripePriceId != "" && isFree != true]{_id,name,price,pricePLN,stripePriceId}[0...80]`;
 
 function expectedEurMinor(priceEur) {
   return Math.round(Math.max(0, Number(priceEur) || 0) * 100);

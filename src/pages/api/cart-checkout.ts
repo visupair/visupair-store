@@ -38,7 +38,9 @@ function aggregatePhysicalCartQuantities(
 
 export const POST: APIRoute = async (context) => {
     try {
-        const authResult = await requireApiSession(context);
+        const authResult = await requireApiSession(context, {
+            unauthorizedMessage: "Sign in required to continue to checkout.",
+        });
         if ("response" in authResult) {
             return authResult.response;
         }
@@ -124,6 +126,18 @@ export const POST: APIRoute = async (context) => {
         for (const item of items) {
             const doc = byId.get(item.productId);
             assertProductMatchesCartLine(item, doc);
+            if (doc.isFree) {
+                return new Response(
+                    JSON.stringify({
+                        error:
+                            "Free digital products cannot be purchased through checkout. Remove them from the cart and claim them on the product page while signed in.",
+                    }),
+                    {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" },
+                    },
+                );
+            }
 
             const qty = Math.max(1, item.quantity || 1);
             const minor = minorUnitsForCatalogPrice(checkoutCurrency, doc.price, doc.pricePLN);

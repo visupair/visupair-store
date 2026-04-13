@@ -57,13 +57,30 @@ export default defineType({
             name: 'price',
             title: 'Price (EUR)',
             type: 'number',
-            validation: (Rule) => Rule.required().min(0),
+            hidden: ({ document }) =>
+                document?.productType === 'digital' &&
+                document?.isFree === true &&
+                (document?.department === 'fashion' || document?.department === '3d-models'),
+            validation: (Rule) =>
+                Rule.custom((value, context) => {
+                    const doc = context.document
+                    if (doc?.isFree && (doc?.department === 'fashion' || doc?.department === '3d-models')) {
+                        return true
+                    }
+                    if (value == null || value === undefined) return 'Required'
+                    if (Number(value) < 0) return 'Must be 0 or greater'
+                    return true
+                }),
         }),
         defineField({
             name: 'pricePLN',
             title: 'Price (PLN) - Optional',
             type: 'number',
             description: 'Leave empty for automatic conversion from EUR (1 EUR ≈ 4.3 PLN)',
+            hidden: ({ document }) =>
+                document?.productType === 'digital' &&
+                document?.isFree === true &&
+                (document?.department === 'fashion' || document?.department === '3d-models'),
             validation: (Rule) => Rule.min(0),
         }),
         defineField({
@@ -157,6 +174,17 @@ export default defineType({
             },
             initialValue: 'physical',
         }),
+        defineField({
+            name: 'isFree',
+            title: 'Free digital product',
+            type: 'boolean',
+            description:
+                'No Stripe checkout — customers claim from the store while signed in. Only for Garments or 3D Models digital products with an R2 file key.',
+            initialValue: false,
+            hidden: ({ document }) =>
+                document?.productType !== 'digital' ||
+                (document?.department !== 'fashion' && document?.department !== '3d-models'),
+        }),
 
         // Shipping Specifications (Physical Only)
         defineField({
@@ -209,7 +237,19 @@ export default defineType({
             description:
                 'The Price ID from Stripe (e.g. price_1OqXXXXXXXXXXXXX). Keep Price unit_amount in sync with Price (EUR) / Price (PLN) here — checkout charges the Stripe Price, not this number alone. Run: npm run check:stripe-sanity-prices',
             type: 'string',
-            validation: (Rule) => Rule.required(),
+            hidden: ({ document }) =>
+                document?.productType === 'digital' &&
+                document?.isFree === true &&
+                (document?.department === 'fashion' || document?.department === '3d-models'),
+            validation: (Rule) =>
+                Rule.custom((value, context) => {
+                    const doc = context.document
+                    if (doc?.isFree && (doc?.department === 'fashion' || doc?.department === '3d-models')) {
+                        return true
+                    }
+                    if (!value || String(value).trim() === '') return 'Required'
+                    return true
+                }),
         }),
         defineField({
             name: 'digitalFileKey', // R2 Integration
@@ -243,6 +283,25 @@ export default defineType({
             hidden: ({ document }) => document?.department !== 'fashion' || document?.productType !== 'digital',
         }),
     ],
+    validation: (Rule) =>
+        Rule.custom((_, context) => {
+            const doc = context.document
+            if (!doc?.isFree) return true
+            if (doc.productType !== 'digital') {
+                return 'Free products must use Product Type: Digital.'
+            }
+            if (doc.department === 'artworks') {
+                return 'Free products are not available for Artworks.'
+            }
+            if (doc.department !== 'fashion' && doc.department !== '3d-models') {
+                return 'Free products are only available for Garments or 3D Models.'
+            }
+            const key = doc.digitalFileKey
+            if (!key || String(key).trim() === '') {
+                return 'Digital File Key (R2) is required for free digital products.'
+            }
+            return true
+        }),
     preview: {
         select: {
             title: 'name',

@@ -37,11 +37,15 @@ import 'flatpickr/dist/flatpickr.min.css';
                     Most Popular
                 </div>
                 <div class="plan-header">
-                    <span id="form-plan-name" class="plan-name">Standard</span>
+                    <div class="plan-header-tier">
+                        <span id="form-plan-name" class="plan-name">Standard</span>
+                        <p class="plan-starting-from">starting from</p>
+                    </div>
                     <div class="plan-price-wrapper">
-                        <span class="plan-currency">€</span>
-                        <span id="form-plan-price" class="plan-amount">700</span
+                        <span id="form-plan-currency" class="plan-currency"
+                            >€</span
                         >
+                        <span id="form-plan-price" class="plan-amount">700</span>
                     </div>
                     <p id="form-plan-desc" class="plan-desc">
                         Perfect for growing businesses needing a professional
@@ -73,7 +77,7 @@ import 'flatpickr/dist/flatpickr.min.css';
             <div class="form-header-mobile-hidden">
                 <h3>Request Proposal</h3>
                 <p class="form-intro-paragraph">
-                    You're requesting the <span id="form-plan-name-inline-desktop" class="plan-name-inline">Standard</span> Package (€<span id="form-plan-price-inline">700</span>).
+                    You're requesting the <span id="form-plan-name-inline-desktop" class="plan-name-inline">Standard</span> Package (<span id="form-plan-intro-price">€700</span>).
                 </p>
                 <p class="form-intro-note">
                     This is not a payment. We'll review your request and follow up by email to confirm details and timeline.
@@ -83,6 +87,9 @@ import 'flatpickr/dist/flatpickr.min.css';
             <form class="request-form" id="proposal-form">
                 <input type="hidden" name="service_id" id="input-service-id" />
                 <input type="hidden" name="plan_name" id="input-plan-name" />
+                <input type="hidden" name="plan_price_eur" id="input-plan-price-eur" />
+                <input type="hidden" name="plan_price_pln" id="input-plan-price-pln" />
+                <input type="hidden" name="plan_price_currency" id="input-plan-price-currency" />
 
                 <div class="form-fields-grid">
                     <!-- Full Name -->
@@ -110,7 +117,7 @@ import 'flatpickr/dist/flatpickr.min.css';
                             id="email"
                             name="email"
                             class="form-input"
-                            placeholder="john@company.com"
+                            placeholder="email@example.com"
                             required
                         />
                     </div>
@@ -414,7 +421,18 @@ import 'flatpickr/dist/flatpickr.min.css';
     }
 
     .plan-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
         text-align: center;
+    }
+
+    .plan-header-tier {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
     }
 
     .plan-name {
@@ -424,7 +442,18 @@ import 'flatpickr/dist/flatpickr.min.css';
         letter-spacing: 0.15em;
         color: var(--brand-violet);
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 0;
+    }
+
+    .plan-starting-from {
+        font-family: var(--font-family);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: 0.04em;
+        text-transform: lowercase;
+        color: var(--foreground);
+        margin: 0;
     }
 
     .plan-price-wrapper {
@@ -433,7 +462,8 @@ import 'flatpickr/dist/flatpickr.min.css';
         justify-content: center;
         gap: 4px;
         color: var(--foreground);
-        margin: 12px 0;
+        margin-top: -8px;
+        margin-bottom: 0;
     }
 
     .plan-currency {
@@ -1455,15 +1485,22 @@ import 'flatpickr/dist/flatpickr.min.css';
         .plan-header {
             text-align: center;
             width: 100%;
+            gap: 8px;
         }
 
         .plan-name {
             font-size: 12px;
-            margin-bottom: 4px;
+            margin-bottom: 0;
+        }
+
+        .plan-starting-from {
+            font-size: 12px;
+            letter-spacing: 0.03em;
         }
 
         .plan-price-wrapper {
-            margin: 6px 0;
+            margin-top: -4px;
+            margin-bottom: 0;
         }
 
         .plan-amount {
@@ -1571,11 +1608,16 @@ import 'flatpickr/dist/flatpickr.min.css';
 
         .plan-name {
             font-size: 11px;
-            margin-bottom: 3px;
+            margin-bottom: 0;
+        }
+
+        .plan-starting-from {
+            font-size: 12px;
         }
 
         .plan-price-wrapper {
-            margin: 4px 0;
+            margin-top: -4px;
+            margin-bottom: 0;
         }
 
         .plan-amount {

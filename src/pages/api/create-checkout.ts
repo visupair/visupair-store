@@ -43,7 +43,9 @@ const MAX_MAJOR_DONATION = 100_000;
 
 export const POST: APIRoute = async (context) => {
     try {
-        const authResult = await requireApiSession(context);
+        const authResult = await requireApiSession(context, {
+            unauthorizedMessage: "Sign in required to continue to checkout.",
+        });
         if ("response" in authResult) {
             return authResult.response;
         }
@@ -224,6 +226,19 @@ export const POST: APIRoute = async (context) => {
                 productType === "digital" ? "digital" : "physical",
                 typeof selectedSize === "string" ? selectedSize : undefined,
             );
+
+            if (doc.isFree) {
+                return new Response(
+                    JSON.stringify({
+                        error:
+                            "Free digital products are claimed from the product page while signed in, not through checkout.",
+                    }),
+                    {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" },
+                    },
+                );
+            }
 
             const useShipping =
                 doc.productType === "physical" &&

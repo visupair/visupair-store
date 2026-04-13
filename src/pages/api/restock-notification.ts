@@ -90,7 +90,7 @@ export const POST: APIRoute = async (context) => {
 
           <div style="background: #f0f9ff; border-left: 4px solid #8480ff; padding: 16px; margin: 20px 0;">
             <p style="margin: 0; color: #333;">
-              ✓ We'll send you an email as soon as this item is back in stock.
+              We'll send you an email as soon as this item is back in stock.
             </p>
           </div>
 

@@ -8,8 +8,8 @@ import {
     checkRateLimit,
     RATE_LIMITS,
     resolveVisupairKv,
-} from "../../lib/rate-limit-kv";
-import { userOwnsStoreProduct } from "../../lib/user-owns-product";
+} from "~/lib/rate-limit-kv";
+import { userOwnsStoreProduct } from "~/lib/user-owns-product";
 
 export const POST: APIRoute = async (context) => {
     const { request, locals } = context;

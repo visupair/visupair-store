@@ -3,7 +3,26 @@ import Layout from "../layouts/Layout.astro";
 import Button from "../components/Button.astro";
 import CategoryCarousel from "../components/CategoryCarousel.astro";
 import ServicePromoCard from "../components/ServicePromoCard.astro";
+import { Image, getImage } from "astro:assets";
+import bgDark from "../assets/hero/bg-dark.webp";
+import bgLight from "../assets/hero/bg-light.webp";
+import preloaderDark from "../assets/hero/preloader-dark-forslowdivaces.webp";
+import preloaderLight from "../assets/hero/preloader-light-forslowdivaces.webp";
+import coursesDark from "../assets/hero/courses-dark.webp";
+import coursesLight from "../assets/hero/courses-light.webp";
+import carouselFashion from "../assets/carousel/fashion_runway_scene.webp";
+import carouselCube from "../assets/carousel/cube_rube_blender.webp";
+import carouselScream from "../assets/carousel/scream_painting.webp";
+
 export const prerender = true;
+
+const heroBgDarkSrc = (await getImage({ src: bgDark })).src;
+const heroBgLightSrc = (await getImage({ src: bgLight })).src;
+const heroPreDarkSrc = (await getImage({ src: preloaderDark })).src;
+const heroPreLightSrc = (await getImage({ src: preloaderLight })).src;
+
+/** Inline only — avoids `define:vars` creating an empty Vite chunk on build. */
+const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?window.visupairGetTheme():"dark";function p(h,m){var l=document.createElement("link");l.rel="preload";l.as="image";l.type="image/webp";l.href=h;if(m)l.media=m;document.head.appendChild(l)}var b=t==="dark"?${JSON.stringify(heroBgDarkSrc)}:${JSON.stringify(heroBgLightSrc)};var r=t==="dark"?${JSON.stringify(heroPreDarkSrc)}:${JSON.stringify(heroPreLightSrc)};p(b,"(min-width: 381px)");p(r,"(max-width: 380px)")}catch(e){}})();`;
 ---
 
 <Layout
@@ -11,29 +30,7 @@ export const prerender = true;
   description="Creative portfolio and digital showcase. Explore unique designs, fashion, 3D models and artworks from Visupair studio."
 >
   <Fragment slot="head">
-    <script is:inline>
-      (function () {
-        try {
-          var t = window.visupairGetTheme
-            ? window.visupairGetTheme()
-            : "dark";
-          function preload(href, media) {
-            var l = document.createElement("link");
-            l.rel = "preload";
-            l.as = "image";
-            l.type = "image/webp";
-            l.href = href;
-            if (media) l.media = media;
-            document.head.appendChild(l);
-          }
-          preload("/images/hero/bg-" + t + ".webp", "(min-width: 401px)");
-          preload(
-            "/images/hero/preloader-" + t + "-forslowdivaces.webp",
-            "(max-width: 400px)",
-          );
-        } catch (e) {}
-      })();
-    </script>
+    <script is:inline set:html={heroImagePreloadScript} />
   </Fragment>
 
   <div class="hero-wrapper">
@@ -47,8 +44,7 @@ export const prerender = true;
         </h1>
 
         <p class="hero-subtitle animate-text above-fold-reveal" style="--anim-delay: 0.1s;">
-          Your creative portfolio and digital showcase. Explore unique designs,
-          fashion, 3D models, and artworks from our studio.
+          Art, fashion, and digital design all in one <br /> place. We didn't start a business. We just never stopped making.
         </p>
 
         <div class="hero-actions animate-text above-fold-reveal" style="--anim-delay: 0.2s;">
@@ -62,46 +58,43 @@ export const prerender = true;
       </div>
 
       <div class="hero-visual loading" id="hero-visual-wrapper">
-        <img
-          id="hero-bg-image"
-          class="hero-bg"
+        <Image
+          src={bgDark}
           alt=""
+          class="hero-bg hero-bg-theme hero-bg--dark"
           loading="eager"
           fetchpriority="high"
-          draggable="false"
-          onload="this.parentElement?.classList.remove('loading')"
+          decoding="async"
+          draggable={false}
         />
-        <img
-          id="hero-static-mobile"
-          class="hero-static-mobile"
+        <Image
+          src={bgLight}
+          alt=""
+          class="hero-bg hero-bg-theme hero-bg--light"
+          loading="eager"
+          fetchpriority="low"
+          decoding="async"
+          draggable={false}
+        />
+        <Image
+          src={preloaderDark}
           alt="Visupair"
+          class="hero-static-mobile hero-static-theme hero-static--dark"
           loading="eager"
           fetchpriority="high"
-          draggable="false"
-          onload="this.parentElement?.classList.remove('loading')"
+          decoding="async"
+          draggable={false}
         />
-        <script is:inline>
-          (function () {
-            try {
-              var t = window.visupairGetTheme
-                ? window.visupairGetTheme()
-                : "dark";
-              var narrow =
-                typeof matchMedia !== "undefined" &&
-                matchMedia("(max-width: 400px)").matches;
-              var bg = document.getElementById("hero-bg-image");
-              var mob = document.getElementById("hero-static-mobile");
-              if (narrow) {
-                if (mob)
-                  mob.src =
-                    "/images/hero/preloader-" + t + "-forslowdivaces.webp";
-              } else {
-                if (bg) bg.src = "/images/hero/bg-" + t + ".webp";
-              }
-            } catch (e) {}
-          })();
-        </script>
-        <div id="hero-lottie-container"></div>
+        <Image
+          src={preloaderLight}
+          alt="Visupair"
+          class="hero-static-mobile hero-static-theme hero-static--light"
+          loading="eager"
+          fetchpriority="low"
+          decoding="async"
+          draggable={false}
+        />
+        <div id="hero-lottie-container" aria-hidden="true"></div>
       </div>
     </div>
   </div>
@@ -112,8 +105,7 @@ export const prerender = true;
       <div class="services-header">
         <h2 class="services-title animate-text">Our Creative Services</h2>
         <p class="services-subtitle animate-text" style="--anim-delay: 0.1s;">
-          From initial concept to final execution, we provide end-to-end design
-          solutions tailored to your unique business needs.
+          We help artists, independent designers, and brands build a visual presence that actually reflects their work. 
         </p>
       </div>
 
@@ -121,7 +113,7 @@ export const prerender = true;
         <div style="--anim-delay: 0.2s;">
           <ServicePromoCard
             title="Logo Design"
-            description="Crafting unique visual marks that represent your brand essence. We focus on scalability and timelessness."
+            description="Creating unique visual marks that represent your brand essence. "
             href="/services/logo-design"
             processSteps={[
               "Discovery & Research",
@@ -162,23 +154,23 @@ export const prerender = true;
   <CategoryCarousel
     categories={[
       {
-        title: "Garments",
+        title: "Garments & Accessories",
         description:
-          "Exclusive digital garments and futuristic apparel concepts.",
-        image: "/images/hero/fashion_runway_scene.webp",
+          "Digital and physical fashion pieces designed for real and virtual worlds.",
+        image: carouselFashion,
         href: "/store/fashion-design",
       },
       {
         title: "3D Models",
         description:
           "High-quality 3D assets ready for integration and rendering.",
-        image: "/images/hero/cube_rube_blender.webp",
+        image: carouselCube,
         href: "/store/3d-models",
       },
       {
         title: "Art Works",
-        description: "Unique digital paintings and creative artistic projects.",
-        image: "/images/hero/scream_painting.webp",
+        description: "Creative artworks and projects.",
+        image: carouselScream,
         href: "/store/artworks",
       },
     ]}
@@ -193,14 +185,12 @@ export const prerender = true;
         </div>
 
         <h2 class="courses-title animate-text" style="--anim-delay: 0.08s;">
-          Learn. Create.<br />
-          <span class="courses-accent">Master Your Craft.</span>
+          We learned by doing<br />
+          <span class="courses-accent">Now we teach the same way</span>
         </h2>
 
         <p class="courses-subtitle animate-text" style="--anim-delay: 0.16s;">
-          Dive into hands-on creative courses crafted for designers, artists,
-          and 3D enthusiasts. Go from zero to portfolio-ready with expert-led
-          lessons that fit your pace.
+          We trust that knowledge grows when it's shared. Just everything we've figured out, share as simply as we can.
         </p>
 
         <ul
@@ -222,7 +212,23 @@ export const prerender = true;
                 ><polyline points="20 6 9 17 4 12"></polyline></svg
               >
             </span>
-            Garments &amp; Illustration
+            Oil Painting &amp; Mixed Media
+          </li>
+          <li>
+            <span class="courses-feature-icon" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><polyline points="20 6 9 17 4 12"></polyline></svg
+              >
+            </span>
+            Pattern Making (Digital &amp; Traditional)
           </li>
           <li>
             <span class="courses-feature-icon" aria-hidden="true">
@@ -254,23 +260,7 @@ export const prerender = true;
                 ><polyline points="20 6 9 17 4 12"></polyline></svg
               >
             </span>
-            Digital Painting &amp; Artworks
-          </li>
-          <li>
-            <span class="courses-feature-icon" aria-hidden="true">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><polyline points="20 6 9 17 4 12"></polyline></svg
-              >
-            </span>
-            Brand Identity &amp; Visual Systems
+            Digital Fashion
           </li>
         </ul>
 
@@ -282,25 +272,37 @@ export const prerender = true;
             icon={true}
           />
           <Button
-            href="/services"
+            href="/contact"
             variant="secondary"
-            label="Explore Services"
+            label="Contact Us"
           />
         </div>
       </div>
 
       <!-- Right: Theme-aware image -->
       <div class="courses-visual" aria-hidden="true">
-        <img
-          id="courses-img"
-          class="courses-img"
-          alt="Courses — creative tools, painting palette and 3D modelling"
-          loading="lazy"
-          decoding="async"
-          draggable="false"
-          width="1080"
-          height="1080"
-        />
+        <div class="courses-img-stack">
+          <Image
+            src={coursesDark}
+            class="courses-img courses-img-theme courses-img--dark"
+            alt="Courses — creative tools, painting palette and 3D modelling"
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            width={1080}
+            height={1080}
+          />
+          <Image
+            src={coursesLight}
+            class="courses-img courses-img-theme courses-img--light"
+            alt="Courses — creative tools, painting palette and 3D modelling"
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            width={1080}
+            height={1080}
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -316,129 +318,161 @@ export const prerender = true;
       </div>
 
       <div class="faq-grid">
-        <!-- Column 1 -->
-        <div class="faq-column">
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="1" aria-expanded="false" id="faq-trigger-1" aria-controls="faq-answer-1">
-              <span class="faq-number" aria-hidden="true">01</span>
-              <h3 class="faq-question">Who is VisuPair?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="1" id="faq-answer-1" role="region" aria-labelledby="faq-trigger-1">
-              <p>We're Gul and Vali, two artists creating unique designs, fashion, 3D models, and digital art. We sell our work directly to you with no middlemen, combining our talents and visions into exceptional creations.</p>
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="1" aria-expanded="false" id="faq-trigger-1" aria-controls="faq-answer-1">
+            <span class="faq-number" aria-hidden="true">01</span>
+            <h3 class="faq-question">What exactly is VisuPair?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-          </div>
-
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="2" aria-expanded="false" id="faq-trigger-2" aria-controls="faq-answer-2">
-              <span class="faq-number" aria-hidden="true">02</span>
-              <h3 class="faq-question">What payment methods do you accept?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="2" id="faq-answer-2" role="region" aria-labelledby="faq-trigger-2">
-              <p>We accept all major credit and debit cards (Visa, Mastercard, American Express, etc.) through Stripe secure checkout. Your payment data is encrypted with industry-standard security protocols, and we never store your card details on our servers.</p>
-            </div>
-          </div>
-
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="3" aria-expanded="false" id="faq-trigger-3" aria-controls="faq-answer-3">
-              <span class="faq-number" aria-hidden="true">03</span>
-              <h3 class="faq-question">What's the difference between physical and digital products?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="3" id="faq-answer-3" role="region" aria-labelledby="faq-trigger-3">
-              <p>Physical products (hoodies, belts, paintings) are handmade and shipped to your address. Digital products (3D models, pattern files) are downloaded instantly after purchase and available in your account anytime.</p>
-            </div>
-          </div>
-
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="4" aria-expanded="false" id="faq-trigger-4" aria-controls="faq-answer-4">
-              <span class="faq-number" aria-hidden="true">04</span>
-              <h3 class="faq-question">How many revisions are included with services?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="4" id="faq-answer-4" role="region" aria-labelledby="faq-trigger-4">
-              <p>Revision rounds vary by service tier. Basic packages include 2 revisions, Standard includes 4 revisions, and Premium packages include unlimited revisions within scope. Check the specific service page for detailed information.</p>
-            </div>
+          </button>
+          <div class="faq-answer" data-faq="1" id="faq-answer-1" role="region" aria-labelledby="faq-trigger-1">
+            <p>VisuPair is a creative studio run by two multidisciplinary designers. We create our own art, fashion, and digital pieces, collaborate with artists and brands on their visual identity, and teach workshops</p>
           </div>
         </div>
 
-        <!-- Column 2 -->
-        <div class="faq-column">
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="5" aria-expanded="false" id="faq-trigger-5" aria-controls="faq-answer-5">
-              <span class="faq-number" aria-hidden="true">05</span>
-              <h3 class="faq-question">How do I track my order?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="5" id="faq-answer-5" role="region" aria-labelledby="faq-trigger-5">
-              <p>Log into your account and go to "Purchases" to view your order status, tracking number, estimated delivery date, and courier contact information. You'll also receive tracking updates via email.</p>
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="2" aria-expanded="false" id="faq-trigger-2" aria-controls="faq-answer-2">
+            <span class="faq-number" aria-hidden="true">02</span>
+            <h3 class="faq-question">What does "phygital" mean?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+          </button>
+          <div class="faq-answer" data-faq="2" id="faq-answer-2" role="region" aria-labelledby="faq-trigger-2">
+            <p>"Phygital is how we describe work that exists in both the physical and digital world. A garment we design can be worn in real life and also exist as a 3D model or digital collectible. We move ideas between both realities without losing what makes them meaningful.</p>
           </div>
+        </div>
 
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="6" aria-expanded="false" id="faq-trigger-6" aria-controls="faq-answer-6">
-              <span class="faq-number" aria-hidden="true">06</span>
-              <h3 class="faq-question">What do you do if a product is out of stock?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="6" id="faq-answer-6" role="region" aria-labelledby="faq-trigger-6">
-              <p>When a product is sold out, you'll see a "Notify Me When Available" button instead of the Buy Now option. Simply enter your email address, and we'll send you a notification as soon as we restock it.</p>
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="3" aria-expanded="false" id="faq-trigger-3" aria-controls="faq-answer-3">
+            <span class="faq-number" aria-hidden="true">03</span>
+            <h3 class="faq-question">What is a digital collectible?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+          </button>
+          <div class="faq-answer" data-faq="3" id="faq-answer-3" role="region" aria-labelledby="faq-trigger-3">
+            <p>A digital collectible is a piece that exists only in the digital world, it could be a wearable for an avatar, a 3D model, or a digital artwork. It is a real creative work, just without a physical form.</p>
           </div>
+        </div>
 
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="7" aria-expanded="false" id="faq-trigger-7" aria-controls="faq-answer-7">
-              <span class="faq-number" aria-hidden="true">07</span>
-              <h3 class="faq-question">Can I return or refund my order?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="7" id="faq-answer-7" role="region" aria-labelledby="faq-trigger-7">
-              <p>Refund eligibility depends on the product type and condition. Please refer to our Refund Policy for detailed information about eligibility timelines and refund processing. Contact us at info@visupair.com for personalized assistance.</p>
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="4" aria-expanded="false" id="faq-trigger-4" aria-controls="faq-answer-4">
+            <span class="faq-number" aria-hidden="true">04</span>
+            <h3 class="faq-question">What kind of pieces do you sell?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+          </button>
+          <div class="faq-answer" data-faq="4" id="faq-answer-4" role="region" aria-labelledby="faq-trigger-4">
+            <p>We sell garments, accessories, paintings, art works, and digital works, all designed and made by us. Some pieces exist physically, some digitally, and some in both forms. Certain works are one of a kind and will never be repeated. Others are released in very limited numbers. If something speaks to you, it is worth not waiting.</p>
           </div>
+        </div>
 
-          <div class="faq-panel">
-            <button type="button" class="faq-item" data-faq="8" aria-expanded="false" id="faq-trigger-8" aria-controls="faq-answer-8">
-              <span class="faq-number" aria-hidden="true">08</span>
-              <h3 class="faq-question">How do I contact support?</h3>
-              <div class="faq-toggle" aria-hidden="true">
-                <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </button>
-            <div class="faq-answer" data-faq="8" id="faq-answer-8" role="region" aria-labelledby="faq-trigger-8">
-              <p>We're here to help! Reach us through Email: info@visupair.com or Phone: +48 539 818 790. We aim to respond to all inquiries within 24 hours.</p>
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="5" aria-expanded="false" id="faq-trigger-5" aria-controls="faq-answer-5">
+            <span class="faq-number" aria-hidden="true">05</span>
+            <h3 class="faq-question">What kind of clients do you work with?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+          </button>
+          <div class="faq-answer" data-faq="5" id="faq-answer-5" role="region" aria-labelledby="faq-trigger-5">
+            <p>We work with artists, independent designers, and brands of all sizes. If you have creative work that matters to you and you need help showing it to the world in a way that feels true, we are probably a good fit. We work with people from anywhere in the world fully remotely.</p>
+          </div>
+        </div>
+
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="6" aria-expanded="false" id="faq-trigger-6" aria-controls="faq-answer-6">
+            <span class="faq-number" aria-hidden="true">06</span>
+            <h3 class="faq-question">What services do you offer?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer" data-faq="6" id="faq-answer-6" role="region" aria-labelledby="faq-trigger-6">
+            <p>
+              We help with logos, visual identities, websites, color palettes, creative direction, look books, and more. Every project is different, so we always start with a conversation to understand what you actually need.</p>
+          </div>
+        </div>
+
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="7" aria-expanded="false" id="faq-trigger-7" aria-controls="faq-answer-7">
+            <span class="faq-number" aria-hidden="true">07</span>
+            <h3 class="faq-question">Do you only run your own workshops?               </h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer" data-faq="7" id="faq-answer-7" role="region" aria-labelledby="faq-trigger-7">
+            <p>Not at all. Alongside our own workshops, we also invite experienced creators, artists, and designers to come and teach. We believe that learning from different voices and practices makes the experience richer for everyone. So whether a workshop is led by us or by a guest, the same values apply honest, open, and worth your time.</p>
+          </div>
+        </div>
+
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="8" aria-expanded="false" id="faq-trigger-8" aria-controls="faq-answer-8">
+            <span class="faq-number" aria-hidden="true">08</span>
+            <h3 class="faq-question">How do I start working with you?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer" data-faq="8" id="faq-answer-8" role="region" aria-labelledby="faq-trigger-8">
+            <p>Just reach out and tell us a little about your project. We will get back to you to set up a conversation and go from there.</p>
+          </div>
+        </div>
+
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="9" aria-expanded="false" id="faq-trigger-9" aria-controls="faq-answer-9">
+            <span class="faq-number" aria-hidden="true">09</span>
+            <h3 class="faq-question">How do I track my orders?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer" data-faq="9" id="faq-answer-9" role="region" aria-labelledby="faq-trigger-9">
+            <p>
+              Log in to your account and open <strong>Purchases</strong> to see order status, tracking number when available, estimated delivery, and courier details. We also send tracking updates by email.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-panel">
+          <button type="button" class="faq-item" data-faq="10" aria-expanded="false" id="faq-trigger-10" aria-controls="faq-answer-10">
+            <span class="faq-number" aria-hidden="true">10</span>
+            <h3 class="faq-question">Can I return or refund my orders?</h3>
+            <div class="faq-toggle" aria-hidden="true">
+              <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polyline points="6,15 12,9 18,15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+          <div class="faq-answer" data-faq="10" id="faq-answer-10" role="region" aria-labelledby="faq-trigger-10">
+            <p>
+              Eligibility depends on product type and condition. Please read our
+              <a href="/legal/refund-policy">Refund Policy</a>
+              for timelines and rules. For help with a specific order, email
+              <a href="mailto:info@visupair.com">info@visupair.com</a>.
+            </p>
           </div>
         </div>
       </div>
@@ -453,69 +487,36 @@ export const prerender = true;
     let currentTheme: string | null = null;
     let themeObserver: MutationObserver | null = null;
     let intersectionObserver: IntersectionObserver | null = null;
-    let coursesImgLazyObserver: IntersectionObserver | null = null;
     let prefersColorSchemeMedia: MediaQueryList | null = null;
+    let narrowHeroMql: MediaQueryList | null = null;
     let hasCompletedHomeClientNav = false;
+    let heroLottieLoadToken = 0;
+    let heroLottieIntersectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const getTheme = () =>
       document.documentElement.hasAttribute("data-theme") ? "dark" : "light";
 
-    /** Matches CSS hero mobile layout (max-width: 400px); keep in sync with @media there */
+    const NARROW_HERO_PX = 380;
+
     const isNarrowHero = () =>
-      window.matchMedia("(max-width: 400px)").matches;
+      window.matchMedia(`(max-width: ${NARROW_HERO_PX}px)`).matches;
 
-    const setHeroImageSources = (theme: string) => {
+    const revealHeroWhenReady = () => {
+      const wrapper = document.getElementById("hero-visual-wrapper");
+      if (!wrapper?.classList.contains("loading")) return;
+      const theme = getTheme();
       const narrow = isNarrowHero();
-      const bgImage = document.getElementById(
-        "hero-bg-image",
-      ) as HTMLImageElement | null;
-      const mobileImage = document.getElementById(
-        "hero-static-mobile",
-      ) as HTMLImageElement | null;
-      if (narrow) {
-        bgImage?.removeAttribute("src");
-        if (mobileImage)
-          mobileImage.src = `/images/hero/preloader-${theme}-forslowdivaces.webp`;
-      } else {
-        if (bgImage) bgImage.src = `/images/hero/bg-${theme}.webp`;
-        mobileImage?.removeAttribute("src");
-      }
-    };
-
-    const updateCoursesImageTheme = (theme: string) => {
-      const coursesImg = document.getElementById(
-        "courses-img",
-      ) as HTMLImageElement | null;
-      if (!coursesImg?.dataset.loaded) return;
-      const path = `/images/hero/courses-${theme}.webp`;
-      if (!coursesImg.src.includes(path)) coursesImg.src = path;
-    };
-
-    const attachCoursesImageLazyLoad = () => {
-      coursesImgLazyObserver?.disconnect();
-      const wrap = document.querySelector(".courses-visual");
-      const coursesImg = document.getElementById(
-        "courses-img",
-      ) as HTMLImageElement | null;
-      if (!wrap || !coursesImg) return;
-
-      if (coursesImg.dataset.loaded === "1") {
-        updateCoursesImageTheme(getTheme());
-        return;
-      }
-
-      coursesImg.removeAttribute("src");
-      coursesImgLazyObserver = new IntersectionObserver(
-        (entries) => {
-          if (!entries[0]?.isIntersecting) return;
-          coursesImgLazyObserver?.disconnect();
-          coursesImgLazyObserver = null;
-          coursesImg.dataset.loaded = "1";
-          coursesImg.src = `/images/hero/courses-${getTheme()}.webp`;
-        },
-        { rootMargin: "180px 0px", threshold: 0.01 },
-      );
-      coursesImgLazyObserver.observe(wrap);
+      const sel = narrow
+        ? theme === "dark"
+          ? ".hero-static--dark"
+          : ".hero-static--light"
+        : theme === "dark"
+          ? ".hero-bg--dark"
+          : ".hero-bg--light";
+      const img = document.querySelector(sel) as HTMLImageElement | null;
+      const done = () => wrapper.classList.remove("loading");
+      if (img?.complete) done();
+      else img?.addEventListener("load", done, { once: true });
     };
 
     const loadAnimation = async (theme: string) => {
@@ -525,25 +526,31 @@ export const prerender = true;
       const wrapper = document.getElementById("hero-visual-wrapper");
       if (!container || !wrapper) return;
 
-      if (anim && theme !== currentTheme) {
-        anim.destroy();
-        anim = null;
-        container.innerHTML = "";
-        wrapper.classList.remove("lottie-loaded");
-      }
-
-      const hasAnimationInDOM = container.querySelector("svg") !== null;
-      if (currentTheme === theme && anim && hasAnimationInDOM) {
+      if (
+        currentTheme === theme &&
+        anim &&
+        container.querySelector("svg") !== null
+      ) {
         wrapper.classList.add("lottie-loaded");
         return;
       }
+
+      const myToken = ++heroLottieLoadToken;
+
+      try {
+        anim?.destroy();
+      } catch {
+        /* ignore */
+      }
+      anim = null;
+      container.innerHTML = "";
+      wrapper.classList.remove("lottie-loaded");
 
       try {
         if (!lottie) {
           lottie = lottieLight;
         }
 
-        container.innerHTML = "";
         anim = lottie.loadAnimation({
           container,
           renderer: "svg",
@@ -552,9 +559,10 @@ export const prerender = true;
           path: `/images/hero/visupairillustration-${theme}.json`,
         });
 
-        anim.addEventListener("DOMLoaded", () =>
-          wrapper.classList.add("lottie-loaded"),
-        );
+        anim.addEventListener("DOMLoaded", () => {
+          if (myToken !== heroLottieLoadToken) return;
+          wrapper.classList.add("lottie-loaded");
+        });
         currentTheme = theme;
       } catch (error) {
         console.error("Failed to load Lottie:", error);
@@ -563,18 +571,45 @@ export const prerender = true;
 
     const onThemeChange = () => {
       const theme = getTheme();
-      setHeroImageSources(theme);
-      updateCoursesImageTheme(theme);
       if (!isNarrowHero() && theme !== currentTheme) loadAnimation(theme);
+    };
+
+    const onNarrowHeroMediaChange = () => {
+      const theme = getTheme();
+      const container = document.getElementById("hero-lottie-container");
+      const wrapper = document.getElementById("hero-visual-wrapper");
+      if (isNarrowHero()) {
+        heroLottieLoadToken++;
+        if (heroLottieIntersectTimer) {
+          clearTimeout(heroLottieIntersectTimer);
+          heroLottieIntersectTimer = null;
+        }
+        try {
+          anim?.destroy();
+        } catch {
+          /* ignore */
+        }
+        anim = null;
+        currentTheme = null;
+        if (container) container.innerHTML = "";
+        wrapper?.classList.remove("lottie-loaded");
+      } else if (container && wrapper) {
+        void loadAnimation(theme);
+      }
+      revealHeroWhenReady();
     };
 
     const cleanup = () => {
       themeObserver?.disconnect();
       intersectionObserver?.disconnect();
-      coursesImgLazyObserver?.disconnect();
       prefersColorSchemeMedia?.removeEventListener("change", onThemeChange);
+      narrowHeroMql?.removeEventListener("change", onNarrowHeroMediaChange);
+      if (heroLottieIntersectTimer) {
+        clearTimeout(heroLottieIntersectTimer);
+        heroLottieIntersectTimer = null;
+      }
       themeObserver = intersectionObserver = prefersColorSchemeMedia = null;
-      coursesImgLazyObserver = null;
+      narrowHeroMql = null;
     };
 
     /** CSS keyframe animations often do not restart after Astro view transitions — force reflow */
@@ -593,8 +628,7 @@ export const prerender = true;
     const init = () => {
       cleanup();
       const theme = getTheme();
-      setHeroImageSources(theme);
-      attachCoursesImageLazyLoad();
+      revealHeroWhenReady();
 
       if (!isNarrowHero()) {
         const container = document.getElementById("hero-lottie-container");
@@ -620,11 +654,21 @@ export const prerender = true;
               if (entries[0].isIntersecting) {
                 const svgPresent = container.querySelector("svg") !== null;
                 if (!anim || !svgPresent) {
-                  loadAnimation(getTheme());
+                  if (heroLottieIntersectTimer) {
+                    clearTimeout(heroLottieIntersectTimer);
+                  }
+                  heroLottieIntersectTimer = setTimeout(() => {
+                    heroLottieIntersectTimer = null;
+                    if (!isNarrowHero()) void loadAnimation(getTheme());
+                  }, 100);
                 } else {
                   anim.play();
                 }
               } else {
+                if (heroLottieIntersectTimer) {
+                  clearTimeout(heroLottieIntersectTimer);
+                  heroLottieIntersectTimer = null;
+                }
                 anim?.pause();
               }
             },
@@ -643,6 +687,11 @@ export const prerender = true;
         "(prefers-color-scheme: dark)",
       );
       prefersColorSchemeMedia.addEventListener("change", onThemeChange);
+
+      narrowHeroMql = window.matchMedia(
+        `(max-width: ${NARROW_HERO_PX}px)`,
+      );
+      narrowHeroMql.addEventListener("change", onNarrowHeroMediaChange);
 
       // Text animation observer
       const textObserver = new IntersectionObserver(
@@ -682,6 +731,71 @@ export const prerender = true;
 
     document.addEventListener("astro:page-load", init);
     document.addEventListener("astro:before-preparation", cleanup);
+
+    /**
+     * FAQ accordion: document-level delegation so it keeps working after
+     * Astro view transitions (new DOM replaces old; per-button listeners
+     * would stay on detached elements).
+     */
+    function syncHomeFaqAria() {
+      const wrapper = document.querySelector(".faq-wrapper");
+      if (!wrapper) return;
+      wrapper.querySelectorAll(".faq-answer").forEach((a) => {
+        a.setAttribute(
+          "aria-hidden",
+          a.classList.contains("open") ? "false" : "true",
+        );
+      });
+    }
+
+    document.addEventListener("astro:page-load", syncHomeFaqAria);
+
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const item = target.closest(".faq-wrapper .faq-item");
+      if (!(item instanceof HTMLButtonElement)) return;
+
+      const wrapper = item.closest(".faq-wrapper");
+      if (!wrapper) return;
+
+      const faqId = item.getAttribute("data-faq");
+      if (!faqId) return;
+
+      const answer = wrapper.querySelector(
+        `.faq-answer[data-faq="${CSS.escape(faqId)}"]`,
+      );
+      if (!answer) return;
+
+      const faqItems = wrapper.querySelectorAll(".faq-item");
+      const faqAnswers = wrapper.querySelectorAll(".faq-answer");
+
+      const isOpen = answer.classList.contains("open");
+
+      faqAnswers.forEach((a) => {
+        a.classList.remove("open");
+        a.setAttribute("aria-hidden", "true");
+      });
+      faqItems.forEach((btn) => {
+        btn.setAttribute("aria-expanded", "false");
+      });
+
+      if (!isOpen) {
+        answer.classList.add("open");
+        answer.setAttribute("aria-hidden", "false");
+        item.setAttribute("aria-expanded", "true");
+
+        if (window.innerWidth < 768) {
+          const panel = item.closest(".faq-panel");
+          setTimeout(() => {
+            (panel ?? answer).scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+            });
+          }, 100);
+        }
+      }
+    });
   </script>
 
   <style>
@@ -743,9 +857,6 @@ export const prerender = true;
       transform: translateY(0);
     }
 
-    /**
-     * Hero copy + CTAs: animate from first paint (no IntersectionObserver / JS delay).
-     */
     .hero-content .animate-text.above-fold-reveal {
       opacity: 0;
       transform: translateY(20px);
@@ -784,9 +895,6 @@ export const prerender = true;
       }
     }
 
-    /* ═══════════════════════════════════════
-       HERO ISLAND - Main Container
-       ═══════════════════════════════════════ */
     .hero-wrapper {
       width: 100%;
       padding: 0 12px;
@@ -802,8 +910,6 @@ export const prerender = true;
       align-items: flex-start;
       position: relative;
       animation: heroFadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) both;
-
-      /* Light theme: clean neutral surface, no blue */
       background: var(--surface);
       box-shadow:
         inset 0 0 100px rgba(0, 0, 0, 0.02),
@@ -811,15 +917,12 @@ export const prerender = true;
       transition: box-shadow 0.4s ease;
     }
 
-    /* Dark theme gradient */
     :global([data-theme="dark"]) .hero-island {
-      /* background: linear-gradient(135deg, #1a1635, #2a2442); */
       box-shadow:
         inset 0 0 100px rgba(0, 0, 0, 0.2),
         var(--shadow-island);
     }
 
-    /* Glow effects - shared styles */
     .hero-island::before,
     .hero-island::after {
       content: "";
@@ -830,7 +933,6 @@ export const prerender = true;
       will-change: transform;
     }
 
-    /* ── Blob base ── */
     .hero-island::before {
       top: -60%;
       right: -40%;
@@ -839,7 +941,6 @@ export const prerender = true;
       background: transparent;
     }
 
-    /* Light: soft pink-lilac second blob */
     .hero-island::after {
       bottom: -50%;
       left: -35%;
@@ -848,7 +949,6 @@ export const prerender = true;
       background: transparent;
     }
 
-    /* Dark: toned-down opacity so glows don't overwhelm */
     :global([data-theme="dark"]) .hero-island::before {
       background: radial-gradient(
         closest-side,
@@ -873,9 +973,6 @@ export const prerender = true;
       animation: blobDrift2 28s infinite alternate ease-in-out;
     }
 
-    /* ═══════════════════════════════════════
-       HERO CONTENT - Left Side
-       ═══════════════════════════════════════ */
     .hero-content {
       flex: 0 0 45%;
       display: flex;
@@ -934,9 +1031,6 @@ export const prerender = true;
       flex-wrap: wrap;
     }
 
-    /* ═══════════════════════════════════════
-       DARK THEME - Text & Elements
-       ═══════════════════════════════════════ */
     :global([data-theme="dark"]) .hero-title,
     :global([data-theme="dark"]) .hero-subtitle {
       color: #ffffff;
@@ -946,11 +1040,9 @@ export const prerender = true;
       opacity: 0.7;
     }
 
-    /* ═══════════════════════════════════════
-       HERO VISUAL - Right Side
-       ═══════════════════════════════════════ */
     .hero-visual {
       flex: 1;
+      min-width: 0;
       overflow: hidden;
       position: relative;
       aspect-ratio: 1252 / 1080;
@@ -970,10 +1062,10 @@ export const prerender = true;
       position: absolute;
       inset: 0;
       object-fit: contain;
+      object-position: right top;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
-      /* Prevent selecting, dragging and saving */
       user-select: none;
       -webkit-user-select: none;
       -webkit-user-drag: none;
@@ -984,7 +1076,13 @@ export const prerender = true;
       z-index: 1;
     }
 
-    .hero-bg[src]:not([src=""]) {
+    :global([data-theme="dark"]) .hero-bg--dark,
+    :global([data-theme="dark"]) .hero-static--dark {
+      opacity: 1;
+    }
+
+    :global(html:not([data-theme="dark"])) .hero-bg--light,
+    :global(html:not([data-theme="dark"])) .hero-static--light {
       opacity: 1;
     }
 
@@ -993,15 +1091,14 @@ export const prerender = true;
       display: none;
     }
 
-    .hero-static-mobile[src]:not([src=""]) {
-      opacity: 1;
-    }
-
     #hero-lottie-container {
       width: 100%;
       height: 100%;
       position: absolute;
       inset: 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-start;
       opacity: 0;
       z-index: 2;
       transition: opacity 0.5s ease;
@@ -1012,23 +1109,39 @@ export const prerender = true;
     }
 
     #hero-lottie-container svg {
-      width: 100% !important;
-      height: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: 100%;
+      max-height: 100%;
       display: block;
+      flex-shrink: 0;
     }
 
-    /* ═══════════════════════════════════════
-       RESPONSIVE
-       ═══════════════════════════════════════ */
-    @media (max-width: 400px) {
+    @media (max-width: 380px) {
       .hero-wrapper {
         padding: 0 12px;
       }
       .hero-island {
         border-radius: var(--radius-lg);
       }
+      .hero-visual {
+        max-height: min(46vh, 300px);
+        min-height: 200px;
+      }
+      .hero-static-mobile {
+        display: block;
+        object-fit: contain;
+        object-position: center top;
+      }
+
+      :global([data-theme="dark"]) .hero-static--dark {
+        opacity: 1;
+      }
+
+      :global(html:not([data-theme="dark"])) .hero-static--light {
+        opacity: 1;
+      }
       .hero-content {
-        padding: 32px 20px;
         gap: 20px;
         align-items: center;
         text-align: center;
@@ -1043,36 +1156,19 @@ export const prerender = true;
       .hero-actions {
         justify-content: center;
       }
-      /* Make buttons full-width on tiny screens */
-      :global(.vp-btn) {
-        width: 100%;
-        justify-content: flex-start;
-      }
       .hero-bg {
         display: none !important;
       }
       #hero-lottie-container {
         display: none !important;
       }
-      .hero-static-mobile {
-        display: block;
-        opacity: 1;
-      }
     }
 
     @media (min-width: 401px) and (max-width: 600px) {
       .hero-content {
-        padding: 36px 24px;
         gap: 24px;
         align-items: center;
         text-align: center;
-      }
-      .hero-title {
-        font-size: 38px;
-        line-height: 1.12;
-      }
-      .hero-subtitle {
-        font-size: 15px;
       }
       .hero-actions {
         justify-content: center;
@@ -1081,85 +1177,147 @@ export const prerender = true;
 
     @media (min-width: 601px) and (max-width: 768px) {
       .hero-content {
-        padding: 40px 28px;
         gap: 28px;
-      }
-      .hero-title {
-        font-size: 44px;
-      }
-      .hero-subtitle {
-        font-size: 16px;
       }
     }
 
-    @media (min-width: 750px) and (max-width: 1024px) {
-      /* Tablets: stay side-by-side, shrink proportions */
+    @media (min-width: 834px) and (max-width: 1024px) {
       .hero-island {
         flex-direction: row;
+        align-items: flex-start;
       }
       .hero-content {
-        flex: 0 0 50%;
-        padding: 36px 28px;
-        gap: 20px;
+        flex: 0 0 46%;
+        max-width: 46%;
+        align-self: center;
+        padding: clamp(32px, 4.2vw, 48px) clamp(26px, 3.5vw, 38px);
+        gap: clamp(16px, 2vw, 22px);
       }
       .hero-title {
-        font-size: clamp(28px, 5vw, 48px);
+        font-size: clamp(24px, 3.15vw, 36px);
+        line-height: 1.12;
       }
       .hero-subtitle {
-        font-size: 14px;
+        font-size: clamp(13px, 1.45vw, 15px);
+        line-height: 1.55;
       }
       .hero-visual {
-        flex: 1;
+        flex: 1 1 54%;
+        min-width: 0;
         width: auto;
         height: auto;
         min-height: 0;
-        order: 0; /* right side */
+        order: 0;
+        align-self: flex-start;
       }
     }
 
-    @media (max-width: 749px) {
-      /* Phones: stack vertically */
+    @media (max-width: 833px) {
       .hero-island {
         flex-direction: column;
+        align-items: stretch;
       }
+
       .hero-visual {
         order: -1;
         width: 100%;
         height: auto;
         min-height: 220px;
+        flex-shrink: 0;
       }
+
       .hero-content {
         flex: none;
         border-top: none;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: clamp(32px, 7vw, 48px) clamp(22px, 5vw, 34px);
+        align-items: center;
+        text-align: center;
+      }
+
+      .hero-badge {
+        margin-inline: auto;
+      }
+
+      .hero-title {
+        font-size: clamp(28px, 6.5vw, 40px);
+        line-height: 1.12;
+        width: 100%;
+        margin-inline: auto;
+      }
+
+      .hero-subtitle {
+        font-size: clamp(14px, 3.8vw, 16px);
+        width: 100%;
+        max-width: min(26rem, 100%);
+        margin-inline: auto;
+      }
+
+      .hero-actions {
+        width: 100%;
+        justify-content: center;
       }
     }
 
-    @media (max-width: 1480px) {
+    /* Phones: slightly smaller type than the old ≤833 rule (fixes oversized CTAs on small tablets in portrait) */
+    @media (max-width: 767px) {
+      .hero-actions :global(.vp-btn),
+      .courses-actions :global(.vp-btn) {
+        font-size: clamp(12px, 3.2vw, 14px);
+      }
+    }
+
+    /* All iPad-class widths: one band between phone and desktop — a bit under desktop scale */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .hero-actions :global(.vp-btn),
+      .courses-actions :global(.vp-btn) {
+        font-size: clamp(12px, 1.35vw, 14px);
+        height: 2.65em;
+      }
+    }
+
+    @media (min-width: 481px) and (max-width: 833px) {
+      .hero-visual {
+        width: 80%;
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: 0;
+        align-self: flex-end;
+      }
+    }
+
+    @media (min-width: 1025px) and (max-width: 1480px) {
       .hero-content {
         flex: 1;
-        padding: clamp(80px, 6vw, 72px) clamp(32px, 5vw, 56px);
+        padding: clamp(56px, 7vw, 104px) clamp(28px, 4.5vw, 52px);
       }
     }
 
-    /* Desktop breakpoints for fine-tuning */
     @media (min-width: 1025px) and (max-width: 1280px) {
       .hero-title {
-        font-size: clamp(40px, 4.5vw, 56px);
+        font-size: clamp(38px, 4.1vw, 54px);
       }
       .hero-subtitle {
-        font-size: 15px;
+        font-size: clamp(14px, 1.25vw, 16px);
       }
-      :global(.vp-btn) {
+      :global(.hero-actions .vp-btn),
+      :global(.courses-actions .vp-btn) {
         font-size: 14px;
       }
     }
 
     @media (min-width: 1281px) and (max-width: 1536px) {
       .hero-title {
-        font-size: clamp(64px, 5.8vw, 82px);
+        font-size: clamp(48px, 3.85vw, 72px);
       }
       .hero-subtitle {
-        font-size: 19px;
+        font-size: clamp(16px, 1.15vw, 18px);
+      }
+      :global(.hero-actions .vp-btn),
+      :global(.courses-actions .vp-btn) {
+        font-size: clamp(14px, 0.95vw, 16px);
       }
     }
 
@@ -1234,19 +1392,44 @@ export const prerender = true;
 
     .services-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      /* minmax(0,1fr) keeps equal-width columns when content lengths differ */
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 24px;
+      align-items: stretch;
     }
 
-    @media (max-width: 1200px) {
+    /* Wrappers: flex shell for the card link */
+    .services-grid > * {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    @media (max-width: 1023px) {
       .services-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+
+      .services-grid > * {
+        width: 100%;
+        max-width: 560px;
       }
     }
 
-    @media (max-width: 768px) {
-      .services-grid {
-        grid-template-columns: 1fr;
+    /* Equal-height cards in one row: fill grid cell so short copy still matches tallest card */
+    @media (min-width: 1024px) {
+      .services-grid > * {
+        min-height: 0;
+        height: 100%;
+        align-self: stretch;
+      }
+
+      :global(.services-grid .service-card) {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        align-self: stretch;
       }
     }
 
@@ -1445,6 +1628,12 @@ export const prerender = true;
       justify-content: center;
     }
 
+    .courses-img-stack {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+    }
+
     /* Image — natural block flow, full width, 1:1 ratio preserved */
     .courses-img {
       display: block;
@@ -1454,6 +1643,30 @@ export const prerender = true;
       -webkit-user-select: none;
       -webkit-user-drag: none;
       pointer-events: none;
+    }
+
+    .courses-img-theme {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .courses-img--dark {
+      opacity: 0;
+    }
+
+    :global([data-theme="dark"]) .courses-img--dark {
+      opacity: 1;
+    }
+
+    .courses-img--light {
+      opacity: 1;
+    }
+
+    :global([data-theme="dark"]) .courses-img--light {
+      opacity: 0;
     }
 
     /* ═══════════════════════════════════════
@@ -1509,17 +1722,19 @@ export const prerender = true;
         overflow: hidden;
       }
 
-      /* Reset to simple natural flow — the full square image shows with zero cropping */
+      /* Theme layers stay stacked; wrapper keeps square aspect ratio */
       .courses-img {
         display: block;
         width: 100%;
         height: auto;
-        /* undo any inherited positioning / transforms */
-        position: static;
-        inset: auto;
-        transform: none;
-        object-fit: initial;
-        object-position: initial;
+      }
+
+      .courses-img-theme {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
 
       .courses-content {
@@ -1532,10 +1747,18 @@ export const prerender = true;
         max-width: 100%;
         text-align: center;
       }
+      /* List block centered in the column; each row still reads left-to-right inside */
       .courses-features {
+        align-self: center;
+        width: fit-content;
+        max-width: 100%;
         align-items: flex-start;
-        width: 100%;
       }
+
+      .courses-features li {
+        text-align: left;
+      }
+
       .courses-actions {
         justify-content: center;
       }
@@ -1610,7 +1833,9 @@ export const prerender = true;
       color: #ffffff;
     }
 
-    /* ── Grid Layout ── */
+    /* ── Grid Layout ──
+       Ten panels in DOM order 1–10; desktop pairs (1|5), (2|6), (3|7), (4|8), (9|10).
+       align-items:start so only the opened panel grows. */
     .faq-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1618,10 +1843,47 @@ export const prerender = true;
       align-items: start;
     }
 
-    .faq-column {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+    @media (min-width: 769px) {
+      .faq-grid > .faq-panel:nth-child(1) {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      .faq-grid > .faq-panel:nth-child(2) {
+        grid-column: 1;
+        grid-row: 2;
+      }
+      .faq-grid > .faq-panel:nth-child(3) {
+        grid-column: 1;
+        grid-row: 3;
+      }
+      .faq-grid > .faq-panel:nth-child(4) {
+        grid-column: 1;
+        grid-row: 4;
+      }
+      .faq-grid > .faq-panel:nth-child(5) {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      .faq-grid > .faq-panel:nth-child(6) {
+        grid-column: 2;
+        grid-row: 2;
+      }
+      .faq-grid > .faq-panel:nth-child(7) {
+        grid-column: 2;
+        grid-row: 3;
+      }
+      .faq-grid > .faq-panel:nth-child(8) {
+        grid-column: 2;
+        grid-row: 4;
+      }
+      .faq-grid > .faq-panel:nth-child(9) {
+        grid-column: 1;
+        grid-row: 5;
+      }
+      .faq-grid > .faq-panel:nth-child(10) {
+        grid-column: 2;
+        grid-row: 5;
+      }
     }
 
     /* One card per Q&A — answer expands inside the same shell */
@@ -1792,6 +2054,16 @@ export const prerender = true;
       color: #e9e8ff;
     }
 
+    .faq-answer a {
+      color: var(--brand-violet);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .faq-answer a:hover {
+      opacity: 0.9;
+    }
+
     /* ═══════════════════════════════════════
        RESPONSIVE — FAQ
        ═══════════════════════════════════════ */
@@ -1801,15 +2073,18 @@ export const prerender = true;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px 16px;
       }
-      .faq-column {
-        gap: 12px;
-      }
     }
 
     @media (max-width: 768px) {
       .faq-grid {
         grid-template-columns: 1fr;
         gap: 12px;
+      }
+
+      .faq-grid > .faq-panel {
+        grid-column: auto !important;
+        grid-row: auto !important;
+        height: auto;
       }
       .faq-island {
         padding: clamp(32px, 4vw, 48px) clamp(20px, 3vw, 32px);
@@ -1850,9 +2125,6 @@ export const prerender = true;
       }
       .faq-grid {
         grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      .faq-column {
         gap: 10px;
       }
       .faq-header {
@@ -1901,43 +2173,4 @@ export const prerender = true;
     }
 
   </style>
-
-  <script>
-    const faqItems = document.querySelectorAll('.faq-item');
-    const faqAnswers = document.querySelectorAll('.faq-answer');
-
-    faqAnswers.forEach((a) => a.setAttribute('aria-hidden', 'true'));
-
-    faqItems.forEach((item) => {
-      item.addEventListener('click', () => {
-        const faqId = item.getAttribute('data-faq');
-        const answer = document.querySelector(`.faq-answer[data-faq="${faqId}"]`);
-        
-        if (!answer) return;
-
-        const isOpen = answer.classList.contains('open');
-        
-        faqAnswers.forEach((a) => {
-          a.classList.remove('open');
-          a.setAttribute('aria-hidden', 'true');
-        });
-        faqItems.forEach((btn) => {
-          btn.setAttribute('aria-expanded', 'false');
-        });
-
-        if (!isOpen) {
-          answer.classList.add('open');
-          answer.setAttribute('aria-hidden', 'false');
-          item.setAttribute('aria-expanded', 'true');
-          
-          if (window.innerWidth < 768) {
-            const panel = item.closest('.faq-panel');
-            setTimeout(() => {
-              (panel ?? answer).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
-          }
-        }
-      });
-    });
-  </script>
 </Layout>

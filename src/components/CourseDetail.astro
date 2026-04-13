@@ -64,7 +64,15 @@ const pricingLabels: Record<string, string> = {
 
                 <div class="instructor-card">
                     {instructor.avatar ? (
-                        <img src={instructor.avatar} alt={instructor.name} class="instructor-avatar-large-img" />
+                        <img
+                            src={instructor.avatar}
+                            alt={instructor.name}
+                            class="instructor-avatar-large-img"
+                            width={56}
+                            height={56}
+                            loading="lazy"
+                            decoding="async"
+                        />
                     ) : (
                         <div class="instructor-avatar-large">{getInitials(instructor.name)}</div>
                     )}

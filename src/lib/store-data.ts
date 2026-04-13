@@ -27,6 +27,10 @@ export interface Product {
 
     // Optional fields for Sanity CMS integration
     productType?: 'physical' | 'digital'; // Product type for payment/shipping logic
+    /** Sanity department: fashion | 3d-models | artworks */
+    department?: string;
+    /** Free digital only (Garments / 3D Models); claim without Stripe */
+    isFree?: boolean;
     images?: string[]; // Gallery images (URLs)
     gallery?: any[]; // Sanity Image Objects (Raw)
     inStock?: boolean;

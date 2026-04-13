@@ -1,6 +1,11 @@
 import type { APIRoute } from "astro";
 import { authClient } from "../../../lib/auth-client";
 import { createClient } from "@sanity/client";
+import {
+    checkFreeDigitalDownloadMonthlyLimit,
+    FREE_DIGITAL_DOWNLOADS_PER_MONTH,
+    resolveVisupairKv,
+} from "../../../lib/rate-limit-kv";
 
 // Use a read-capable client (with token to bypass CDN caching)
 const sanityClient = createClient({
@@ -11,11 +16,49 @@ const sanityClient = createClient({
     token: import.meta.env.SANITY_API_TOKEN,
 });
 
+/** Match `digitalFileKey` in GROQ whether the link was encoded or not. */
+function normalizeDownloadFileKeyParam(raw: string): string {
+    let s = raw.trim();
+    try {
+        let prev = "";
+        for (let i = 0; i < 3 && s !== prev; i++) {
+            prev = s;
+            s = decodeURIComponent(s);
+        }
+    } catch {
+        /* keep last good s */
+    }
+    return s.trim();
+}
+
+function looksLikeUrlNotR2Key(key: string): boolean {
+    return /^https?:\/\//i.test(key) || key.includes("://");
+}
+
 export const GET: APIRoute = async ({ params, request, locals }) => {
-    const { fileKey } = params;
+    const rawKey = params.fileKey;
+
+    if (!rawKey) {
+        return new Response("File key missing", { status: 400 });
+    }
+
+    const fileKey = normalizeDownloadFileKeyParam(rawKey);
 
     if (!fileKey) {
         return new Response("File key missing", { status: 400 });
+    }
+
+    if (looksLikeUrlNotR2Key(fileKey)) {
+        return new Response(
+            JSON.stringify({
+                error:
+                    "This file is misconfigured: digitalFileKey must be the R2 object key (filename in storage), not a browser or Sanity Studio URL. Update the product in Sanity.",
+            }),
+            {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            },
+        );
     }
 
     // 1. Authenticate User
@@ -27,13 +70,13 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
         return new Response("Unauthorized", { status: 401 });
     }
 
-    const userEmail = session.data.user.email;
+    const emailNorm = session.data.user.email.trim().toLowerCase();
 
     // 2. Verify access in Sanity — digital *store products* only via paid order line items;
     // course materials via courseRegistration (webhook often creates registration without an order).
     const orderQuery = `*[
         _type == "order" &&
-        customerEmail == $email &&
+        lower(customerEmail) == $email &&
         status in ["paid", "processing", "shipped", "delivered"] &&
         count(items[
             product->_type == "product" &&
@@ -44,24 +87,76 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
     const courseRegQuery = `*[
         _type == "courseRegistration" &&
-        email == $email &&
+        lower(email) == $email &&
         course->digitalFileKey == $fileKey
     ][0]{ _id }`;
 
-    let authorized = await sanityClient.fetch(orderQuery, {
-        email: userEmail,
+    const orderHit = await sanityClient.fetch(orderQuery, {
+        email: emailNorm,
         fileKey,
     });
 
+    let authorized = orderHit;
+
     if (!authorized) {
         authorized = await sanityClient.fetch(courseRegQuery, {
-            email: userEmail,
+            email: emailNorm,
             fileKey,
         });
     }
 
     if (!authorized) {
         return new Response("Forbidden: You have not purchased this product.", { status: 403 });
+    }
+
+    const productIdsForKey = await sanityClient.fetch<string[]>(
+        `*[_type == "product" && productType == "digital" && digitalFileKey == $fileKey]._id`,
+        { fileKey },
+    );
+    if (productIdsForKey && productIdsForKey.length > 1) {
+        console.warn(
+            `[download] Multiple digital products share digitalFileKey "${fileKey}". Use unique keys per SKU unless intentional. ids=${productIdsForKey.join(",")}`,
+        );
+    }
+
+    const fromStoreOrder = Boolean(orderHit);
+
+    const productForFile = await sanityClient.fetch<{
+        _id: string;
+        isFree?: boolean;
+        price?: number;
+    } | null>(
+        `*[_type == "product" && productType == "digital" && digitalFileKey == $fileKey][0]{ _id, isFree, price }`,
+        { fileKey },
+    );
+
+    const isFreeTierStoreDigital =
+        productForFile != null &&
+        (productForFile.isFree === true ||
+            (typeof productForFile.price === "number" &&
+                Number(productForFile.price) === 0));
+
+    if (isFreeTierStoreDigital && productForFile && fromStoreOrder) {
+        const kv = await resolveVisupairKv({ locals });
+        const dl = await checkFreeDigitalDownloadMonthlyLimit(
+            kv,
+            emailNorm,
+            productForFile._id,
+        );
+        if (!dl.ok) {
+            return new Response(
+                JSON.stringify({
+                    error: `Free store downloads are limited to ${FREE_DIGITAL_DOWNLOADS_PER_MONTH} per product per calendar month for your account. Try again next month or contact support if you need help.`,
+                }),
+                {
+                    status: 429,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Retry-After": String(dl.retryAfterSeconds),
+                    },
+                },
+            );
+        }
     }
 
     // 3. Stream File from Cloudflare R2

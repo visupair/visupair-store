@@ -1,64 +1,18 @@
 import type { APIContext } from "astro";
-
-function addOrigin(set: Set<string>, raw: string | undefined) {
-    if (!raw?.trim()) return;
-    try {
-        const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
-        set.add(u.origin);
-    } catch {
-        /* ignore invalid */
-    }
-}
+import { buildTrustedOriginAllowlistSet } from "./trusted-origins";
 
 /**
- * Same origin allowlist idea as better-auth (`src/lib/auth.ts` buildTrustedOrigins):
- * dev localhost ports, PUBLIC_SITE_URL, BETTER_AUTH_URL, BETTER_AUTH_TRUSTED_ORIGINS.
+ * Stripe success/cancel URLs must use an allowed site origin (never a raw client-controlled string).
+ * Same allowlist construction as Better Auth trustedOrigins (see trusted-origins.ts).
  */
 export function buildCheckoutOriginAllowlist(
     env: Record<string, string | undefined>,
 ): Set<string> {
-    const set = new Set<string>();
-    const devHosts = ["localhost", "127.0.0.1"];
-    const devPorts = ["4321", "8787", "4173", "3000"];
-    for (const host of devHosts) {
-        for (const port of devPorts) {
-            set.add(`http://${host}:${port}`);
-        }
-    }
-    const baseSeed =
+    const baseURL =
         env.BETTER_AUTH_URL ||
-        env.PUBLIC_SITE_URL ||
         process.env.BETTER_AUTH_URL ||
-        process.env.PUBLIC_SITE_URL ||
         "http://localhost:4321";
-    addOrigin(set, baseSeed);
-    addOrigin(set, env.PUBLIC_SITE_URL);
-    addOrigin(set, env.BETTER_AUTH_URL);
-    addOrigin(set, process.env.PUBLIC_SITE_URL);
-    addOrigin(set, process.env.BETTER_AUTH_URL);
-    const extra =
-        env.BETTER_AUTH_TRUSTED_ORIGINS || process.env.BETTER_AUTH_TRUSTED_ORIGINS;
-    if (extra) {
-        for (const part of extra.split(",")) addOrigin(set, part.trim());
-    }
-    for (const o of [...set]) {
-        try {
-            const u = new URL(o);
-            const host = u.hostname;
-            if (host.startsWith("www.")) {
-                set.add(`${u.protocol}//${host.replace(/^www\./, "")}`);
-            } else if (
-                host !== "localhost" &&
-                !host.startsWith("127.") &&
-                host.includes(".")
-            ) {
-                set.add(`${u.protocol}//www.${host}`);
-            }
-        } catch {
-            /* */
-        }
-    }
-    return set;
+    return buildTrustedOriginAllowlistSet(baseURL, env);
 }
 
 export async function mergeCheckoutEnvFromContext(
@@ -72,19 +26,25 @@ export async function mergeCheckoutEnvFromContext(
             meta.BETTER_AUTH_TRUSTED_ORIGINS ?? process.env.BETTER_AUTH_TRUSTED_ORIGINS,
     };
     try {
-        const locals = context.locals as { runtime?: { env?: Record<string, string> } };
-        const e = locals?.runtime?.env;
-        if (e) {
-            if (e.PUBLIC_SITE_URL) out.PUBLIC_SITE_URL = e.PUBLIC_SITE_URL;
-            if (e.BETTER_AUTH_URL) out.BETTER_AUTH_URL = e.BETTER_AUTH_URL;
-            if (e.BETTER_AUTH_TRUSTED_ORIGINS) {
-                out.BETTER_AUTH_TRUSTED_ORIGINS = e.BETTER_AUTH_TRUSTED_ORIGINS;
+        const locals = context.locals;
+        if (locals?.runtime && typeof locals.runtime === "object") {
+            const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, "env");
+            if (descriptor && typeof descriptor.get !== "function") {
+                const e = (locals.runtime as unknown as { env?: Record<string, string> }).env;
+                if (e) {
+                    if (e.PUBLIC_SITE_URL) out.PUBLIC_SITE_URL = e.PUBLIC_SITE_URL;
+                    if (e.BETTER_AUTH_URL) out.BETTER_AUTH_URL = e.BETTER_AUTH_URL;
+                    if (e.BETTER_AUTH_TRUSTED_ORIGINS) {
+                        out.BETTER_AUTH_TRUSTED_ORIGINS = e.BETTER_AUTH_TRUSTED_ORIGINS;
+                    }
+                }
             }
         }
     } catch {
         /* */
     }
     try {
+        // @ts-expect-error — only exists under Cloudflare Workers adapter
         const { env } = await import("cloudflare:workers");
         const e = env as Record<string, string | undefined>;
         if (e?.PUBLIC_SITE_URL) out.PUBLIC_SITE_URL = e.PUBLIC_SITE_URL;

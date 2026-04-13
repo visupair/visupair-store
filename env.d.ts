@@ -41,7 +41,7 @@ interface D1Database {
 
 interface D1PreparedStatement {
   bind(...values: any[]): D1PreparedStatement;
-  first(column?: string): Promise<any>;
+  first<T = any>(column?: string): Promise<T | null>;
   all(): Promise<D1Result>;
   run(): Promise<D1Result>;
 }
@@ -61,6 +61,21 @@ interface D1Result {
 interface D1ExecResult {
   results: D1Result[];
   success: boolean;
+}
+
+/** Cloudflare Workers KV (minimal surface used in this repo). */
+interface KVNamespace {
+  get(key: string, options?: Partial<{ type: "text" }>): Promise<string | null>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void>;
+}
+
+/** Cloudflare R2 (referenced on App.Locals; methods unused in type positions). */
+interface R2Bucket {
+  // Intentionally minimal — expand if you call R2 from TypeScript.
 }
 
 declare namespace JSX {

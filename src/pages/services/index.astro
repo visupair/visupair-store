@@ -25,6 +25,7 @@ try {
 
 // Show first service by default, or null if none
 const selectedService = services && services.length > 0 ? services[0] : null;
+const serverCurrency = Astro.locals.currency;
 ---
 
-<ServicePage service={selectedService} />
+<ServicePage service={selectedService} serverCurrency={serverCurrency} />

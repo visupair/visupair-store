@@ -5,6 +5,9 @@
     },
     "stripe": {
       "enabled": true
+    },
+    "cloudflare": {
+      "enabled": true
     }
   }
 }

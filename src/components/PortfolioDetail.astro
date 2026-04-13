@@ -179,8 +179,9 @@ const cta = ctaMap[categorySlug] || { href: "/services", label: "View Our Servic
                             <img
                                 src={entry.url}
                                 data-fullscreen-src={entry.fullscreenUrl}
-                                alt={`${item.title} — image ${idx + 1}`}
+                                alt={`${projectDisplayName} — ${idx + 1} of ${galleryItems.length}`}
                                 loading="lazy"
+                                decoding="async"
                             />
                         </div>
                     ),

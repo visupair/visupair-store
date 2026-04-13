@@ -36,8 +36,25 @@ export const POST: APIRoute = async (context) => {
             startDate,
             endDate,
             service_id,
-            plan_name
+            plan_name,
+            plan_price_eur,
+            plan_price_pln,
+            display_currency,
         } = data;
+
+        const pricingContext = [
+            plan_price_eur != null && String(plan_price_eur).trim() !== ''
+                ? `EUR ${String(plan_price_eur)}`
+                : null,
+            plan_price_pln != null && String(plan_price_pln).trim() !== ''
+                ? `PLN ${String(plan_price_pln)}`
+                : null,
+            display_currency
+                ? `UI currency: ${String(display_currency)}`
+                : null,
+        ]
+            .filter(Boolean)
+            .join(' · ');
 
         // 1. Create Proposal Document in Sanity
         const proposalDoc = {
@@ -105,6 +122,7 @@ export const POST: APIRoute = async (context) => {
             <p><strong>Email:</strong> ${email}</p>
             <p><strong>Company:</strong> ${companyName}</p>
             <p><strong>Service:</strong> ${service_id} - ${plan_name}</p>
+            <p><strong>Plan pricing (CMS amounts):</strong> ${pricingContext || '—'}</p>
             <p><strong>Timeline:</strong> ${startDate || 'N/A'} to ${endDate || 'N/A'}</p>
             <hr />
             <h3>Project Description:</h3>

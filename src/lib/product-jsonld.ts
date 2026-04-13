@@ -10,6 +10,8 @@ export type ProductJsonLdInput = {
   inStock: boolean;
   /** Absolute image URLs. */
   imageUrls: string[];
+  /** Free digital product — offer price is 0 in structured data. */
+  isFreeOffer?: boolean;
   aggregateRating?: {
     ratingValue: number;
     reviewCount: number;
@@ -25,6 +27,7 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
     price,
     inStock,
     imageUrls,
+    isFreeOffer,
     aggregateRating,
   } = input;
 
@@ -33,6 +36,12 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
   );
   const description =
     desc.length > 0 ? desc.slice(0, 5000) : `${product.name} — Visupair store`;
+
+  const offerPriceMajor = isFreeOffer
+    ? "0"
+    : Number.isFinite(price)
+      ? String(price)
+      : "0";
 
   const ld: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -49,8 +58,8 @@ export function buildProductJsonLd(input: ProductJsonLdInput): Record<string, un
       "@type": "Offer",
       url: productPageUrl,
       priceCurrency: currency,
-      price: Number.isFinite(price) ? String(price) : "0",
-      availability: inStock
+      price: offerPriceMajor,
+      availability: isFreeOffer || inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
     },

@@ -61,6 +61,9 @@ const filteredProducts = allProducts.filter((product) => {
 // Further filter by selected category query/search
 const searchQuery = Astro.url.searchParams.get("search") || "";
 const selectedCategory = Astro.url.searchParams.get("category");
+const filterFree =
+    (sectionId === "fashion-design" || sectionId === "3d-models") &&
+    Astro.url.searchParams.get("free") === "1";
 
 const displayProducts = filteredProducts.filter((product) => {
     // 2. Search filter
@@ -80,6 +83,16 @@ const displayProducts = filteredProducts.filter((product) => {
             return false;
         }
     }
+
+    // 4. Free filter (Garments + 3D Models only)
+    if (
+        (sectionId === "fashion-design" || sectionId === "3d-models") &&
+        filterFree &&
+        product.isFree !== true
+    ) {
+        return false;
+    }
+
     return true;
 });
 ---
@@ -91,6 +104,10 @@ const displayProducts = filteredProducts.filter((product) => {
             selectedCategoryId={selectedCategory}
             sectionId={sectionId}
             searchProducts={filteredProducts}
+            showProductFilters={
+                sectionId === "fashion-design" || sectionId === "3d-models"
+            }
+            filterFree={filterFree}
         />
         <div class="products-wrapper" id="products-wrapper">
             <ProductGrid

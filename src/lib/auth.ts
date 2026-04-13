@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./auth-schema";
+import { buildTrustedOriginsList } from "./trusted-origins";
 
 /** Served from `public/` — must match a live URL on your deployed host (not localhost for real recipients). */
 const VISUPAIR_EMAIL_LOGO_PATH = "/images/logos/visupair-logo-email.jpg";
@@ -23,59 +24,6 @@ function resolveEmailPublicOrigin(env?: Record<string, string>): string {
   } catch {
     return "https://visupair.com";
   }
-}
-
-function addOrigin(set: Set<string>, raw: string | undefined) {
-  if (!raw?.trim()) return;
-  try {
-    const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
-    set.add(u.origin);
-  } catch {
-    /* ignore invalid */
-  }
-}
-
-/** CSRF / Origin checks: browser Origin must match (e.g. 127.0.0.1 ≠ localhost). */
-function buildTrustedOrigins(
-  baseURL: string,
-  env?: Record<string, string>,
-): string[] {
-  const set = new Set<string>();
-  const devHosts = ["localhost", "127.0.0.1"];
-  const devPorts = ["4321", "8787", "4173", "3000"];
-  for (const host of devHosts) {
-    for (const port of devPorts) {
-      set.add(`http://${host}:${port}`);
-    }
-  }
-  addOrigin(set, baseURL);
-  addOrigin(set, env?.PUBLIC_SITE_URL);
-  addOrigin(set, process.env.PUBLIC_SITE_URL);
-  addOrigin(set, env?.BETTER_AUTH_URL);
-  addOrigin(set, process.env.BETTER_AUTH_URL);
-  const extra =
-    env?.BETTER_AUTH_TRUSTED_ORIGINS || process.env.BETTER_AUTH_TRUSTED_ORIGINS;
-  if (extra) {
-    for (const part of extra.split(",")) addOrigin(set, part.trim());
-  }
-  for (const o of [...set]) {
-    try {
-      const u = new URL(o);
-      const host = u.hostname;
-      if (host.startsWith("www.")) {
-        set.add(`${u.protocol}//${host.replace(/^www\./, "")}`);
-      } else if (
-        host !== "localhost" &&
-        !host.startsWith("127.") &&
-        host.includes(".")
-      ) {
-        set.add(`${u.protocol}//www.${host}`);
-      }
-    } catch {
-      /* */
-    }
-  }
-  return [...set].filter(Boolean);
 }
 
 function buildEmailLogoBlock(absoluteLogoUrl: string): string {
@@ -315,7 +263,7 @@ export function createAuth(dbBinding: D1Database, env?: Record<string, string>) 
         overrideUserInfoOnSignIn: true,
       },
     },
-    trustedOrigins: buildTrustedOrigins(baseURL, env),
+    trustedOrigins: buildTrustedOriginsList(baseURL, env),
     trustHost: true, // Required for Cloudflare Workers
   });
 }

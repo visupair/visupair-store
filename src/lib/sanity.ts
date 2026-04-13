@@ -67,6 +67,8 @@ export const PRODUCTS_QUERY = `*[_type == "product" && !(_id in path("drafts.**"
   description,
   mainImage,
   images,
+  department,
+  isFree,
   "category": category-> {
     title,
     "slug": slug.current,
@@ -114,10 +116,18 @@ export async function getProducts() {
       });
     }
 
+    const isFree = doc.isFree === true;
+    const priceEur =
+      typeof doc.price === 'number'
+        ? doc.price
+        : isFree
+          ? 0
+          : Number(doc.price) || 0;
+
     return {
       id: doc._id,
       name: doc.name,
-      price: doc.price,
+      price: priceEur,
       pricePLN: typeof doc.pricePLN === 'number' ? doc.pricePLN : undefined,
       currency: doc.currency || 'EUR',
       description: doc.description,
@@ -127,9 +137,11 @@ export async function getProducts() {
       images: doc.images ? doc.images.map((img: any) => urlFor(img).width(1200).url()) : [],
       gallery: doc.images, // Raw array for custom optimization
       categoryPath: categoryPath,
+      department: doc.department,
 
       // Sanity specific fields
       productType: doc.productType || 'physical', // Default to physical if not set
+      isFree,
       stripePriceId: doc.stripePriceId,
       polarUrl: doc.polarUrl,
       inStock: doc.inStock !== false && (doc.stock === undefined || doc.stock === null || doc.stock > 0),
@@ -200,9 +212,10 @@ export async function getCategoriesTree() {
 }
 
 // Services Query
-export const SERVICES_QUERY = `*[_type == "service" && !(_id in path("drafts.**"))] | order(_createdAt asc) {
+export const SERVICES_QUERY = `*[_type == "service" && !(_id in path("drafts.**"))] | order(coalesce(sortOrder, 999999) asc, _createdAt asc) {
   _id,
   title,
+  sortOrder,
   "slug": slug.current,
   subtitle,
   description,
@@ -210,6 +223,7 @@ export const SERVICES_QUERY = `*[_type == "service" && !(_id in path("drafts.**"
      _key,
      name,
      price,
+     pricePLN,
      currency,
      description,
      features,
@@ -270,7 +284,9 @@ export async function getCourses() {
       registrationOpen: course.registrationOpen !== false,
       instructor: course.instructor ? {
         ...course.instructor,
-        avatar: course.instructor.avatar ? urlFor(course.instructor.avatar).width(200).url() : undefined
+        avatar: course.instructor.avatar
+          ? urlFor(course.instructor.avatar).width(96).height(96).fit('crop').url()
+          : undefined
       } : undefined,
       details: course.details || {},
       curriculum: course.curriculum || []

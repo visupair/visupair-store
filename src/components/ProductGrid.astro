@@ -142,7 +142,10 @@ const showHeaders = groups.length > 1;
                         <div class="product-grid">
                             {group.products.map((product, index) => (
                                 <div
-                                    class="product-card"
+                                    class:list={[
+                                        "product-card",
+                                        product.isFree && "product-card--free",
+                                    ]}
                                     data-product-id={product.id}
                                     style={`--animation-delay: ${index * 50}ms`}
                                     transition:name={`product-${product.id}`}
@@ -187,10 +190,16 @@ const showHeaders = groups.length > 1;
                                         </button>
                                         {product.inStock !== undefined && (
                                             <span
-                                                class={`stock-indicator ${product.inStock ? "in-stock" : "out-of-stock"}`}
+                                                class={`stock-indicator ${product.isFree || product.inStock ? "in-stock" : "out-of-stock"}`}
                                                 transition:name={`stock-${product.id}`}
                                             >
-                                                <span class="stock-text">{product.inStock ? "In Stock" : "Sold Out"}</span>
+                                                <span class="stock-text">
+                                                    {product.isFree
+                                                        ? "Free"
+                                                        : product.inStock
+                                                          ? "In Stock"
+                                                          : "Sold Out"}
+                                                </span>
                                             </span>
                                         )}
                                     </div>
@@ -199,33 +208,106 @@ const showHeaders = groups.length > 1;
                                             <h3 class="product-name">
                                                 {product.name}
                                             </h3>
-                                            <span
-                                                class="product-price product-price-grid"
-                                                data-price-eur={product.price}
-                                                data-price-pln={(
-                                                    typeof product.pricePLN ===
-                                                        "number" &&
-                                                    product.pricePLN > 0
-                                                        ? product.pricePLN
-                                                        : Math.round(
-                                                              Number(
-                                                                  product.price,
-                                                              ) *
-                                                                  EUR_TO_PLN_RATE,
-                                                          )
-                                                ).toFixed(2)}
-                                                data-server-currency={
-                                                    serverCurrency || ""
-                                                }
-                                            >
-                                                €{product.price}
-                                            </span>
+                                            {product.isFree ? (
+                                                <span class="product-price product-price--free">
+                                                    Free
+                                                </span>
+                                            ) : (
+                                                <span
+                                                    class="product-price product-price-grid"
+                                                    data-price-eur={product.price}
+                                                    data-price-pln={(
+                                                        typeof product.pricePLN ===
+                                                            "number" &&
+                                                        product.pricePLN > 0
+                                                            ? product.pricePLN
+                                                            : Math.round(
+                                                                  Number(
+                                                                      product.price,
+                                                                  ) *
+                                                                      EUR_TO_PLN_RATE,
+                                                              )
+                                                    ).toFixed(2)}
+                                                    data-server-currency={
+                                                        serverCurrency || ""
+                                                    }
+                                                >
+                                                    €{product.price}
+                                                </span>
+                                            )}
                                         </div>
                                         <div class="product-desc-row">
                                             <p class="product-desc">
                                                 {product.description}
                                             </p>
-                                            {product.inStock !== false && (
+                                            {product.isFree &&
+                                                product.productType ===
+                                                    "digital" &&
+                                                product.inStock !== false && (
+                                                    <button
+                                                        type="button"
+                                                        class="grid-claim-free-btn"
+                                                        aria-label="Add free download to your library"
+                                                        data-product-id={
+                                                            product.id
+                                                        }
+                                                        onclick="event.preventDefault(); event.stopPropagation();"
+                                                    >
+                                                        <span
+                                                            class="grid-claim-free-btn__icons"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <svg
+                                                                class="grid-claim-free-btn__icon grid-claim-free-btn__icon--download"
+                                                                width="15"
+                                                                height="15"
+                                                                viewBox="0 0 152 152"
+                                                                fill="none"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <path
+                                                                    d="M141.547 98.3721C146.809 98.3723 151 102.489 151 107.791V140.581C151 145.883 146.809 150 141.547 150H9.45312C4.19107 150 0 145.883 0 140.581V107.791C0 102.489 4.19107 98.3723 9.45312 98.3721C14.7153 98.3721 18.9072 102.489 18.9072 107.791V129.163C18.9072 130.268 19.8027 131.163 20.9072 131.163H130.093C131.197 131.163 132.093 130.268 132.093 129.163V107.791C132.093 102.489 136.285 98.3721 141.547 98.3721Z"
+                                                                    fill="currentColor"
+                                                                />
+                                                                <path
+                                                                    d="M75.5 0C80.7622 0 84.9531 4.11652 84.9531 9.41895V66.3782C84.9531 67.2673 86.0267 67.7143 86.6577 67.0878L93.6289 60.166C97.2657 56.3857 103.138 56.5764 106.763 60.0312C106.786 60.0523 106.808 60.0755 106.831 60.0967C106.855 60.1203 106.881 60.1421 106.905 60.166C110.781 63.8415 110.534 69.8352 106.905 73.4385L82.1377 98.0312C80.299 99.8569 77.8367 100.813 75.5 100.813C73.1633 100.813 70.701 99.8569 68.8623 98.0312L44.0947 73.4385C40.2511 69.7923 40.4631 63.8657 44.0088 60.2539C47.6855 56.3319 53.7317 56.5523 57.3711 60.166L64.3423 67.0878C64.9733 67.7143 66.0469 67.2673 66.0469 66.3782V9.41895C66.0469 4.11652 70.2378 0 75.5 0Z"
+                                                                    fill="currentColor"
+                                                                />
+                                                            </svg>
+                                                            <svg
+                                                                class="grid-claim-free-btn__icon grid-claim-free-btn__icon--check"
+                                                                width="14"
+                                                                height="10"
+                                                                viewBox="-0.12 -0.12 12.35 8.82"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                fill="none"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <path
+                                                                    fill="currentColor"
+                                                                    d="M11.7202 1.70725L5.16025 8.26725C4.97225 8.45525 4.71825 8.56025 4.45325 8.56025C4.18825 8.56025 3.93325 8.45525 3.74625 8.26725L0.29325 4.81425C-0.0977499 4.42325 -0.0977499 3.79125 0.29325 3.40025C0.68425 3.00925 1.31625 3.00925 1.70725 3.40025L4.45325 6.14625L10.3062 0.29325C10.6972 -0.0977499 11.3292 -0.0977499 11.7202 0.29325C12.1112 0.68425 12.1112 1.31625 11.7202 1.70725Z"
+                                                                />
+                                                            </svg>
+                                                            <svg
+                                                                class="grid-claim-free-btn__icon grid-claim-free-btn__icon--arrow"
+                                                                width="9"
+                                                                height="14"
+                                                                viewBox="0 0 5 9"
+                                                                fill="none"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <path
+                                                                    d="M1.21094 5.2932e-08C1.11683 5.68338e-05 1.02324 0.0190967 0.936521 0.0556641C0.850421 0.0920381 0.773421 0.146145 0.708011 0.212891L0.707031 0.211914C0.574971 0.346297 0.501011 0.527418 0.500981 0.715821C0.500981 0.857096 0.542661 0.993965 0.619141 1.11035L0.707031 1.21973L3.56543 4.125L0.70605 7.0293C0.57408 7.1637 0.500001 7.34581 0.500001 7.53418C0.500111 7.72236 0.57421 7.90283 0.70605 8.03711L0.70703 8.03613C0.77261 8.10327 0.850071 8.15781 0.936521 8.19434C0.980091 8.21272 1.02517 8.22702 1.07129 8.23633L1.21094 8.25L1.35156 8.23633C1.39753 8.227 1.44291 8.21268 1.48633 8.19434L1.60937 8.12695C1.64823 8.10041 1.68481 8.07004 1.71777 8.03613L4.59766 5.11035C4.85574 4.84746 4.99996 4.4934 5 4.125C5 3.75662 4.85568 3.40256 4.59766 3.13965L1.7168 0.212891L1.60937 0.123047L1.48535 0.0556641L1.35156 0.0136719C1.30555 0.0043579 1.25811 5.08698e-08 1.21094 5.2932e-08Z"
+                                                                    fill="currentColor"
+                                                                />
+                                                            </svg>
+                                                        </span>
+                                                    </button>
+                                                )}
+                                            {product.inStock !== false &&
+                                                !product.isFree && (
                                                 <button
                                                     type="button"
                                                     class="grid-add-cart-btn"
@@ -332,16 +414,17 @@ const showHeaders = groups.length > 1;
                                                         </svg>
                                                         <svg
                                                             class="grid-add-cart-btn__icon grid-add-cart-btn__icon--check"
-                                                            width="16"
-                                                            height="16"
-                                                            viewBox="0 0 24 24"
+                                                            width="14"
+                                                            height="10"
+                                                            viewBox="-0.12 -0.12 12.35 8.82"
+                                                            xmlns="http://www.w3.org/2000/svg"
                                                             fill="none"
-                                                            stroke="currentColor"
-                                                            stroke-width="2"
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
+                                                            aria-hidden="true"
                                                         >
-                                                            <polyline points="20 6 9 17 4 12" />
+                                                            <path
+                                                                fill="currentColor"
+                                                                d="M11.7202 1.70725L5.16025 8.26725C4.97225 8.45525 4.71825 8.56025 4.45325 8.56025C4.18825 8.56025 3.93325 8.45525 3.74625 8.26725L0.29325 4.81425C-0.0977499 4.42325 -0.0977499 3.79125 0.29325 3.40025C0.68425 3.00925 1.31625 3.00925 1.70725 3.40025L4.45325 6.14625L10.3062 0.29325C10.6972 -0.0977499 11.3292 -0.0977499 11.7202 0.29325C12.1112 0.68425 12.1112 1.31625 11.7202 1.70725Z"
+                                                            />
                                                         </svg>
                                                         <svg
                                                             class="grid-add-cart-btn__icon grid-add-cart-btn__icon--trash"
@@ -491,7 +574,8 @@ const showHeaders = groups.length > 1;
     }
 
     .product-card-inner .fav-btn,
-    .product-card-inner .grid-add-cart-btn {
+    .product-card-inner .grid-add-cart-btn,
+    .product-card-inner .grid-claim-free-btn {
         pointer-events: auto;
     }
 
@@ -499,6 +583,17 @@ const showHeaders = groups.length > 1;
         transform: translateY(-4px);
         box-shadow: 0 12px 24px rgba(132, 128, 255, 0.15);
         border-color: var(--brand-violet);
+    }
+
+    /* Free items — same card language as courses (green trust / “safe” cue) */
+    .product-card--free:hover {
+        border-color: color-mix(in srgb, #22c55e 45%, var(--border-subtle));
+        box-shadow: 0 12px 28px color-mix(in srgb, #22c55e 16%, transparent);
+    }
+
+    .product-card--free .product-card-hit:focus-visible {
+        outline: 2px solid #22c55e;
+        outline-offset: -2px;
     }
 
     .product-image {
@@ -686,9 +781,110 @@ const showHeaders = groups.length > 1;
         min-width: 0;
     }
 
-    .product-desc-row .grid-add-cart-btn {
+    .product-desc-row .grid-add-cart-btn,
+    .product-desc-row .grid-claim-free-btn {
         margin-top: 1px;
         align-self: flex-start;
+    }
+
+    /* Free digital — same footprint as add-to-cart; green = “Free” price */
+    .grid-claim-free-btn {
+        width: 36px;
+        height: 36px;
+        aspect-ratio: 1;
+        padding: 0;
+        box-sizing: border-box;
+        border: 1px solid
+            color-mix(in srgb, #22c55e 48%, var(--border-subtle));
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        color: #22c55e;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        text-decoration: none;
+        transition:
+            background 0.25s ease,
+            color 0.25s ease,
+            border-color 0.25s ease,
+            box-shadow 0.25s ease,
+            transform 0.15s ease;
+        box-shadow: 0 1px 2px color-mix(in srgb, #22c55e 10%, transparent);
+    }
+
+    .grid-claim-free-btn:hover:not(:disabled) {
+        background: color-mix(in srgb, #22c55e 14%, var(--surface-muted));
+        border-color: color-mix(in srgb, #22c55e 62%, var(--border-subtle));
+        transform: scale(1.04);
+    }
+
+    .grid-claim-free-btn:active:not(:disabled) {
+        transform: scale(0.96);
+    }
+
+    .grid-claim-free-btn:disabled {
+        cursor: default;
+        opacity: 0.85;
+    }
+
+    .grid-claim-free-btn__icons {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .grid-claim-free-btn__icon {
+        grid-area: 1 / 1;
+        transition:
+            opacity 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .grid-claim-free-btn__icon--check,
+    .grid-claim-free-btn__icon--arrow {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    .grid-claim-free-btn__icon--download {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .grid-claim-free-btn--success .grid-claim-free-btn__icon--download {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    .grid-claim-free-btn--success .grid-claim-free-btn__icon--check {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* Owned / link to My Purchases: arrow only (matches public/images/icons/arrow2.svg). */
+    .grid-claim-free-btn--purchases-link .grid-claim-free-btn__icon--download,
+    .grid-claim-free-btn--purchases-link .grid-claim-free-btn__icon--check {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    .grid-claim-free-btn--purchases-link .grid-claim-free-btn__icon--arrow {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .grid-claim-free-btn--purchases-link:hover {
+        background: color-mix(in srgb, #22c55e 14%, var(--surface-muted));
+        border-color: color-mix(in srgb, #22c55e 62%, var(--border-subtle));
+        transform: scale(1.04);
+    }
+
+    .grid-claim-free-btn--purchases-link:active {
+        transform: scale(0.96);
     }
 
     .grid-add-cart-btn {
@@ -756,6 +952,12 @@ const showHeaders = groups.length > 1;
     .grid-add-cart-btn__icon--trash {
         opacity: 0;
         transform: scale(0.85);
+    }
+
+    .grid-add-cart-btn__icon--check {
+        width: 14px;
+        height: auto;
+        max-height: 10px;
     }
 
     .grid-add-cart-btn__icon--cart {
@@ -878,6 +1080,12 @@ const showHeaders = groups.length > 1;
         white-space: nowrap;
     }
 
+    .product-price--free {
+        color: #22c55e;
+        font-weight: 600;
+        opacity: 1;
+    }
+
     .product-desc {
         color: var(--foreground);
         font-size: 13px;
@@ -954,7 +1162,8 @@ const showHeaders = groups.length > 1;
             -webkit-line-clamp: 2;
         }
 
-        .product-grid-container[data-tablet-cols] .grid-add-cart-btn {
+        .product-grid-container[data-tablet-cols] .grid-add-cart-btn,
+        .product-grid-container[data-tablet-cols] .grid-claim-free-btn {
             width: 32px;
             height: 32px;
         }
@@ -1012,7 +1221,8 @@ const showHeaders = groups.length > 1;
     }
 
     /* Quick add — keep icon colors correct after view transitions */
-    .grid-add-cart-btn {
+    .grid-add-cart-btn,
+    .grid-claim-free-btn {
         -webkit-tap-highlight-color: transparent;
     }
 </style>
@@ -1041,6 +1251,179 @@ const showHeaders = groups.length > 1;
     }
 
     const MOBILE_REMOVE_UNVEIL_MS = 1000;
+
+    /** After claim succeeds, show checkmark then swap to My Purchases link */
+    const GRID_CLAIM_LIBRARY_DELAY_MS = 2500;
+
+    /**
+     * Astro scopes `<style>` with `data-astro-cid-*` on each element. `createElement("a")`
+     * does not get that attribute, so all `.grid-claim-free-btn[...]` rules are dropped
+     * and the control renders as a bare SVG. Copy scope markers from the button we replace.
+     */
+    function copyAstroScopeAttributes(from: Element, to: Element) {
+        for (const name of from.getAttributeNames()) {
+            if (name.startsWith("data-astro-")) {
+                to.setAttribute(name, from.getAttribute(name) ?? "");
+            }
+        }
+    }
+
+    /** Fix anchors promoted before scope-copy existed (or partial hydration). */
+    function repairGridClaimFreeAnchorScope() {
+        document.querySelectorAll("a.grid-claim-free-btn").forEach((el) => {
+            if (
+                el.getAttributeNames().some((n) => n.startsWith("data-astro-cid"))
+            ) {
+                return;
+            }
+            const card = el.closest(".product-card");
+            const donor =
+                card?.querySelector(".fav-btn") ||
+                card?.querySelector(".product-name");
+            if (!donor) return;
+            copyAstroScopeAttributes(donor, el);
+        });
+    }
+
+    function promoteGridClaimBtnToPurchasesLink(
+        btn: HTMLButtonElement,
+        purchaseHash?: string,
+    ) {
+        const a = document.createElement("a");
+        a.className =
+            "grid-claim-free-btn grid-claim-free-btn--purchases-link";
+        copyAstroScopeAttributes(btn, a);
+        const hash =
+            typeof purchaseHash === "string" && purchaseHash.startsWith("#")
+                ? purchaseHash
+                : "";
+        a.href = "/account/purchases" + hash;
+        a.setAttribute(
+            "aria-label",
+            hash
+                ? "Open this item in My Purchases"
+                : "Open My Purchases",
+        );
+        if (btn.dataset.productId) {
+            a.dataset.productId = btn.dataset.productId;
+        }
+        a.innerHTML = btn.innerHTML;
+        a.addEventListener("click", (e) => e.stopPropagation());
+        btn.replaceWith(a);
+    }
+
+    async function syncOwnedFreeDigitalGridButtons() {
+        try {
+            const res = await fetch("/api/my-owned-digital-product-ids", {
+                credentials: "same-origin",
+            });
+            if (res.status === 401) return;
+            if (!res.ok) return;
+            const data = await res.json();
+            const ids = new Set(
+                (Array.isArray(data?.productIds) ? data.productIds : []).map(
+                    String,
+                ),
+            );
+            const hashByProduct: Record<string, string> =
+                data?.purchaseHashByProductId &&
+                typeof data.purchaseHashByProductId === "object"
+                    ? data.purchaseHashByProductId
+                    : {};
+            document.querySelectorAll("button.grid-claim-free-btn")
+                .forEach((el) => {
+                    const btn = el as HTMLButtonElement;
+                    const pid = btn.dataset.productId;
+                    if (pid && ids.has(pid)) {
+                        const h = hashByProduct[pid];
+                        promoteGridClaimBtnToPurchasesLink(
+                            btn,
+                            typeof h === "string" ? h : undefined,
+                        );
+                    }
+                });
+        } catch {
+            /* ignore */
+        }
+    }
+
+    async function handleGridClaimFreeClick(e: Event) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const btn = e.currentTarget as HTMLButtonElement;
+        if (
+            btn.disabled ||
+            btn.classList.contains("grid-claim-free-btn--success")
+        ) {
+            return;
+        }
+
+        const productId = btn.dataset.productId || "";
+        if (!productId) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/api/claim-free-product", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ productId }),
+                credentials: "same-origin",
+            });
+
+            let data: {
+                error?: string;
+                alreadyOwned?: boolean;
+                purchaseHash?: string;
+            } = {};
+            try {
+                data = await res.json();
+            } catch {
+                /* ignore */
+            }
+
+            if (res.status === 401) {
+                window.location.href =
+                    "/login?redirect=" +
+                    encodeURIComponent(
+                        window.location.pathname + window.location.search,
+                    );
+                return;
+            }
+
+            if (!res.ok) {
+                alert(data.error || "Could not add to library. Try again.");
+                btn.disabled = false;
+                return;
+            }
+
+            if (data.alreadyOwned === true) {
+                promoteGridClaimBtnToPurchasesLink(
+                    btn,
+                    typeof data.purchaseHash === "string"
+                        ? data.purchaseHash
+                        : undefined,
+                );
+                return;
+            }
+
+            btn.classList.add("grid-claim-free-btn--success");
+            btn.setAttribute("aria-label", "Added to your library");
+
+            window.setTimeout(() => {
+                promoteGridClaimBtnToPurchasesLink(
+                    btn,
+                    typeof data.purchaseHash === "string"
+                        ? data.purchaseHash
+                        : undefined,
+                );
+            }, GRID_CLAIM_LIBRARY_DELAY_MS);
+        } catch {
+            alert("Network error. Please try again.");
+            btn.disabled = false;
+        }
+    }
 
     function clearMobileRemoveUnveil(btn: HTMLButtonElement) {
         const t = (btn as any).__mobileRemoveUnveilTimer as
@@ -1275,6 +1658,17 @@ const showHeaders = groups.length > 1;
             el.removeEventListener("pointerleave", handleGridCartBtnPointerLeave);
             el.addEventListener("pointerleave", handleGridCartBtnPointerLeave);
         });
+
+        void (async () => {
+            await syncOwnedFreeDigitalGridButtons();
+            repairGridClaimFreeAnchorScope();
+            document.querySelectorAll(".grid-claim-free-btn").forEach((el) => {
+                if (el instanceof HTMLButtonElement) {
+                    el.removeEventListener("click", handleGridClaimFreeClick);
+                    el.addEventListener("click", handleGridClaimFreeClick);
+                }
+            });
+        })();
 
         // 4. Currency Logic
         updateProductGridPrices();

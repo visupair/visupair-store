@@ -232,6 +232,7 @@ const iconPath = iconMap[title as keyof typeof iconMap] || "/images/icons/logo-d
         align-items: center;
         gap: 10px;
         margin-top: 8px;
+        flex-shrink: 0;
         transition: gap 0.3s ease;
     }
 
@@ -273,14 +274,66 @@ const iconPath = iconMap[title as keyof typeof iconMap] || "/images/icons/logo-d
         transform: translateX(4px);
     }
 
-    /* ═══════════════════════════════════════
-       RESPONSIVE
-       ═══════════════════════════════════════ */
+    /*
+      Homepage 3-col row (desktop / iPad Pro width): equal card heights without
+      flex-basis:0 + min-height:0 on .service-content (that clips text under overflow:hidden).
+      Middle block keeps natural height; footer uses margin-top:auto to sit on the bottom edge.
+    */
+    @media (min-width: 1024px) {
+        :global(.services-grid) .service-card .service-content {
+            flex: 1 1 auto;
+            min-height: min-content;
+        }
+
+        :global(.services-grid) .service-card .service-footer {
+            margin-top: auto;
+        }
+    }
+
+    @media (max-width: 1023px) {
+        .service-card {
+            align-items: center;
+        }
+
+        .service-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .service-description {
+            text-align: center;
+        }
+
+        .service-title {
+            text-align: center;
+        }
+
+        .service-process {
+            align-self: center;
+            width: fit-content;
+            max-width: 100%;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .process-item {
+            justify-content: flex-start;
+            text-align: left;
+        }
+
+        .service-footer {
+            justify-content: center;
+        }
+    }
 
     @media (max-width: 600px) {
         .service-card {
             padding: 24px;
             gap: 18px;
+        }
+
+        .service-title {
+            font-size: 18px;
         }
 
         .service-icon-wrapper {
@@ -291,10 +344,6 @@ const iconPath = iconMap[title as keyof typeof iconMap] || "/images/icons/logo-d
         .service-icon {
             width: 32px;
             height: 32px;
-        }
-
-        .service-title {
-            font-size: 18px;
         }
 
         .service-description {

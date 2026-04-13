@@ -108,6 +108,16 @@ body {
   transition: background-color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), color 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+::selection {
+  background-color: var(--brand-violet);
+  color: var(--brand-dark-navy);
+}
+
+::-moz-selection {
+  background-color: var(--brand-violet);
+  color: var(--brand-dark-navy);
+}
+
 main {
   flex: 1;
 }

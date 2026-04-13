@@ -29,10 +29,9 @@ import Layout from "../../layouts/Layout.astro";
     <div class="auth-visual-side">
       <div class="auth-visual-inner">
         <div class="auth-quote">
-          <h1>Digital Craft <br /> Marketplace.</h1>
+          <h1>Create <br /> Beyond Limits</h1>
           <p>
-            Join the community of creators, designers and innovators. Build your
-            portfolio with Visupair.
+            Access your orders, saved pieces, and exclusive digital & physical creations
           </p>
         </div>
 
@@ -91,7 +90,7 @@ import Layout from "../../layouts/Layout.astro";
           <div id="name-group" class="form-group" style="display: none;">
             <div class="name-row">
               <div class="form-group">
-                <label class="form-label">First Name</label>
+                <label class="form-label" for="first-name">First Name</label>
                 <input
                   type="text"
                   id="first-name"
@@ -101,7 +100,7 @@ import Layout from "../../layouts/Layout.astro";
                 <span class="error-message" id="first-name-error"></span>
               </div>
               <div class="form-group">
-                <label class="form-label">Last Name</label>
+                <label class="form-label" for="last-name">Last Name</label>
                 <input
                   type="text"
                   id="last-name"
@@ -114,19 +113,19 @@ import Layout from "../../layouts/Layout.astro";
           </div>
 
           <div class="form-group">
-            <label class="form-label">Email</label>
+            <label class="form-label" for="email-input">Email</label>
             <input
               type="email"
               id="email-input"
               class="form-input"
-              placeholder="m@example.com"
+              placeholder="your@example.com"
               required
             />
             <span class="error-message" id="email-error"></span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Password</label>
+            <label class="form-label" for="password-input">Password</label>
             <div class="password-input-wrapper">
               <input
                 type="password"
@@ -215,7 +214,9 @@ import Layout from "../../layouts/Layout.astro";
 
           <div class="auth-toggle">
             <span id="toggle-text">Don't have an account?</span>
-            <a href="#" id="toggle-link" class="toggle-link">Sign up</a>
+            <button type="button" id="toggle-link" class="toggle-link">
+              Sign up
+            </button>
           </div>
         </form>
       </div>
@@ -738,11 +739,16 @@ import Layout from "../../layouts/Layout.astro";
   }
 
   .toggle-link {
+    display: inline;
+    padding: 0;
+    margin: 0 0 0 6px;
+    border: none;
+    background: none;
+    font: inherit;
     color: var(--foreground);
     text-decoration: underline;
     cursor: pointer;
     font-weight: 600;
-    margin-left: 6px;
     transition: opacity 0.2s;
   }
   .toggle-link:hover {
@@ -804,6 +810,9 @@ import Layout from "../../layouts/Layout.astro";
 
 <script>
   import { showVsToast } from "../../lib/vs-toast";
+
+  /** Garments store — default landing after successful sign-in (email + Google). */
+  const POST_LOGIN_PATH = "/store/fashion-design";
 
   const authForm = document.getElementById("auth-form") as HTMLFormElement;
   const toggleLink = document.getElementById("toggle-link");
@@ -1044,7 +1053,7 @@ import Layout from "../../layouts/Layout.astro";
       // Combine first and last name for Better Auth
       const fullName = isSignUp ? `${firstName} ${lastName}` : "";
 
-      const verifyCallback = `${window.location.origin}/account/profile`;
+      const verifyCallback = `${window.location.origin}${POST_LOGIN_PATH}`;
 
       const payload = isSignUp
         ? {
@@ -1084,7 +1093,7 @@ import Layout from "../../layouts/Layout.astro";
           if (firstNameInput) firstNameInput.value = "";
           if (lastNameInput) lastNameInput.value = "";
         } else {
-          window.location.href = "/account/profile";
+          window.location.href = POST_LOGIN_PATH;
         }
       } else {
         // Handle specific error messages from Better Auth
@@ -1181,7 +1190,7 @@ import Layout from "../../layouts/Layout.astro";
 
         await signIn.social({
           provider: "google",
-          callbackURL: "/account/profile", // Where to redirect after successful login
+          callbackURL: POST_LOGIN_PATH,
         });
       } catch (error) {
         console.error("Google auth error:", error);

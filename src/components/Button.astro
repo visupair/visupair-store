@@ -55,6 +55,7 @@ const tagProps = href ? { href, ...rest } : { type, ...rest };
     .vp-btn {
         display: inline-flex;
         align-items: center;
+        justify-content: flex-start;
         position: relative; /* containing block for the absolute icon pill */
         overflow: hidden;
         height: 2.8em;
@@ -182,11 +183,6 @@ const tagProps = href ? { href, ...rest } : { type, ...rest };
         transition:
             background 0.2s ease,
             color 0.2s ease;
-    }
-
-    /* Text-only secondary: center label when the button stretches (e.g. full-width stacks) */
-    .vp-btn--secondary:not(:has(.vp-btn__icon)) {
-        justify-content: center;
     }
 
     .vp-btn--secondary:has(.vp-btn__icon) {

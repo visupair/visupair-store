@@ -22,13 +22,15 @@ if (!session.data) {
 }
 
 const userEmail = session.data.user.email;
+const emailNorm = userEmail.trim().toLowerCase();
 
-const query = `*[_type == "order" && customerEmail == $email] | order(createdAt desc) {
+const query = `*[_type == "order" && lower(customerEmail) == $email] | order(createdAt desc) {
   _id,
   orderNumber,
   createdAt,
   totalAmount,
   status,
+  stripePaymentIntentId,
   orderType,
   selectedCourier,
   trackingNumber,
@@ -45,6 +47,7 @@ const query = `*[_type == "order" && customerEmail == $email] | order(createdAt 
     "product": product-> {
       _id,
       name,
+      isFree,
       "image": mainImage,
       productType,
       digitalFileKey,
@@ -53,7 +56,7 @@ const query = `*[_type == "order" && customerEmail == $email] | order(createdAt 
   }
 }`;
 
-const courseRegQuery = `*[_type == "courseRegistration" && email == $email] | order(createdAt desc) {
+const courseRegQuery = `*[_type == "courseRegistration" && lower(email) == $email] | order(createdAt desc) {
   _id,
   courseName,
   createdAt,
@@ -73,9 +76,9 @@ const courseRegQuery = `*[_type == "courseRegistration" && email == $email] | or
   }
 }`;
 
-const orders = await sanityFresh.fetch(query, { email: userEmail });
+const orders = await sanityFresh.fetch(query, { email: emailNorm });
 const courseRegistrations = await sanityFresh.fetch(courseRegQuery, {
-  email: userEmail,
+  email: emailNorm,
 });
 
 const courseIdsFromRegistrations = new Set(
@@ -167,7 +170,23 @@ function resolveDeliveryTimeline(order: any) {
   return r === 2 ? "delivered" : r === 1 ? "shipped" : "confirmed";
 }
 
-function purchaseCardBadge(order: any, isDigital: boolean, isCourse: boolean) {
+/** Free digital line: CMS flag, free-claim payment id, or €0 digital line (claim / comp). */
+function isFreeDigitalLine(order: any, item: any, product: any): boolean {
+  const pt = item?.productType || product?.productType;
+  if (pt !== "digital") return false;
+  if (product?.isFree === true) return true;
+  const sp = order?.stripePaymentIntentId;
+  if (typeof sp === "string" && sp.startsWith("free_claim_")) return true;
+  if (Number(item?.price) === 0) return true;
+  return false;
+}
+
+function purchaseCardBadge(
+  order: any,
+  isDigital: boolean,
+  isCourse: boolean,
+  isFreeDigital = false,
+) {
   if (order.status === "cancelled")
     return { label: "Cancelled", badgeClass: "cancelled" };
   if (order.status === "refunded")
@@ -186,6 +205,11 @@ function purchaseCardBadge(order: any, isDigital: boolean, isCourse: boolean) {
           ? "shipped"
           : "paid";
     return { label: labels[stage], badgeClass };
+  }
+  if (isDigital && isFreeDigital) {
+    if (order.status === "processing")
+      return { label: "Processing", badgeClass: "processing" };
+    return { label: "Free", badgeClass: "free" };
   }
   if (order.status === "processing")
     return { label: "Processing", badgeClass: "processing" };
@@ -338,8 +362,18 @@ function orderAllowsDigitalDownload(order: any) {
                       const img = product?.image;
                       const isDigital = true;
                       const isCourse = false;
+                      const isFreeDigital = isFreeDigitalLine(
+                        order,
+                        item,
+                        product,
+                      );
                       const { label: statusLabel, badgeClass } =
-                        purchaseCardBadge(order, isDigital, isCourse);
+                        purchaseCardBadge(
+                          order,
+                          isDigital,
+                          isCourse,
+                          isFreeDigital,
+                        );
                       const canDownload =
                         orderAllowsDigitalDownload(order) && isDigital;
                       const fileKey = product?.digitalFileKey;
@@ -366,14 +400,21 @@ function orderAllowsDigitalDownload(order: any) {
                         itemType: item.productType || product?.productType,
                         isDigital,
                         isCourse,
+                        isFreeDigital,
                         canDownload,
                         fileKey,
                         image: img ? urlFor(img).width(400).url() : null,
                       });
+                      const lineKey = item._key || "";
+                      const purchaseLineId =
+                        lineKey && order._id
+                          ? `purchase-line-${order._id}-${lineKey}`
+                          : undefined;
                       return (
                         <button
                           type="button"
                           class="purchase-card"
+                          id={purchaseLineId}
                           data-order={orderData}
                         >
                           <div class="card-image">
@@ -412,7 +453,14 @@ function orderAllowsDigitalDownload(order: any) {
                             {item.variant && item.variant !== name && (
                               <span class="card-variant">{item.variant}</span>
                             )}
-                            <span class="card-price">€{item.price}</span>
+                            <span
+                              class:list={[
+                                "card-price",
+                                isFreeDigital && "card-price--free",
+                              ]}
+                            >
+                              {isFreeDigital ? "Free" : `€${item.price}`}
+                            </span>
                           </div>
                         </button>
                       );
@@ -603,14 +651,22 @@ function orderAllowsDigitalDownload(order: any) {
     <!-- Detail popup (hidden by default) -->
     <div class="popup-overlay" id="popup-overlay">
       <div class="popup-card" id="popup-card">
-        <button class="popup-close" id="popup-close" aria-label="Close">
+        <button
+          type="button"
+          class="popup-close"
+          id="popup-close"
+          aria-label="Close"
+        >
           <svg
-            width="20"
-            height="20"
+            width="24"
+            height="24"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
           >
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -737,14 +793,14 @@ function orderAllowsDigitalDownload(order: any) {
     return "—";
   }
 
-  function downloadButtonHtml(fileKey) {
+  function downloadButtonHtml(fileKey, isFreeDigital) {
+    const extra = isFreeDigital ? " popup-btn--free-download" : "";
     return `
               <div class="popup-actions">
-              <a href="/api/download/${encodeURIComponent(String(fileKey))}" class="popup-btn popup-btn--primary popup-btn--block" download>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+              <a href="/api/download/${encodeURIComponent(String(fileKey))}" class="popup-btn popup-btn--primary popup-btn--block${extra}" download>
+                <svg width="15" height="15" viewBox="0 0 152 152" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M141.547 98.3721C146.809 98.3723 151 102.489 151 107.791V140.581C151 145.883 146.809 150 141.547 150H9.45312C4.19107 150 0 145.883 0 140.581V107.791C0 102.489 4.19107 98.3723 9.45312 98.3721C14.7153 98.3721 18.9072 102.489 18.9072 107.791V129.163C18.9072 130.268 19.8027 131.163 20.9072 131.163H130.093C131.197 131.163 132.093 130.268 132.093 129.163V107.791C132.093 102.489 136.285 98.3721 141.547 98.3721Z" fill="currentColor"/>
+                  <path d="M75.5 0C80.7622 0 84.9531 4.11652 84.9531 9.41895V66.3782C84.9531 67.2673 86.0267 67.7143 86.6577 67.0878L93.6289 60.166C97.2657 56.3857 103.138 56.5764 106.763 60.0312C106.786 60.0523 106.808 60.0755 106.831 60.0967C106.855 60.1203 106.881 60.1421 106.905 60.166C110.781 63.8415 110.534 69.8352 106.905 73.4385L82.1377 98.0312C80.299 99.8569 77.8367 100.813 75.5 100.813C73.1633 100.813 70.701 99.8569 68.8623 98.0312L44.0947 73.4385C40.2511 69.7923 40.4631 63.8657 44.0088 60.2539C47.6855 56.3319 53.7317 56.5523 57.3711 60.166L64.3423 67.0878C64.9733 67.7143 66.0469 67.2673 66.0469 66.3782V9.41895C66.0469 4.11652 70.2378 0 75.5 0Z" fill="currentColor"/>
                 </svg>
                 Download files
               </a>
@@ -812,7 +868,7 @@ function orderAllowsDigitalDownload(order: any) {
               </div>`;
             }
             if (d.fileKey) {
-              html += downloadButtonHtml(d.fileKey);
+              html += downloadButtonHtml(d.fileKey, Boolean(d.pricingType === "free"));
             }
             popupContent.innerHTML = html;
             overlay.classList.add("active");
@@ -844,6 +900,10 @@ function orderAllowsDigitalDownload(order: any) {
             ? estDeliveryFormatted
             : "3–5 business days";
 
+          const priceRowInner = d.isFreeDigital
+            ? '<span class="detail-value detail-value--free">Free</span>'
+            : `<span class="detail-value">€${escapeHtml(String(d.itemPrice ?? ""))}</span>`;
+
           let html = `
             ${d.image ? `<img class="popup-image" src="${String(d.image).replace(/"/g, "&quot;")}" alt="${nameSafe}" />` : ""}
             <div class="popup-header">
@@ -854,7 +914,7 @@ function orderAllowsDigitalDownload(order: any) {
             <div class="popup-details">
               <div class="detail-row">
                 <span class="detail-label">Price</span>
-                <span class="detail-value">€${escapeHtml(d.itemPrice)}</span>
+                ${priceRowInner}
               </div>
               ${
                 d.itemVariant && d.itemVariant !== d.itemName
@@ -876,7 +936,13 @@ function orderAllowsDigitalDownload(order: any) {
               </div>
               <div class="detail-row">
                 <span class="detail-label">Order</span>
-                <span class="detail-value detail-mono">#${escapeHtml((d.orderNumber || "").slice(-10))}</span>
+                <span class="detail-value detail-mono">#${escapeHtml(
+                  (() => {
+                    const raw = String(d.orderNumber || "");
+                    if (raw.startsWith("free_claim_")) return "Free claim";
+                    return raw.length > 14 ? raw.slice(-12) : raw;
+                  })(),
+                )}</span>
               </div>
             </div>
           `;
@@ -955,12 +1021,12 @@ function orderAllowsDigitalDownload(order: any) {
               </div>`;
             }
             if (d.canDownload && d.fileKey) {
-              html += downloadButtonHtml(d.fileKey);
+              html += downloadButtonHtml(d.fileKey, false);
             }
           }
 
           if (d.isDigital && d.canDownload && d.fileKey) {
-            html += downloadButtonHtml(d.fileKey);
+            html += downloadButtonHtml(d.fileKey, Boolean(d.isFreeDigital));
           } else if (d.isDigital && !d.canDownload) {
             html += `<p class="popup-hint popup-hint--padded">Download will be available after payment is confirmed.</p>`;
           }
@@ -975,8 +1041,23 @@ function orderAllowsDigitalDownload(order: any) {
     });
   }
 
+  function scrollToPurchaseLineFromHash() {
+    const raw = window.location.hash.replace(/^#/, "");
+    if (!raw.startsWith("purchase-line-")) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(raw);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("purchase-card--hash-focus");
+      window.setTimeout(() => {
+        el.classList.remove("purchase-card--hash-focus");
+      }, 2400);
+    });
+  }
+
   initPurchases();
   document.addEventListener("astro:page-load", initPurchases);
+  document.addEventListener("astro:page-load", scrollToPurchaseLineFromHash);
 </script>
 
 <style>
@@ -1119,6 +1200,15 @@ function orderAllowsDigitalDownload(order: any) {
     border-color: var(--brand-violet);
   }
 
+  .purchase-card.purchase-card--hash-focus {
+    outline: 2px solid #22c55e;
+    outline-offset: 3px;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 0 0 4px color-mix(in srgb, #22c55e 32%, transparent);
+    border-color: color-mix(in srgb, #22c55e 55%, var(--border-subtle));
+  }
+
   .card-image {
     position: relative;
     aspect-ratio: 1;
@@ -1185,6 +1275,11 @@ function orderAllowsDigitalDownload(order: any) {
     color: #6b7280;
   }
 
+  .badge-free {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+
   .card-body {
     padding: 10px 12px 14px;
     display: flex;
@@ -1214,6 +1309,10 @@ function orderAllowsDigitalDownload(order: any) {
     font-size: 14px;
     font-weight: 700;
     color: var(--brand-violet);
+  }
+
+  .card-price--free {
+    color: #22c55e;
   }
 
   /* ─── Popup Overlay ─── */
@@ -1262,26 +1361,33 @@ function orderAllowsDigitalDownload(order: any) {
     }
   }
 
+  /* Match ProductDetail `.detail-close-btn` icon + hover (rotate / violet). */
   .popup-close {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    background: var(--surface-muted);
-    border: none;
-    width: 32px;
-    height: 32px;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
     border-radius: 50%;
+    background: var(--surface-hover);
+    border: 1px solid var(--border-subtle);
+    color: var(--foreground);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--foreground);
-    opacity: 0.6;
-    z-index: 1;
-    transition: opacity 0.15s;
+    z-index: 50;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
   .popup-close:hover {
-    opacity: 1;
+    background: var(--brand-violet);
+    color: white;
+    border-color: var(--brand-violet);
+    transform: rotate(90deg);
   }
 
   .popup-content {
@@ -1667,6 +1773,25 @@ function orderAllowsDigitalDownload(order: any) {
   :global(.popup-btn--primary:hover) {
     background: #9d9aff;
     transform: translateY(-1px);
+  }
+
+  :global(.popup-btn--free-download) {
+    background: #22c55e;
+    box-shadow: 0 4px 14px color-mix(in srgb, #22c55e 35%, transparent);
+  }
+  :global(.popup-btn--free-download:hover) {
+    background: color-mix(in srgb, #22c55e 88%, #ffffff);
+    transform: translateY(-1px);
+  }
+
+  :global(.popup-badge.badge-free) {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+
+  :global(.detail-value--free) {
+    color: #22c55e;
+    font-weight: 600;
   }
 
   :global(.popup-btn--outline) {

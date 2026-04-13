@@ -91,13 +91,15 @@ const isAdmin = session && ADMIN_EMAILS.includes(session.user.email);
                 <input type="hidden" name="productId" value={productId} />
 
                 <div class="form-group">
-                    <label>Rating</label>
-                    <StarRating
-                        rating={0}
-                        interactive={true}
-                        size={24}
-                        name="rating"
-                    />
+                    <fieldset class="review-rating-fieldset">
+                        <legend>Rating</legend>
+                        <StarRating
+                            rating={0}
+                            interactive={true}
+                            size={24}
+                            name="rating"
+                        />
+                    </fieldset>
                 </div>
 
                 <div class="form-group">
@@ -137,7 +139,11 @@ const isAdmin = session && ADMIN_EMAILS.includes(session.user.email);
                                 {rev.userImage ? (
                                     <img
                                         src={rev.userImage}
-                                        alt={rev.userName}
+                                        alt={
+                                            rev.userName
+                                                ? `${rev.userName}`
+                                                : "Reviewer"
+                                        }
                                         class="reviewer-avatar"
                                     />
                                 ) : (
@@ -231,151 +237,167 @@ const isAdmin = session && ADMIN_EMAILS.includes(session.user.email);
 </div>
 
 <script>
-    // Handle form submission
-    const form = document.getElementById("review-form");
-    const messageEl = document.getElementById("form-message");
-
-    // Modal Elements - Define outside to avoid redeclaration if script reruns (though Astro scopes it)
-    const modal = document.getElementById("delete-modal");
-    const cancelBtn = document.getElementById("cancel-delete");
-    const confirmBtn = document.getElementById("confirm-delete");
+    /**
+     * Document-level handlers so review UI works after View Transitions
+     * (`ClientRouter`): inline listeners on a replaced DOM never run again.
+     */
     let reviewIdToDelete: string | null = null;
     let cardToDelete: HTMLElement | null = null;
 
-    // Open Modal
-    const deleteBtns = document.querySelectorAll(".btn-delete-review");
-    deleteBtns.forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            // @ts-ignore
-            reviewIdToDelete = (btn as HTMLElement).dataset.reviewId || null;
-            cardToDelete = document.getElementById(
-                `review-${reviewIdToDelete}`,
-            );
-            if (modal) {
-                modal.classList.add("open");
-                // Ensure visibility immediately for transition
-                requestAnimationFrame(() => {
-                    modal.classList.add("visible");
-                });
-            }
-        });
-    });
-
-    // Close Modal
-    const closeModal = () => {
+    function closeReviewDeleteModal() {
+        const modal = document.getElementById("delete-modal");
         if (modal) {
             modal.classList.remove("visible");
-            setTimeout(() => {
-                modal.classList.remove("open");
-            }, 300); // Match transition time
+            setTimeout(() => modal.classList.remove("open"), 300);
         }
         reviewIdToDelete = null;
         cardToDelete = null;
-    };
-
-    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
-
-    // Close on click outside
-    if (modal) {
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeModal();
-        });
     }
 
-    // Perform Delete
-    if (confirmBtn) {
-        confirmBtn.addEventListener("click", async () => {
-            if (!reviewIdToDelete) return;
+    function openReviewDeleteModal(id: string) {
+        reviewIdToDelete = id;
+        cardToDelete = document.getElementById(`review-${id}`);
+        const modal = document.getElementById("delete-modal");
+        if (modal) {
+            modal.classList.add("open");
+            requestAnimationFrame(() => modal.classList.add("visible"));
+        }
+    }
 
-            const originalText = confirmBtn.textContent;
-            confirmBtn.textContent = "Deleting...";
-            // @ts-ignore
-            confirmBtn.disabled = true;
+    async function handleReviewFormSubmit(form: HTMLFormElement) {
+        const messageEl = document.getElementById("form-message");
+        const submitBtn = form.querySelector(
+            'button[type="submit"]',
+        ) as HTMLButtonElement | null;
+        if (!submitBtn) return;
 
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Submitting...";
+
+            const response = await fetch("/api/reviews", {
+                method: "POST",
+                body: new FormData(form),
+                credentials: "include",
+            });
+
+            const raw = await response.text();
+            let result: { error?: string } = {};
             try {
-                const response = await fetch(
-                    `/api/review/${reviewIdToDelete}`,
-                    {
-                        method: "DELETE",
-                    },
-                );
-
-                if (response.ok) {
-                    // Animate removal
-                    if (cardToDelete) {
-                        cardToDelete.style.transition =
-                            "opacity 0.3s, height 0.3s";
-                        cardToDelete.style.opacity = "0";
-                        setTimeout(() => {
-                            cardToDelete?.remove();
-                            window.location.reload();
-                        }, 300);
-                    }
-                    closeModal();
-                } else {
-                    alert("Failed to delete review");
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Error deleting review");
-            } finally {
-                // @ts-ignore
-                confirmBtn.textContent = "Delete";
-                // @ts-ignore
-                confirmBtn.disabled = false;
-                closeModal();
+                if (raw) result = JSON.parse(raw) as { error?: string };
+            } catch {
+                result = {};
             }
-        });
-    }
 
-    // Handle form submission with fetch to avoid reload and show message
-    if (form) {
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form as HTMLFormElement);
-            const submitBtn = form.querySelector(
-                'button[type="submit"]',
-            ) as HTMLButtonElement;
-
-            try {
-                submitBtn.disabled = true;
-                submitBtn.textContent = "Submitting...";
-
-                const response = await fetch("/api/reviews", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    if (messageEl) {
-                        messageEl.textContent =
-                            "Review submitted successfully! Reload to see.";
-                        messageEl.className = "form-message success";
-                    }
-                    (form as HTMLFormElement).reset();
-                    // Optional: Reload page to show new review
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    if (messageEl) {
-                        messageEl.textContent =
-                            result.error || "Failed to submit review.";
-                        messageEl.className = "form-message error";
-                    }
-                }
-            } catch (err) {
-                console.error(err);
+            if (response.ok) {
                 if (messageEl) {
-                    messageEl.textContent = "An error occurred.";
+                    messageEl.textContent =
+                        "Review submitted successfully! Reload to see.";
+                    messageEl.className = "form-message success";
+                }
+                form.reset();
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                if (messageEl) {
+                    messageEl.textContent =
+                        result.error || "Failed to submit review.";
                     messageEl.className = "form-message error";
                 }
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Submit Review";
             }
-        });
+        } catch (err) {
+            console.error(err);
+            const el = document.getElementById("form-message");
+            if (el) {
+                el.textContent = "An error occurred.";
+                el.className = "form-message error";
+            }
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Submit Review";
+        }
+    }
+
+    function onDocumentSubmit(e: SubmitEvent) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.id !== "review-form") return;
+        e.preventDefault();
+        void handleReviewFormSubmit(form);
+    }
+
+    function onDocumentClick(e: MouseEvent) {
+        const t = e.target as HTMLElement | null;
+        if (!t) return;
+
+        const delBtn = t.closest(".btn-delete-review");
+        if (delBtn) {
+            e.preventDefault();
+            const id = (delBtn as HTMLElement).dataset.reviewId;
+            if (id) openReviewDeleteModal(id);
+            return;
+        }
+
+        if (t.closest("#cancel-delete")) {
+            e.preventDefault();
+            closeReviewDeleteModal();
+            return;
+        }
+
+        const confirmBtn = t.closest("#confirm-delete") as
+            | HTMLButtonElement
+            | null;
+        if (confirmBtn) {
+            e.preventDefault();
+            void runConfirmDelete(confirmBtn);
+            return;
+        }
+
+        const modal = document.getElementById("delete-modal");
+        if (modal && e.target === modal) closeReviewDeleteModal();
+    }
+
+    async function runConfirmDelete(confirmBtn: HTMLButtonElement) {
+        if (!reviewIdToDelete) return;
+
+        const originalText = confirmBtn.textContent;
+        const toRemove = cardToDelete;
+        confirmBtn.textContent = "Deleting...";
+        confirmBtn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/review/${reviewIdToDelete}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (response.ok) {
+                if (toRemove) {
+                    toRemove.style.transition = "opacity 0.3s, height 0.3s";
+                    toRemove.style.opacity = "0";
+                    setTimeout(() => {
+                        toRemove.remove();
+                        window.location.reload();
+                    }, 300);
+                }
+                closeReviewDeleteModal();
+            } else {
+                alert("Failed to delete review");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error deleting review");
+        } finally {
+            confirmBtn.textContent = originalText || "Delete";
+            confirmBtn.disabled = false;
+            closeReviewDeleteModal();
+        }
+    }
+
+    const w = window as Window & { __visupairReviewUiBound?: boolean };
+    if (!w.__visupairReviewUiBound) {
+        w.__visupairReviewUiBound = true;
+        document.addEventListener("submit", onDocumentSubmit);
+        document.addEventListener("click", onDocumentClick);
     }
 </script>
 
@@ -445,6 +467,27 @@ const isAdmin = session && ADMIN_EMAILS.includes(session.user.email);
         opacity: 0.8;
         text-transform: uppercase;
         letter-spacing: 0.03em;
+    }
+
+    .review-rating-fieldset {
+        border: none;
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .review-rating-fieldset legend {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--foreground);
+        opacity: 0.8;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 0;
     }
 
     .review-textarea {

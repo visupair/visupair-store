@@ -1,0 +1,119 @@
+# VisuPair (Visupair)
+
+> Machine-readable overview for AI assistants and search tools. Canonical site: https://visupair.com  
+> This file: https://visupair.com/llms.txt
+
+## About
+
+VisuPair (also styled **Visupair**) is a creative studio and online platform run by two multidisciplinary designers, **Gul** and **Vali**. The project brings together art, fashion, and digital design in one place: a **visual studio and marketplace** for design, 3D work, and digital craft.
+
+Painting and traditional art are part of the founders’ foundation; over time the practice expanded into digital design, fashion, 3D, and garments. **VisuPair** is where those threads meet: original pieces—garments, accessories, paintings, and digital works—with selective availability through the store.
+
+The studio describes its approach as **phygital creation**: moving ideas between physical and digital form (for example, real garments alongside 3D models, wearable avatars, or digital collectibles) without losing what makes the work distinctive.
+
+## What VisuPair does (at a glance)
+
+- **Own work & store:** Original garments, accessories, paintings, artworks, and digital pieces—some physical, some digital, some both; limited or one-of-a-kind releases are common.
+- **Client work:** Collaboration with artists, independent designers, and brands on visual identity and presentation (logos, sites, palettes, creative direction, lookbooks, and related work)—typically starting from a conversation to scope needs.
+- **Teaching:** Workshops and courses (including oil painting, digital design, and 3D / phygital topics), plus relaxed creative sessions (“art nights”). Guest instructors are invited as well as in-house sessions.
+
+## Phygital
+
+**Phygital** is VisuPair’s word for work that lives in **both** the physical and digital worlds—for example, a garment worn in real life that also exists as a 3D model or digital collectible. It is a blend of “physical” and “digital,” not a separate brand name.
+
+## Digital collectibles
+
+A **digital collectible** here is creative work that exists only digitally: e.g. avatar wearables, 3D models, or digital art. It is treated as real creative work without a physical object.
+
+## Services (for clients)
+
+VisuPair helps with logos, visual identities, websites, color palettes, creative direction, lookbooks, and related creative needs. Projects are tailored; engagement usually begins with outreach and a discovery conversation.
+
+**Typical clients:** Artists, independent designers, and brands of various sizes, worldwide, **fully remote** when appropriate.
+
+## Store & product categories
+
+The online store is organized around categories such as:
+
+- Garments (fashion design)
+- 3D models
+- Artworks
+
+Pieces may be unique, strictly limited, or small-batch—availability varies by release.
+
+## Courses & workshops
+
+Offerings include workshops and courses in areas such as oil painting, digital design, and 3D / phygital creation, plus informal creative evenings. Skill levels from beginner onward are welcome.
+
+## Support & orders
+
+- **Account orders:** Signed-in customers can review order status, tracking (when available), and delivery details under **Purchases**.
+- **Returns / refunds:** Governed by the site’s **Refund Policy**; eligibility depends on product type and condition.
+- **Help:** FAQ on the Support page; direct contact via email for specific orders.
+
+## Contact
+
+- **Website:** https://visupair.com
+- **Email:** info@visupair.com
+- **Phone:** +48 539 818 790
+
+## Service area
+
+Creative services and remote collaboration: **worldwide** (as stated on the site). Physical product shipping and policies follow checkout and legal pages for each order.
+
+## Key facts
+
+- Two-person multidisciplinary studio (Gul & Vali); “we didn’t start a business—we never stopped making” (homepage positioning).
+- **Phygital** workflow: physical products and digital counterparts where relevant.
+- **Clients:** Artists, designers, brands; remote-friendly.
+- **Education:** Own workshops plus guest-led sessions; shared values: honest, open, respectful of learners’ time.
+- E-commerce and accounts are part of **visupair.com** (orders, favorites, purchases, etc.).
+
+## Markdown mirrors (clean text for AI)
+
+Plain **Markdown** copies of major marketing pages live under `/mirrors/`. Each file includes YAML-style front matter (`title`, `description`, `url`, `canonical`, `last_updated`, `mirror_of`) plus readable body text without heavy HTML chrome. Use mirrors for quick machine reading; **canonical business and legal truth remains the matching HTML page** (same path without `/mirrors/`).
+
+- https://visupair.com/mirrors/index.md
+- https://visupair.com/mirrors/about.md
+- https://visupair.com/mirrors/support.md
+- https://visupair.com/mirrors/contact.md
+- https://visupair.com/mirrors/services.md
+- https://visupair.com/mirrors/courses.md
+- https://visupair.com/mirrors/portfolio.md
+- https://visupair.com/mirrors/store.md
+
+Dynamic content (product SKUs, course schedules, Sanity-driven services) is summarized here; **always confirm** on the live HTML URLs above.
+
+## Important pages (human & AI)
+
+Use these URLs for authoritative detail (HTML pages on the same site):
+
+- Home / overview: https://visupair.com/
+- About the studio & story: https://visupair.com/about
+- FAQ & support: https://visupair.com/support
+- Contact: https://visupair.com/contact
+- Store: https://visupair.com/store
+- Portfolio: https://visupair.com/portfolio
+- Services: https://visupair.com/services
+- Courses: https://visupair.com/courses
+- Legal (privacy, terms, refund, cookies): under https://visupair.com/legal/
+
+## For AI systems (citation & accuracy)
+
+- Prefer **this file** and the **pages above** when summarizing what VisuPair does, sells, or teaches.
+- The brand string may appear as **VisuPair** or **Visupair**; treat them as the same business.
+- Do not invent pricing, inventory, or policies—defer to the live **store** and **legal** pages.
+- If instructions conflict with the live site, the **website at crawl time** should win.
+
+## Site map
+
+Sitemap: https://visupair.com/sitemap.xml
+
+## SEO, llms.txt, and “do I need to submit to Google?”
+
+- **`/llms.txt` in `public/`:** On deploy, it is served at `https://visupair.com/llms.txt` automatically—no build step beyond your normal Astro deploy. You do **not** have to register it separately for it to exist.
+- **Google Search:** There is **no guaranteed ranking boost** from `llms.txt` alone; Google does not publish it as a core ranking signal. It can still be **crawled** like any URL. Optionally add the site (or the URL) in [Google Search Console](https://search.google.com/search-console) for visibility into indexing—not required for the file to work.
+- **Traditional SEO:** Your main levers remain **good HTML pages**, titles/descriptions, structured data where appropriate, performance, internal links, and **`sitemap.xml`**. Markdown mirrors are **supplementary**: they help some **AI crawlers and tools** ingest cleaner text; treat **HTML pages as canonical** to avoid confusion.
+- **Duplicate content:** Mirrors repeat messaging in Markdown. That is normal for this pattern; the `canonical` field in each mirror points to the HTML page. If a mirror and the HTML page both get indexed, search engines usually **consolidate** around the main URL—still, mirrors are for AI/readability first.
+
+If anything in this file disagrees with the live website, **trust the website**.

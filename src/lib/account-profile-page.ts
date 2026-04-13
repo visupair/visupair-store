@@ -295,9 +295,14 @@ export function initAccountProfilePage(): void {
     }
 
     const dialogEl = deleteModal.querySelector(".delete-account-modal__dialog");
+    if (!dialogEl) {
+      finishCloseDeleteAccountModal();
+      return;
+    }
+
     deleteModal.classList.add("delete-account-modal--closing");
 
-    const onDialogAnimEnd = (ev: AnimationEvent) => {
+    const onDialogAnimEnd: EventListener = (ev) => {
       if (ev.target !== dialogEl) return;
       dialogEl.removeEventListener("animationend", onDialogAnimEnd);
       window.clearTimeout(deleteCloseTimeoutId);
@@ -305,9 +310,9 @@ export function initAccountProfilePage(): void {
       finishCloseDeleteAccountModal();
     };
 
-    dialogEl?.addEventListener("animationend", onDialogAnimEnd);
+    dialogEl.addEventListener("animationend", onDialogAnimEnd);
     deleteCloseTimeoutId = window.setTimeout(() => {
-      dialogEl?.removeEventListener("animationend", onDialogAnimEnd);
+      dialogEl.removeEventListener("animationend", onDialogAnimEnd);
       finishCloseDeleteAccountModal();
     }, 380);
   }

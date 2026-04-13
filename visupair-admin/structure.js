@@ -357,6 +357,7 @@ export const structure = (S) =>
                                 .child(
                                     S.documentTypeList('service')
                                         .title('All Services')
+                                        .defaultOrdering([{field: 'sortOrder', direction: 'asc'}])
                                 ),
                             // Proposals
                             S.listItem()

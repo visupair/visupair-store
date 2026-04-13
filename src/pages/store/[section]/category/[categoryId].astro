@@ -7,6 +7,10 @@ import { getProducts, getCategoriesTree } from "../../../../lib/sanity";
 
 const { section, categoryId } = Astro.params;
 const searchQuery = Astro.url.searchParams.get("search") || "";
+const sectionIdEarly = section || "";
+const filterFree =
+    (sectionIdEarly === "fashion-design" || sectionIdEarly === "3d-models") &&
+    Astro.url.searchParams.get("free") === "1";
 
 // SSR Mode: Dynamic Lookup
 export const prerender = false;
@@ -78,6 +82,14 @@ const filteredProducts = allProducts.filter((product) => {
         }
     }
 
+    if (
+        (sectionId === "fashion-design" || sectionId === "3d-models") &&
+        filterFree &&
+        product.isFree !== true
+    ) {
+        return false;
+    }
+
     return true;
 });
 
@@ -109,6 +121,10 @@ const serverCurrency = Astro.locals.currency;
                 : (categoryId as string)}
             sectionId={sectionId}
             searchProducts={sectionProducts}
+            showProductFilters={
+                sectionId === "fashion-design" || sectionId === "3d-models"
+            }
+            filterFree={filterFree}
         />
         <div class="products-wrapper" id="products-wrapper">
             <ProductGrid

@@ -8,6 +8,12 @@ import sanity from '@sanity/astro';
 export default defineConfig({
   // Used for canonical URLs, sitemap, and import.meta.env.SITE (override in production via PUBLIC_SITE_URL)
   site: process.env.PUBLIC_SITE_URL || 'https://visupair.com',
+  image: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'cdn.sanity.io' },
+      { protocol: 'https', hostname: 'placehold.co' },
+    ],
+  },
   integrations: [
     react(),
     sanity({
@@ -134,20 +140,14 @@ export default defineConfig({
       },
     },
     build: {
-      cssMinify: 'lightningcss',
+      // Use esbuild (bundled with Vite). `lightningcss` is optional and not in package.json.
+      cssMinify: 'esbuild',
       // Better code splitting
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            // Separate vendor chunks
-            if (id.includes('node_modules')) {
-              if (id.includes('lottie-web')) {
-                return 'lottie';
-              }
-              if (id.includes('react')) {
-                return 'react-vendor';
-              }
-              return 'vendor';
+            if (id.includes('node_modules') && id.includes('lottie-web')) {
+              return 'lottie';
             }
           },
         },

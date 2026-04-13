@@ -1,10 +1,12 @@
 ---
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
 import Button from "./Button.astro";
 
 interface Category {
   title: string;
   description: string;
-  image: string;
+  image: ImageMetadata;
   href: string;
 }
 
@@ -23,9 +25,6 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
       <!-- Static header overlay -->
       <div class="cc-header">
         <h2 class="cc-header__title">Discover the Store</h2>
-        <p class="cc-header__desc">
-          Discover our premium range of digital assets and design services.
-        </p>
       </div>
 
       <!-- Track (JS will clone first/last slides into here) -->
@@ -33,13 +32,13 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
         {
           categories.map((cat, i) => (
             <div class="cc-slide" data-slide={i}>
-              <img
+              <Image
                 src={cat.image}
                 alt={cat.title}
                 class="cc-slide__img"
-                loading="lazy"
+                loading={i === 0 ? "eager" : "lazy"}
                 decoding="async"
-                draggable="false"
+                draggable={false}
               />
               <div class="cc-slide__overlay" />
               <div class="cc-slide__content-wrapper">
@@ -486,16 +485,7 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
     line-height: 1.1;
     letter-spacing: -0.02em;
     color: #fff;
-    margin: 0 0 12px;
-  }
-
-  .cc-header__desc {
-    font-size: clamp(14px, 1.5vw, 16px);
-    color: #fff;
-    opacity: 0.8;
     margin: 0;
-    max-width: 600px;
-    line-height: 1.6;
   }
 
   @media (max-width: 768px) {
@@ -683,9 +673,6 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
     .cc-header__title {
       font-size: clamp(20px, 3vw, 32px);
     }
-    .cc-header__desc {
-      font-size: clamp(12px, 1.2vw, 14px);
-    }
     .cc-slide__content-wrapper {
       bottom: 80px;
       left: 50%;
@@ -734,12 +721,8 @@ const uid = `carousel-${Math.random().toString(36).slice(2, 8)}`;
     .cc-header__title {
       font-size: 24px;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 0;
       white-space: nowrap;
-    }
-    .cc-header__desc {
-      font-size: 11px;
-      line-height: 1.4;
     }
     .cc-slide__content-wrapper {
       bottom: 90px;

@@ -1,14 +1,42 @@
 ---
 import ServicePage from "../../components/ServicePage.astro";
-import { servicesData } from "../../lib/services-data";
+import { getServices } from "../../lib/sanity";
 
 export const prerender = false;
 
 const { id } = Astro.params;
-const service = servicesData.find((s) => s.id === id);
 
-// Fallback to first service if not found (or handle 404)
-const selectedService = service || servicesData[0];
+let selectedService: Awaited<ReturnType<typeof getServices>>[number] | null =
+ null;
+let fetchFailed = false;
+
+try {
+    const services = await getServices();
+    selectedService = services.find((s) => s.id === id) ?? null;
+} catch (error) {
+    fetchFailed = true;
+    console.error("services/[id]: Failed to fetch services from Sanity", error);
+}
+
+if (fetchFailed) {
+    Astro.response.status = 503;
+} else if (!selectedService) {
+    Astro.response.status = 404;
+}
+
+const emptyHeading = fetchFailed
+    ? "Services temporarily unavailable"
+    : "Service not found";
+const emptySubheading = fetchFailed
+    ? "We could not load pricing from the CMS. Please try again shortly."
+    : "That service does not exist or the link is out of date. Try the services overview.";
+
+const serverCurrency = Astro.locals.currency;
 ---
 
-<ServicePage service={selectedService} />
+<ServicePage
+    service={selectedService}
+    serverCurrency={serverCurrency}
+    emptyHeading={selectedService ? undefined : emptyHeading}
+    emptySubheading={selectedService ? undefined : emptySubheading}
+/>

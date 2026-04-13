@@ -41,11 +41,18 @@ const currentSection = storeSections[sectionId];
 
 // Get category from query params to preserve it on back navigation
 const selectedCategory = Astro.url.searchParams.get("category");
+const filterFree =
+    (sectionId === "fashion-design" || sectionId === "3d-models") &&
+    Astro.url.searchParams.get("free") === "1";
 
-// Calculate back link - preserve category if provided
+// Calculate back link - preserve category and list filters
 let backLink = `/store/${sectionId}`;
-if (selectedCategory) {
-    backLink += `?category=${selectedCategory}`;
+{
+    const qs = new URLSearchParams();
+    if (selectedCategory) qs.set("category", selectedCategory);
+    if (filterFree) qs.set("free", "1");
+    const q = qs.toString();
+    if (q) backLink += `?${q}`;
 }
 
 let userOwnsDigital = false;
@@ -98,6 +105,10 @@ const ogImage = firstImage
                 selectedCategoryId={null}
                 sectionId={sectionId}
                 searchProducts={allProducts}
+                showProductFilters={
+                    sectionId === "fashion-design" || sectionId === "3d-models"
+                }
+                filterFree={filterFree}
             />
         </div>
 

@@ -79,8 +79,9 @@ export const GET: APIRoute = async ({ params }) => {
                 : null,
             instructor: course.instructor ? {
                 ...course.instructor,
+                // Detail card avatar is ~56 CSS px; 128px is enough for 2x displays
                 avatar: (course.instructor.avatar?.asset)
-                    ? urlFor(course.instructor.avatar).width(160).height(160).fit('crop').url()
+                    ? urlFor(course.instructor.avatar).width(128).height(128).fit('crop').url()
                     : null
             } : null
         };

@@ -63,8 +63,20 @@ const categoriesToShow = sectionCategoryTree
     ? sectionCategoryTree.children
     : [];
 
-// Calculate back link - return to category view
-const backLink = `/store/${sectionId}/category/${categoryId}`;
+const filterFree =
+    (sectionId === "fashion-design" || sectionId === "3d-models") &&
+    Astro.url.searchParams.get("free") === "1";
+
+// Calculate back link - return to category view (preserve search + filters)
+let backLink = `/store/${sectionId}/category/${categoryId}`;
+{
+    const qs = new URLSearchParams();
+    const search = Astro.url.searchParams.get("search");
+    if (search) qs.set("search", search);
+    if (filterFree) qs.set("free", "1");
+    const q = qs.toString();
+    if (q) backLink += `?${q}`;
+}
 
 // For search autocomplete - all products in this section
 const sectionProducts = allProducts.filter((p) => {
@@ -128,6 +140,10 @@ const ogImage = firstImage
                 selectedCategoryId={categoryId as string}
                 sectionId={sectionId}
                 searchProducts={sectionProducts}
+                showProductFilters={
+                    sectionId === "fashion-design" || sectionId === "3d-models"
+                }
+                filterFree={filterFree}
             />
         </div>
 

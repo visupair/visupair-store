@@ -27,12 +27,17 @@ const { rating, size = 20, interactive = false, name = "rating" } = Astro.props;
                             required
                         />
                         <label for={`${name}-star-${n}`} title={`${n} stars`}>
+                            <span class="sr-only">
+                                {n}
+                                {n === 1 ? " star" : " stars"}
+                            </span>
                             <svg
                                 width={size}
                                 height={size}
                                 viewBox="0 0 24 24"
                                 fill="currentColor"
                                 class="star-icon"
+                                aria-hidden="true"
                             >
                                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                             </svg>
@@ -45,7 +50,11 @@ const { rating, size = 20, interactive = false, name = "rating" } = Astro.props;
 
     {
         !interactive && (
-            <div class="star-display">
+            <div
+                class="star-display"
+                role="img"
+                aria-label={`${Math.round(rating)} out of 5 stars`}
+            >
                 {[1, 2, 3, 4, 5].map((n) => (
                     <svg
                         width={size}
@@ -55,6 +64,7 @@ const { rating, size = 20, interactive = false, name = "rating" } = Astro.props;
                         stroke="currentColor"
                         stroke-width="2"
                         class={`star-icon ${n <= Math.round(rating) ? "filled" : "empty"}`}
+                        aria-hidden="true"
                     >
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
@@ -107,5 +117,17 @@ const { rating, size = 20, interactive = false, name = "rating" } = Astro.props;
 
     .star-icon.filled {
         color: var(--brand-lime);
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 </style>

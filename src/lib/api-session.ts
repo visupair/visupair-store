@@ -7,14 +7,17 @@ export type ApiSessionUser = {
     name?: string | null;
 };
 
-/**
- * Resolves D1 + env the same way as `/api/auth/[...all]` and other authenticated API routes.
- * Returns the signed-in user from the session cookie, or a JSON 401/500 Response.
- */
-export async function requireApiSession(
-    context: APIContext,
-): Promise<{ user: ApiSessionUser } | { response: Response }> {
-    const { request, locals } = context;
+export type RequireApiSessionOptions = {
+    /** Shown when the session cookie is missing or invalid (default: generic sign-in message). */
+    unauthorizedMessage?: string;
+};
+
+type ResolvedAuthContext =
+    | { ok: true; dbBinding: D1Database; runtimeEnv: Record<string, string | undefined> }
+    | { ok: false; reason: "no-db" };
+
+async function resolveAuthContext(context: APIContext): Promise<ResolvedAuthContext> {
+    const { locals } = context;
 
     // @ts-ignore — cloudflare:workers
     const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
@@ -25,10 +28,12 @@ export async function requireApiSession(
         if (!dbBinding && locals.runtime && typeof locals.runtime === "object") {
             const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, "env");
             if (descriptor && typeof descriptor.get !== "function") {
-                dbBinding = (locals.runtime as { env?: { visupair_store?: D1Database } }).env
-                    ?.visupair_store;
+                const rtEnv = (locals.runtime as { env?: unknown }).env as
+                    | { visupair_store?: D1Database }
+                    | undefined;
+                dbBinding = rtEnv?.visupair_store;
                 runtimeEnv = {
-                    ...(locals.runtime as { env?: Record<string, string> }).env,
+                    ...(rtEnv as Record<string, string | undefined> | undefined),
                 };
             }
         }
@@ -37,6 +42,24 @@ export async function requireApiSession(
     }
 
     if (!dbBinding) {
+        return { ok: false, reason: "no-db" };
+    }
+    return { ok: true, dbBinding, runtimeEnv };
+}
+
+/**
+ * Resolves D1 + env the same way as `/api/auth/[...all]` and other authenticated API routes.
+ * Returns the signed-in user from the session cookie, or a JSON 401/500 Response.
+ */
+export async function requireApiSession(
+    context: APIContext,
+    options?: RequireApiSessionOptions,
+): Promise<{ user: ApiSessionUser } | { response: Response }> {
+    const { request } = context;
+    const unauthorizedMessage = options?.unauthorizedMessage ?? "Sign in required.";
+
+    const resolved = await resolveAuthContext(context);
+    if (!resolved.ok) {
         return {
             response: new Response(
                 JSON.stringify({ error: "Authentication is not available on this server." }),
@@ -45,6 +68,7 @@ export async function requireApiSession(
         };
     }
 
+    const { dbBinding, runtimeEnv } = resolved;
     const env = {
         ...import.meta.env,
         ...runtimeEnv,
@@ -67,10 +91,10 @@ export async function requireApiSession(
     const email = session?.user?.email?.trim();
     if (!session?.user?.id || !email) {
         return {
-            response: new Response(
-                JSON.stringify({ error: "Sign in required to continue to checkout." }),
-                { status: 401, headers: { "Content-Type": "application/json" } },
-            ),
+            response: new Response(JSON.stringify({ error: unauthorizedMessage }), {
+                status: 401,
+                headers: { "Content-Type": "application/json" },
+            }),
         };
     }
 
@@ -90,32 +114,14 @@ export async function requireApiSession(
 export async function getApiSessionUserIfPresent(
     context: APIContext,
 ): Promise<ApiSessionUser | null> {
-    const { request, locals } = context;
+    const { request } = context;
 
-    // @ts-ignore — cloudflare:workers
-    const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
-    let dbBinding = cfEnv?.visupair_store as D1Database | undefined;
-    let runtimeEnv = (cfEnv || {}) as Record<string, string | undefined>;
-
-    try {
-        if (!dbBinding && locals.runtime && typeof locals.runtime === "object") {
-            const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, "env");
-            if (descriptor && typeof descriptor.get !== "function") {
-                dbBinding = (locals.runtime as { env?: { visupair_store?: D1Database } }).env
-                    ?.visupair_store;
-                runtimeEnv = {
-                    ...(locals.runtime as { env?: Record<string, string> }).env,
-                };
-            }
-        }
-    } catch {
-        /* ignore */
-    }
-
-    if (!dbBinding) {
+    const resolved = await resolveAuthContext(context);
+    if (!resolved.ok) {
         return null;
     }
 
+    const { dbBinding, runtimeEnv } = resolved;
     const env = {
         ...import.meta.env,
         ...runtimeEnv,

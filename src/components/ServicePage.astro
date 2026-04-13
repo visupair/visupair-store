@@ -4,6 +4,10 @@ import ServicesSidebar from "./ServicesSidebar.astro";
 import ServiceRequestForm from "./ServiceRequestForm.astro";
 import CustomInquirySection from "./CustomInquirySection.astro";
 import type { ServicePlan } from "../lib/services-data";
+import {
+    EUR_TO_PLN_RATE,
+    type Currency,
+} from "../lib/server-currency";
 
 interface Props {
     service: {
@@ -13,10 +17,42 @@ interface Props {
         plans?: ServicePlan[];
         [key: string]: any;
     } | null;
+    /** Cloudflare / middleware — matches store product pages */
+    serverCurrency?: Currency;
+    /** When `service` is null (e.g. 404 / CMS error) */
+    emptyHeading?: string;
+    emptySubheading?: string;
 }
 
-const { service } = Astro.props;
+const {
+    service,
+    serverCurrency,
+    emptyHeading = "No services available yet.",
+    emptySubheading = "Please check back later or contact us directly.",
+} = Astro.props;
 const selectedServiceId = service ? service.id : null;
+
+function planEffectivePln(plan: ServicePlan): number {
+    const eur = Number(plan.price) || 0;
+    if (typeof plan.pricePLN === "number" && plan.pricePLN > 0) {
+        return Math.round(plan.pricePLN);
+    }
+    return Math.round(eur * EUR_TO_PLN_RATE);
+}
+
+function servicePriceLabel(
+    eurRaw: number,
+    plnRaw: number,
+    currency: Currency,
+): string {
+    const eur = Math.round(Number(eurRaw) || 0);
+    const pln = Math.round(Number(plnRaw) || 0);
+    if (currency === "PLN") return `${pln} zł`;
+    return `€${eur}`;
+}
+
+const initialDisplayCurrency: Currency =
+    serverCurrency === "PLN" ? "PLN" : "EUR";
 ---
 
 <Layout title={service ? `${service.title} | Visupair` : "Services | Visupair"}>
@@ -28,6 +64,11 @@ const selectedServiceId = service ? service.id : null;
 
         <div class="services-wrapper">
             <div id="service-content-view">
+                <div
+                    class="service-page-currency-anchor"
+                    data-server-currency={serverCurrency || ""}
+                    aria-hidden="true"
+                />
                 <div class="service-header">
                     <h1 class="service-title">{service.title}</h1>
                     <p class="service-subtitle">{service.subtitle}</p>
@@ -35,7 +76,10 @@ const selectedServiceId = service ? service.id : null;
 
                 <div class="pricing-grid">
                     {
-                        service.plans?.map((plan) => (
+                        service.plans?.map((plan) => {
+                            const eurN = Math.round(Number(plan.price) || 0);
+                            const plnN = planEffectivePln(plan);
+                            return (
                             <div
                                 class={`pricing-card ${plan.highlight ? "highlight" : ""}`}
                             >
@@ -46,11 +90,21 @@ const selectedServiceId = service ? service.id : null;
                                 )}
 
                                 <div class="plan-header">
-                                    <span class="plan-name">{plan.name}</span>
+                                    <div class="plan-header-tier">
+                                        <span class="plan-name">{plan.name}</span>
+                                        <p class="plan-starting-from">starting from</p>
+                                    </div>
                                     <div class="plan-price-wrapper">
-                                        <span class="plan-currency">€</span>
-                                        <span class="plan-amount">
-                                            {plan.price}
+                                        <span
+                                            class="service-plan-price-dynamic"
+                                            data-price-eur={String(eurN)}
+                                            data-price-pln={String(plnN)}
+                                        >
+                                            {servicePriceLabel(
+                                                eurN,
+                                                plnN,
+                                                initialDisplayCurrency,
+                                            )}
                                         </span>
                                     </div>
                                     <p class="plan-desc">{plan.description}</p>
@@ -81,7 +135,8 @@ const selectedServiceId = service ? service.id : null;
                                 <button
                                     class={`btn-plan ${plan.highlight ? "primary" : "outline"} js-select-plan`}
                                     data-plan-name={plan.name}
-                                    data-plan-price={plan.price}
+                                    data-plan-price-eur={String(eurN)}
+                                    data-plan-price-pln={String(plnN)}
                                     data-plan-desc={plan.description}
                                     data-plan-highlight={
                                         plan.highlight ? "true" : "false"
@@ -94,7 +149,8 @@ const selectedServiceId = service ? service.id : null;
                                     {plan.ctaLabel || `Choose ${plan.name}`}
                                 </button>
                             </div>
-                        ))
+                            );
+                        })
                     }
                 </div>
             </div>
@@ -116,13 +172,96 @@ const selectedServiceId = service ? service.id : null;
 
     ) : (
         <div style="padding: 100px; text-align: center;">
-            <h1>No services available yet.</h1>
-            <p>Please check back later or contact us directly.</p>
+            <h1>{emptyHeading}</h1>
+            <p>{emptySubheading}</p>
         </div>
     )}
 </Layout>
 
 <script>
+    function detectUserCurrency() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugCurrency = urlParams.get("currency");
+        if (debugCurrency === "EUR" || debugCurrency === "PLN") {
+            return debugCurrency;
+        }
+
+        const serverEl = document.querySelector("[data-server-currency]");
+        const serverCurrency = serverEl?.getAttribute("data-server-currency");
+        if (serverCurrency === "EUR" || serverCurrency === "PLN") {
+            return serverCurrency;
+        }
+
+        try {
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (
+                timezone &&
+                (timezone === "Europe/Warsaw" ||
+                    timezone === "Poland" ||
+                    timezone.includes("Warsaw"))
+            ) {
+                return "PLN";
+            }
+        } catch {
+            /* ignore */
+        }
+
+        const locale =
+            navigator.language || (navigator as unknown as { userLanguage?: string }).userLanguage;
+        if (locale && locale.toLowerCase().startsWith("pl")) {
+            return "PLN";
+        }
+
+        return "EUR";
+    }
+
+    function applyServicePricingCards() {
+        const currency = detectUserCurrency();
+        document
+            .querySelectorAll(".service-plan-price-dynamic")
+            .forEach((el) => {
+                const eur = el.getAttribute("data-price-eur");
+                const pln = el.getAttribute("data-price-pln");
+                if (eur == null || pln == null) return;
+                el.textContent =
+                    currency === "PLN" ? `${pln} zł` : `€${eur}`;
+            });
+    }
+
+    function applyFormPlanPrices(eurStr: string, plnStr: string) {
+        const currency = detectUserCurrency();
+        const formPlanCurrency = document.getElementById("form-plan-currency");
+        const formPlanPrice = document.getElementById("form-plan-price");
+        const formPlanIntroPrice = document.getElementById(
+            "form-plan-intro-price",
+        );
+        const inputPlanPriceEur = document.getElementById(
+            "input-plan-price-eur",
+        ) as HTMLInputElement | null;
+        const inputPlanPricePln = document.getElementById(
+            "input-plan-price-pln",
+        ) as HTMLInputElement | null;
+        const inputPlanPriceCurrency = document.getElementById(
+            "input-plan-price-currency",
+        ) as HTMLInputElement | null;
+
+        if (inputPlanPriceEur) inputPlanPriceEur.value = eurStr;
+        if (inputPlanPricePln) inputPlanPricePln.value = plnStr;
+        if (inputPlanPriceCurrency) inputPlanPriceCurrency.value = currency;
+
+        if (currency === "PLN") {
+            if (formPlanCurrency) formPlanCurrency.textContent = "";
+            if (formPlanPrice) formPlanPrice.textContent = `${plnStr} zł`;
+            if (formPlanIntroPrice)
+                formPlanIntroPrice.textContent = `${plnStr} zł`;
+        } else {
+            if (formPlanCurrency) formPlanCurrency.textContent = "€";
+            if (formPlanPrice) formPlanPrice.textContent = eurStr;
+            if (formPlanIntroPrice)
+                formPlanIntroPrice.textContent = `€${eurStr}`;
+        }
+    }
+
     function initializeServicePage() {
         const buttons = document.querySelectorAll(".js-select-plan");
         const contentView = document.getElementById("service-content-view");
@@ -138,9 +277,6 @@ const selectedServiceId = service ? service.id : null;
             "form-plan-name-inline-desktop",
         );
         const formPlanPrice = document.getElementById("form-plan-price");
-        const formPlanPriceInline = document.getElementById(
-            "form-plan-price-inline",
-        );
         const formPlanDesc = document.getElementById("form-plan-desc");
         const formPlanFeatures = document.getElementById(
             "form-plan-features-list",
@@ -156,11 +292,18 @@ const selectedServiceId = service ? service.id : null;
 
         if (!buttons.length || !contentView || !formContainer) return;
 
+        applyServicePricingCards();
+
         // Handle Plan Selection
         buttons.forEach((btn) => {
             btn.addEventListener("click", () => {
                 const name = btn.getAttribute("data-plan-name") || "";
-                const price = btn.getAttribute("data-plan-price") || "0";
+                const eurStr =
+                    btn.getAttribute("data-plan-price-eur") ||
+                    btn.getAttribute("data-plan-price") ||
+                    "0";
+                const plnStr =
+                    btn.getAttribute("data-plan-price-pln") || eurStr;
                 const serviceId = btn.getAttribute("data-service-id") || "";
                 const description = btn.getAttribute("data-plan-desc") || "";
                 const isHighlight =
@@ -197,8 +340,7 @@ const selectedServiceId = service ? service.id : null;
                     formPlanNameInlineDesktop.innerText = name;
                 if (successPlanName)
                     successPlanName.innerText = `${name} Package`;
-                if (formPlanPrice) formPlanPrice.innerText = price;
-                if (formPlanPriceInline) formPlanPriceInline.innerText = price;
+                applyFormPlanPrices(eurStr, plnStr);
                 if (formPlanDesc) formPlanDesc.innerText = description;
                 if (formPlanFeatures) formPlanFeatures.innerHTML = featuresHtml;
                 if (formPopularBadge) {
@@ -256,6 +398,9 @@ const selectedServiceId = service ? service.id : null;
                 const data = {
                     service_id: formData.get("service_id"),
                     plan_name: formData.get("plan_name"),
+                    plan_price_eur: formData.get("plan_price_eur"),
+                    plan_price_pln: formData.get("plan_price_pln"),
+                    display_currency: formData.get("plan_price_currency"),
                     fullName: formData.get("fullName"),
                     email: formData.get("email"),
                     companyName: formData.get("companyName"),
@@ -335,6 +480,10 @@ const selectedServiceId = service ? service.id : null;
         overflow-y: auto;
     }
 
+    #service-content-view {
+        position: relative;
+    }
+
     .service-header {
         margin-bottom: 40px;
         text-align: center;
@@ -371,7 +520,7 @@ const selectedServiceId = service ? service.id : null;
         padding: 40px 32px;
         display: flex;
         flex-direction: column;
-        gap: 32px;
+        gap: 21px;
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         position: relative;
         overflow: visible;
@@ -400,13 +549,31 @@ const selectedServiceId = service ? service.id : null;
         text-align: center;
     }
 
+    .plan-header-tier {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
     .plan-name {
-        font-size: 14px;
+        font-size: 18px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.15em;
         color: var(--brand-violet);
-        margin-bottom: 4px;
+        margin-bottom: 0;
+    }
+
+    .plan-starting-from {
+        font-family: var(--font-family);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: 0.04em;
+        text-transform: lowercase;
+        color: var(--foreground);
+        margin: 0;
     }
 
     .plan-price-wrapper {
@@ -414,6 +581,25 @@ const selectedServiceId = service ? service.id : null;
         align-items: center;
         justify-content: center;
         gap: 4px;
+        color: var(--foreground);
+        /* Tighten space under “starting from” without changing gap before .plan-desc */
+        margin-top: -10px;
+    }
+
+    .service-page-currency-anchor {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    .service-plan-price-dynamic {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
         color: var(--foreground);
     }
 
@@ -584,9 +770,18 @@ const selectedServiceId = service ? service.id : null;
             gap: 8px;
         }
 
+        .plan-price-wrapper {
+            margin-top: -4px;
+        }
+
         .plan-name {
-            font-size: 11px;
-            margin-bottom: 2px;
+            font-size: 13px;
+            margin-bottom: 0;
+        }
+
+        .plan-starting-from {
+            font-size: 12px;
+            letter-spacing: 0.03em;
         }
 
         .plan-currency {
@@ -595,6 +790,10 @@ const selectedServiceId = service ? service.id : null;
         }
 
         .plan-amount {
+            font-size: 38px;
+        }
+
+        .service-plan-price-dynamic {
             font-size: 38px;
         }
 
@@ -676,10 +875,18 @@ const selectedServiceId = service ? service.id : null;
             gap: 8px;
         }
 
+        .plan-price-wrapper {
+            margin-top: -4px;
+        }
+
         .plan-name {
-            font-size: 11px;
+            font-size: 12px;
             letter-spacing: 0.12em;
-            margin-bottom: 2px;
+            margin-bottom: 0;
+        }
+
+        .plan-starting-from {
+            font-size: 12px;
         }
 
         .plan-currency {
@@ -688,6 +895,10 @@ const selectedServiceId = service ? service.id : null;
         }
 
         .plan-amount {
+            font-size: 36px;
+        }
+
+        .service-plan-price-dynamic {
             font-size: 36px;
         }
 
@@ -750,6 +961,10 @@ const selectedServiceId = service ? service.id : null;
         }
 
         .plan-amount {
+            font-size: 32px;
+        }
+
+        .service-plan-price-dynamic {
             font-size: 32px;
         }
 

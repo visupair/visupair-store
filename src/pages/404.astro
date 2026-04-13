@@ -2,6 +2,180 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout>
-  <h1>404 - Page Not Found</h1>
+<Layout
+    title="Page not found - Visupair"
+    description="This page does not exist or has been moved."
+    noindex={true}
+>
+    <main class="not-found-page">
+        <div class="not-found-section">
+            <div class="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <svg
+                        width="64"
+                        height="64"
+                        viewBox="0 0 48 48"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                            d="M24 48C21.425 48 19.351 46.111 16.24 43L5 31.76C1.889 28.649 0 26.575 0 24C0 21.425 1.889 19.351 5 16.24L16.24 5C19.35 1.889 21.425 0 24 0C26.575 0 28.649 1.889 31.76 5L43 16.24C46.111 19.351 48 21.425 48 24C48 26.575 46.111 28.649 43 31.76L31.76 43C28.649 46.111 26.575 48 24 48ZM21.688 34.589C21.688 35.872 22.708 36.857 23.991 36.857C25.309 36.857 26.311 35.873 26.311 34.589C26.311 33.305 25.309 32.321 23.991 32.321C22.708 32.321 21.688 33.306 21.688 34.589ZM22.286 26.661C22.321 27.768 22.919 28.454 23.991 28.454C25.081 28.454 25.679 27.768 25.714 26.661L25.925 13.02C25.925 12.95 25.925 12.879 25.925 12.827C25.925 11.649 25.134 10.893 24.009 10.893C22.866 10.893 22.075 11.649 22.075 12.827C22.075 12.88 22.075 12.95 22.075 13.02L22.286 26.661Z"
+                            fill="currentColor"
+                        />
+                    </svg>
+                </div>
+                <div class="not-found-code" aria-hidden="true">404</div>
+                <h1 class="not-found-heading">
+                    Page not found <span class="sr-only"> — error 404</span>
+                </h1>
+                <p>
+                    The link may be broken or the page was removed. Try the
+                    home page or browse the store.
+                </p>
+                <div class="empty-state-actions">
+                    <a href="/store/fashion-design" class="btn-primary">
+                        Browse products
+                    </a>
+                    <a href="/" class="btn-secondary">Home</a>
+                </div>
+            </div>
+        </div>
+    </main>
 </Layout>
+
+<style>
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .not-found-page {
+        padding: 0 12px;
+        margin: 0 auto;
+    }
+
+    .not-found-section {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        min-height: calc(100vh - 420px);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-island);
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        height: 100%;
+        min-height: 400px;
+        padding: 48px 24px;
+        flex: 1;
+    }
+
+    .empty-state-icon {
+        color: var(--foreground);
+        margin-bottom: 20px;
+        line-height: 0;
+    }
+
+    .empty-state-icon svg {
+        width: 64px;
+        height: 64px;
+        opacity: 0.35;
+        display: block;
+    }
+
+    .not-found-code {
+        margin: 0 0 10px;
+        font-size: clamp(3.25rem, 14vw, 6rem);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.05em;
+        color: var(--foreground);
+        opacity: 0.92;
+    }
+
+    .not-found-heading {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 8px;
+        color: var(--foreground);
+    }
+
+    .empty-state p {
+        font-size: 15px;
+        line-height: 1.55;
+        opacity: 0.6;
+        margin: 0 0 28px;
+        max-width: 400px;
+    }
+
+    .empty-state-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: var(--brand-violet);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        font-family: var(--font-family);
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(132, 128, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: #9d9aff;
+        box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: var(--surface-muted);
+        color: var(--foreground);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        font-family: var(--font-family);
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition:
+            background 0.2s,
+            border-color 0.2s,
+            transform 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: var(--surface-hover);
+        border-color: var(--brand-violet);
+        transform: translateY(-2px);
+    }
+</style>

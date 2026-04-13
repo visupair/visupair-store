@@ -10,12 +10,12 @@ import {
   urlForFullscreen,
 } from "../lib/sanity";
 import StarRating from "./StarRating.astro";
-import ShippingForm from "./checkout/ShippingForm.astro";
 import ReviewSection from "./ReviewSection.astro";
 import { drizzle } from "drizzle-orm/d1";
 import { review } from "../lib/auth-schema";
 import { eq } from "drizzle-orm";
 import { buildProductJsonLd } from "../lib/product-jsonld";
+import { Image } from "astro:assets";
 
 interface Props {
   product: Product;
@@ -66,6 +66,8 @@ const getPlaceholderImage = (text: string, seed: number = 0) => {
   return `https://placehold.co/1000x1200/${bg}/CBFF62?text=${encodedText}+${seed + 1}&font=roboto`;
 };
 
+const productDisplayName = product.name?.trim() || "Product";
+
 // Preview URLs are resized; fullscreen uses full Sanity resolution (see data-fullscreen-src).
 const gallerySlides: { preview: string; fullscreen: string }[] =
   product.gallery && product.gallery.length > 0
@@ -82,8 +84,8 @@ const gallerySlides: { preview: string; fullscreen: string }[] =
         ? [{ preview: product.image, fullscreen: product.image }]
         : [
             {
-              preview: getPlaceholderImage(product.name),
-              fullscreen: getPlaceholderImage(product.name),
+              preview: getPlaceholderImage(productDisplayName),
+              fullscreen: getPlaceholderImage(productDisplayName),
             },
           ];
 
@@ -102,10 +104,27 @@ const stockCount = product.stock ?? 1;
 const showDigitalLibraryCta =
   product.productType === "digital" && userOwnsDigital;
 
+const isFreeDigital =
+  product.isFree === true && product.productType === "digital";
+/** Logged-out or not yet claimed — claim flow (no cart / Stripe). */
+const showFreeClaim = isFreeDigital && !showDigitalLibraryCta;
+
 // Digital Twin Visibility
 const hasTwin = !!product.twinProduct;
 const showTwinLink = product.showDigitalTwinLink !== false; // Default true if undefined
 const twinProduct = product.twinProduct;
+const twinTwinLabel =
+  twinProduct?.productType === "digital" ? "digital twin" : "physical twin";
+const twinDisplayName = twinProduct?.name?.trim() || "Linked product";
+let twinImgSrc = "";
+if (twinProduct) {
+  twinImgSrc =
+    twinProduct.image ||
+    getPlaceholderImage(
+      twinProduct.productType === "digital" ? "Digital Twin" : "Physical Twin",
+      3,
+    );
+}
 
 // Fetch ratings (Server Side)
 let averageRating = 0;
@@ -164,6 +183,7 @@ const jsonLd = buildProductJsonLd({
   price: typeof product.price === "number" ? product.price : 0,
   inStock,
   imageUrls: jsonLdImageUrls,
+  isFreeOffer: isFreeDigital,
   aggregateRating:
     reviewCount > 0
       ? { ratingValue: averageRating, reviewCount }
@@ -189,6 +209,7 @@ const jsonLd = buildProductJsonLd({
       stroke-width="2"
       stroke-linecap="round"
       stroke-linejoin="round"
+      aria-hidden="true"
     >
       <line x1="18" y1="6" x2="6" y2="18"></line>
       <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -207,7 +228,7 @@ const jsonLd = buildProductJsonLd({
             <img
               src={slide.preview}
               data-fullscreen-src={slide.fullscreen}
-              alt={`${product.name} view ${idx + 1}`}
+              alt={`${productDisplayName} view ${idx + 1}`}
               loading="lazy"
             />
           </div>
@@ -260,15 +281,21 @@ const jsonLd = buildProductJsonLd({
       <div class="detail-info-content">
         <!-- Header: Title & Price -->
         <div class="detail-header">
-          <h1 class="detail-title">{product.name}</h1>
-          <span
-            class="detail-price product-price-dynamic"
-            data-price-eur={Number(product.price).toFixed(2)}
-            data-price-pln={effectivePln.toFixed(2)}
-            data-server-currency={serverCurrency || ""}
-          >
-            €{Number(product.price).toFixed(2)}
-          </span>
+          <h1 class="detail-title">{productDisplayName}</h1>
+          {
+            isFreeDigital ? (
+              <span class="detail-price detail-price--free">Free</span>
+            ) : (
+              <span
+                class="detail-price product-price-dynamic"
+                data-price-eur={Number(product.price).toFixed(2)}
+                data-price-pln={effectivePln.toFixed(2)}
+                data-server-currency={serverCurrency || ""}
+              >
+                €{Number(product.price).toFixed(2)}
+              </span>
+            )
+          }
         </div>
 
         <!-- Star Rating -->
@@ -291,14 +318,16 @@ const jsonLd = buildProductJsonLd({
         <!-- Stock Status -->
         <div class="detail-stock">
           <span
-            class={`stock-indicator ${showDigitalLibraryCta ? "in-stock" : inStock ? "in-stock" : "out-of-stock"}`}
+            class={`stock-indicator ${showDigitalLibraryCta || showFreeClaim ? "in-stock" : inStock ? "in-stock" : "out-of-stock"}`}
           >
             {
               showDigitalLibraryCta
                 ? "Purchased"
-                : inStock
-                  ? "In Stock"
-                  : "Sold Out"
+                : showFreeClaim
+                  ? "Free"
+                  : inStock
+                    ? "In Stock"
+                    : "Sold Out"
             }
           </span>
         </div>
@@ -346,34 +375,72 @@ const jsonLd = buildProductJsonLd({
           )
         }
 
-        <!-- Action Buttons: digital (already bought) → My Purchases; else stock -->
+        <!-- Action Buttons: owned digital → My Purchases; free digital → claim; else paid flow -->
         {
           showDigitalLibraryCta ? (
             <div class="detail-actions-row">
               <a
                 href="/account/purchases"
-                class="btn-brand btn-equal"
+                class="btn-claim-free btn-equal"
                 id="digital-purchases-link"
-                style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;"
               >
                 <svg
                   width="18"
                   height="18"
-                  viewBox="0 0 24 24"
+                  viewBox="0 0 152 152"
                   fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                  <path d="M8 7h8" />
-                  <path d="M8 11h8" />
+                  <path
+                    d="M141.547 98.3721C146.809 98.3723 151 102.489 151 107.791V140.581C151 145.883 146.809 150 141.547 150H9.45312C4.19107 150 0 145.883 0 140.581V107.791C0 102.489 4.19107 98.3723 9.45312 98.3721C14.7153 98.3721 18.9072 102.489 18.9072 107.791V129.163C18.9072 130.268 19.8027 131.163 20.9072 131.163H130.093C131.197 131.163 132.093 130.268 132.093 129.163V107.791C132.093 102.489 136.285 98.3721 141.547 98.3721Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M75.5 0C80.7622 0 84.9531 4.11652 84.9531 9.41895V66.3782C84.9531 67.2673 86.0267 67.7143 86.6577 67.0878L93.6289 60.166C97.2657 56.3857 103.138 56.5764 106.763 60.0312C106.786 60.0523 106.808 60.0755 106.831 60.0967C106.855 60.1203 106.881 60.1421 106.905 60.166C110.781 63.8415 110.534 69.8352 106.905 73.4385L82.1377 98.0312C80.299 99.8569 77.8367 100.813 75.5 100.813C73.1633 100.813 70.701 99.8569 68.8623 98.0312L44.0947 73.4385C40.2511 69.7923 40.4631 63.8657 44.0088 60.2539C47.6855 56.3319 53.7317 56.5523 57.3711 60.166L64.3423 67.0878C64.9733 67.7143 66.0469 67.2673 66.0469 66.3782V9.41895C66.0469 4.11652 70.2378 0 75.5 0Z"
+                    fill="currentColor"
+                  />
                 </svg>
                 Go to My Purchases
               </a>
+            </div>
+          ) : showFreeClaim ? (
+            <div class="detail-actions-row">
+              <button
+                type="button"
+                class="btn-claim-free btn-equal"
+                id="claim-free-btn"
+                data-product-id={product.id}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 152 152"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M141.547 98.3721C146.809 98.3723 151 102.489 151 107.791V140.581C151 145.883 146.809 150 141.547 150H9.45312C4.19107 150 0 145.883 0 140.581V107.791C0 102.489 4.19107 98.3723 9.45312 98.3721C14.7153 98.3721 18.9072 102.489 18.9072 107.791V129.163C18.9072 130.268 19.8027 131.163 20.9072 131.163H130.093C131.197 131.163 132.093 130.268 132.093 129.163V107.791C132.093 102.489 136.285 98.3721 141.547 98.3721Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M75.5 0C80.7622 0 84.9531 4.11652 84.9531 9.41895V66.3782C84.9531 67.2673 86.0267 67.7143 86.6577 67.0878L93.6289 60.166C97.2657 56.3857 103.138 56.5764 106.763 60.0312C106.786 60.0523 106.808 60.0755 106.831 60.0967C106.855 60.1203 106.881 60.1421 106.905 60.166C110.781 63.8415 110.534 69.8352 106.905 73.4385L82.1377 98.0312C80.299 99.8569 77.8367 100.813 75.5 100.813C73.1633 100.813 70.701 99.8569 68.8623 98.0312L44.0947 73.4385C40.2511 69.7923 40.4631 63.8657 44.0088 60.2539C47.6855 56.3319 53.7317 56.5523 57.3711 60.166L64.3423 67.0878C64.9733 67.7143 66.0469 67.2673 66.0469 66.3782V9.41895C66.0469 4.11652 70.2378 0 75.5 0Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                Add to purchases
+              </button>
+              <button
+                class="btn-brand-outline btn-equal"
+                id="wishlist-btn"
+                data-product-id={product.id}
+              >
+                <svg width="18" height="16" viewBox="0 0 22 19" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16.2411 0.0134513H16.245C18.0116 0.125081 19.6479 0.999001 20.7444 2.41344L20.7434 2.41442C22.6101 4.83522 22.3595 8.38062 20.0895 10.6616L12.7129 18.0285C12.2257 18.5155 11.6058 18.7487 10.9931 18.7449C10.3805 18.7487 9.76058 18.5155 9.27343 18.0285L1.8968 10.6616C-0.373292 8.38061 -0.623868 4.83523 1.24288 2.41442L1.2419 2.41344C2.33836 0.999009 3.97469 0.125067 5.74127 0.0134513H5.74518C7.40844 -0.0978413 9.06029 0.485407 10.3002 1.6219C10.6899 1.98734 11.2964 1.98734 11.6861 1.6219C12.926 0.485418 14.5779 -0.0978554 16.2411 0.0134513Z" />
+                </svg>
+                Wish List
+              </button>
             </div>
           ) : inStock ? (
             <div class="detail-actions-row">
@@ -467,19 +534,15 @@ const jsonLd = buildProductJsonLd({
               href={`/store/${sectionId}/${twinProduct.slug}`}
               class="digital-twin-card interactive"
               style="text-decoration: none;"
+              aria-label={`View ${twinTwinLabel}: ${twinDisplayName}`}
             >
               <div class="twin-image">
-                <img
-                  src={
-                    twinProduct.image ||
-                    getPlaceholderImage(
-                      twinProduct.productType === "digital"
-                        ? "Digital Twin"
-                        : "Physical Twin",
-                      3,
-                    )
-                  }
-                  alt="Twin Asset"
+                <Image
+                  src={twinImgSrc}
+                  width={96}
+                  height={96}
+                  alt={`${twinDisplayName} — ${twinTwinLabel}`}
+                  loading="lazy"
                 />
               </div>
               <div class="twin-info">
@@ -489,7 +552,7 @@ const jsonLd = buildProductJsonLd({
                     ? "Digital Twin"
                     : "Physical Twin"}
                 </span>
-                <h4>{twinProduct.name}</h4>
+                <h4>{twinDisplayName}</h4>
               </div>
               <div class="twin-arrow">
                 <svg
@@ -499,6 +562,7 @@ const jsonLd = buildProductJsonLd({
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
+                  aria-hidden="true"
                 >
                   <path d="M5 12h14" />
                   <path d="M12 5l7 7-7 7" />
@@ -528,19 +592,40 @@ const jsonLd = buildProductJsonLd({
               </summary>
               <div class="accordion-content">
                 <p>
-                  <strong>File Formats:</strong> This digital product includes
-                  industry-standard formats (.blend, .fbx, .obj, .gltf)
-                  compatible with Blender, Maya, Cinema 4D, and Unreal Engine.
+                  <strong>File formats:</strong> This digital product includes
+                  industry-standard formats (<strong>.blend, .fbx, .obj,
+                  .gltf</strong>) that work in tools such as
+                  <strong>Blender, Maya, Cinema 4D, and Unreal Engine</strong>
+                  (and other software that supports those formats).
                 </p>
                 <p style="margin-top: 8px;">
-                  <strong>License:</strong> Personal and commercial use allowed.
-                  You may not redistribute, resell, or share the source files.
-                  Final renders and integrated works are unrestricted.
+                  <strong>License:</strong> You receive a
+                  <strong>non-exclusive</strong> license for
+                  <strong>personal and commercial</strong> use in your own
+                  projects—including games, renders, animation, and paid client
+                  work—as long as you do not
+                  <strong>resell, redistribute, or share the source files</strong>
+                  as standalone products or free downloads. Work you create with
+                  the assets (final renders, builds, etc.) is yours to use.
                 </p>
                 <p style="margin-top: 8px;">
-                  <strong>Download:</strong> Instant access upon purchase. Files
-                  are available in your account dashboard with lifetime download
-                  access.
+                  <strong>Download:</strong> You get instant access after
+                  purchase. Files stay available in
+                  <strong>your account</strong> so you can download them again
+                  later.
+                </p>
+                <p style="margin-top: 8px;">
+                  <strong>Refunds (digital):</strong> Rules for digital goods
+                  (including when EU/EEA/UK withdrawal ends after immediate
+                  delivery) are in our
+                  <a href="/legal/refund-policy" aria-label="Refund policy">
+                    refund policy
+                  </a>
+                  . The{" "}
+                  <a href="/legal/terms-of-service" aria-label="Terms of service">
+                    terms of service
+                  </a>{" "}
+                  cover licensing in full.
                 </p>
               </div>
             </details>
@@ -562,14 +647,27 @@ const jsonLd = buildProductJsonLd({
               </summary>
               <div class="accordion-content">
                 <p>
-                  <strong>Shipping:</strong> Free standard shipping on all
-                  orders over $200. Standard delivery takes 3-5 business days.
-                  Express shipping options available at checkout.
+                  <strong>Shipping:</strong> Standard delivery is typically
+                  <strong>3–5 business days</strong> (carrier and destination
+                  can vary). Faster options, if offered, are shown at checkout.
                 </p>
                 <p style="margin-top: 8px;">
-                  <strong>Returns:</strong> We accept returns within 14 days of
-                  delivery. Items must be unworn, unwashed, and in original
-                  packaging with tags attached.
+                  <strong>Returns:</strong> Where the law allows, you may have
+                  <strong>14 days</strong> from delivery to change your mind
+                  (EU/EEA/UK and similar). Items should be
+                  <strong>unused</strong> and returned in
+                  <strong>original packaging</strong> when still suitable for
+                  resale, with any tags intact if the product had them.
+                  <strong>Return shipping</strong> is usually yours unless the
+                  item is <strong>defective, damaged, or not what you
+                  ordered</strong>.
+                </p>
+                <p style="margin-top: 8px;">
+                  Full details, exceptions, and how to request a return or refund:
+                  <a href="/legal/refund-policy" aria-label="Refund policy">
+                    refund policy
+                  </a>
+                  .
                 </p>
               </div>
             </details>
@@ -583,17 +681,7 @@ const jsonLd = buildProductJsonLd({
   </div>
 </div>
 
-<ShippingForm
-  product={{
-    name: product.name,
-    price: product.price, // Uses defaults, but Form component handles display logic if passed props
-    image: urlFor(product.mainImage).width(200).url(),
-    shipping: product.shipping, // Pass shipping specs
-  }}
-  currency={serverCurrency || "EUR"}
-/>
-
-<!-- Stripe Checkout is handled on the server (redirect) -->
+<!-- Stripe Checkout is handled on the server (redirect); cart shipping lives on /cart/checkout -->
 
 <style>
   /* ===============================
@@ -805,6 +893,11 @@ const jsonLd = buildProductJsonLd({
     color: var(--brand-violet);
   }
 
+  .detail-price--free {
+    color: var(--foreground);
+    opacity: 0.95;
+  }
+
   /* Stock */
   .detail-rating-summary {
     display: flex;
@@ -1008,6 +1101,51 @@ const jsonLd = buildProductJsonLd({
     background: #9d9aff;
     box-shadow: 0 8px 24px rgba(132, 128, 255, 0.5);
     transform: translateY(-2px);
+  }
+
+  /* Free digital claim — same weight as btn-brand, green “safe” CTA */
+  .btn-claim-free {
+    width: 100%;
+    padding: 14px;
+    background: #22c55e;
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition:
+      transform 0.2s,
+      background-color 0.2s,
+      box-shadow 0.2s;
+    box-shadow: 0 4px 12px color-mix(in srgb, #22c55e 40%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-claim-free:hover:not(:disabled),
+  a.btn-claim-free:hover {
+    background: color-mix(in srgb, #22c55e 90%, #ffffff);
+    box-shadow: 0 8px 24px color-mix(in srgb, #22c55e 45%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .btn-claim-free:active:not(:disabled),
+  a.btn-claim-free:active {
+    transform: translateY(0) scale(0.99);
+  }
+
+  .btn-claim-free:disabled {
+    opacity: 0.78;
+    cursor: not-allowed;
+  }
+
+  a.btn-claim-free {
+    text-decoration: none;
+    box-sizing: border-box;
   }
 
   .btn-brand.added {
@@ -1313,6 +1451,17 @@ const jsonLd = buildProductJsonLd({
     color: var(--foreground);
   }
 
+  .accordion-content a {
+    color: var(--brand-violet);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 600;
+  }
+
+  .accordion-content a:hover {
+    opacity: 0.85;
+  }
+
   /* Mobile Pagination */
   .mobile-pagination {
     display: none;
@@ -1459,7 +1608,8 @@ const jsonLd = buildProductJsonLd({
     }
 
     .detail-actions-row .btn-brand.btn-equal,
-    .detail-actions-row .btn-brand-outline.btn-equal {
+    .detail-actions-row .btn-brand-outline.btn-equal,
+    .detail-actions-row .btn-claim-free.btn-equal {
       font-size: 14px;
       font-weight: 600;
       padding: 11px 10px;
@@ -1471,7 +1621,8 @@ const jsonLd = buildProductJsonLd({
 
   @media (max-width: 360px) {
     .detail-actions-row .btn-brand.btn-equal,
-    .detail-actions-row .btn-brand-outline.btn-equal {
+    .detail-actions-row .btn-brand-outline.btn-equal,
+    .detail-actions-row .btn-claim-free.btn-equal {
       font-size: 13px;
       padding: 10px 8px;
       gap: 6px;
@@ -1480,7 +1631,8 @@ const jsonLd = buildProductJsonLd({
 
   @media (max-width: 320px) {
     .detail-actions-row .btn-brand.btn-equal,
-    .detail-actions-row .btn-brand-outline.btn-equal {
+    .detail-actions-row .btn-brand-outline.btn-equal,
+    .detail-actions-row .btn-claim-free.btn-equal {
       font-size: 12px;
       padding: 10px 6px;
       min-height: 46px;
@@ -1489,7 +1641,8 @@ const jsonLd = buildProductJsonLd({
     }
 
     .detail-actions-row .btn-brand.btn-equal svg,
-    .detail-actions-row .btn-brand-outline.btn-equal svg {
+    .detail-actions-row .btn-brand-outline.btn-equal svg,
+    .detail-actions-row .btn-claim-free.btn-equal svg {
       width: 15px;
       height: 15px;
       flex-shrink: 0;
@@ -1669,13 +1822,11 @@ const jsonLd = buildProductJsonLd({
 </style>
 
 <script>
-  import { authClient } from "../lib/auth-client";
   import {
     favoritesStore,
     toggleFavorite,
     initFavorites,
   } from "../lib/favoritesStore";
-  import { showCheckoutToast } from "../lib/checkout-toast";
 
   // ==========================================
   // WISHLIST / FAVORITES LOGIC
@@ -1717,17 +1868,6 @@ const jsonLd = buildProductJsonLd({
   // Subscribe once — keeps button in sync whenever store changes
   favoritesStore.subscribe(updateWishlistBtn);
 
-  // Define interface for Shipping Data
-  interface ShippingData {
-    email: string;
-    firstName: string;
-    lastName: string;
-    address: string;
-    city: string;
-    postalCode: string;
-    country: string;
-    phone?: string;
-  }
   // ==========================================
   // ==========================================
   // CLIENT-SIDE INTERACTIVITY
@@ -1794,40 +1934,6 @@ const jsonLd = buildProductJsonLd({
         element.textContent = `€${priceEUR}`;
       }
     });
-
-    // Shipping modal currency update (only relevant when buy-btn exists)
-    const buyBtn = document.getElementById("buy-btn");
-    if (!buyBtn) return;
-
-    const priceEur = parseFloat(buyBtn.getAttribute("data-price-eur") || "0");
-    const pricePln = parseFloat(buyBtn.getAttribute("data-price-pln") || "0");
-
-    const modalTotal = document.getElementById("total-amount-display");
-    const modalProductPrice = document.querySelector(
-      ".shipping-modal .product-price",
-    );
-    const modalCostBreakdownSubtotal = document.querySelector(
-      ".cost-breakdown .cost-row:first-child span:last-child",
-    );
-
-    if (modalTotal && modalProductPrice) {
-      const newPrice = userCurrency === "PLN" ? pricePln : priceEur;
-      const symbol = userCurrency === "PLN" ? "zł" : "€";
-      const formattedPrice =
-        userCurrency === "PLN"
-          ? `${newPrice.toFixed(2)} zł`
-          : `€${newPrice.toFixed(2)}`;
-
-      modalTotal.dataset.currencySymbol = symbol;
-      modalTotal.innerHTML = `<span class="currency-code">${userCurrency}</span> ${formattedPrice}`;
-      // @ts-ignore
-      modalProductPrice.dataset.basePrice = newPrice;
-      modalProductPrice.textContent = formattedPrice;
-
-      if (modalCostBreakdownSubtotal) {
-        modalCostBreakdownSubtotal.textContent = formattedPrice;
-      }
-    }
   }
 
   // Run currency detection on load
@@ -1996,7 +2102,7 @@ const jsonLd = buildProductJsonLd({
           if (response.ok) {
             messageDiv.className = "restock-message success";
             messageDiv.textContent =
-              "✓ Thank you! We'll notify you when this item is back in stock.";
+              "Thank you! We'll notify you when this item is back in stock.";
             messageDiv.style.display = "block";
             emailInput.value = "";
           } else {
@@ -2066,6 +2172,43 @@ const jsonLd = buildProductJsonLd({
             behavior: "smooth",
           });
         });
+      });
+    }
+
+    const claimFreeBtn = document.getElementById("claim-free-btn");
+    if (claimFreeBtn) {
+      claimFreeBtn.addEventListener("click", async () => {
+        const id = (claimFreeBtn as HTMLElement).dataset.productId;
+        if (!id) return;
+        (claimFreeBtn as HTMLButtonElement).disabled = true;
+        try {
+          const res = await fetch("/api/claim-free-product", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productId: id }),
+            credentials: "same-origin",
+          });
+          let data: { error?: string } = {};
+          try {
+            data = await res.json();
+          } catch {
+            /* ignore */
+          }
+          if (res.status === 401) {
+            window.location.href =
+              "/login?next=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
+          if (!res.ok) {
+            alert(data.error || "Could not add to library. Try again.");
+            (claimFreeBtn as HTMLButtonElement).disabled = false;
+            return;
+          }
+          window.location.href = "/account/purchases";
+        } catch {
+          alert("Network error. Please try again.");
+          (claimFreeBtn as HTMLButtonElement).disabled = false;
+        }
       });
     }
 
@@ -2243,221 +2386,6 @@ const jsonLd = buildProductJsonLd({
       })();
     }
 
-    // --- Shipping Form Handler ---
-    const shippingModal = document.getElementById("shipping-modal");
-    const closeShippingBtn = document.getElementById("close-shipping");
-    const shippingForm = document.getElementById("shipping-form");
-
-    // Move Shipping Modal to Body to avoid z-index/stacking context issues with Sidebar/Navbar
-    if (shippingModal && document.body) {
-      document.body.appendChild(shippingModal);
-    }
-
-    // Cleanup Shipping Modal on page swap
-    document.addEventListener("astro:before-swap", () => {
-      if (shippingModal && document.body.contains(shippingModal)) {
-        shippingModal.remove();
-      }
-    });
-
-    if (shippingModal && closeShippingBtn && shippingForm) {
-      // Close Modal
-      closeShippingBtn.addEventListener("click", () => {
-        shippingModal.classList.remove("active");
-        document.body.style.overflow = "";
-      });
-
-      // Close on click outside (Optional, user might lose data)
-      // shippingModal.addEventListener('click', (e) => {
-      //     if (e.target === shippingModal) {
-      //         shippingModal.classList.remove('active');
-      //         document.body.style.overflow = '';
-      //     }
-      // });
-
-      // Handle Form Submission
-      shippingForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const submitBtn = shippingForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn ? submitBtn.textContent : "Continue";
-
-        // === CRITICAL VALIDATION: Check if shipping service is selected ===
-        const selectedShippingId = (
-          document.getElementById("selected-shipping-id") as HTMLInputElement
-        )?.value;
-        const selectedShippingAmount = (
-          document.getElementById(
-            "selected-shipping-amount",
-          ) as HTMLInputElement
-        )?.value;
-
-        // Check if product has shipping dimensions (for physical products)
-        const buyBtn = document.getElementById("buy-btn");
-        const productType = buyBtn?.dataset.productType;
-
-        if (productType === "physical") {
-          const specsEl = document.getElementById("product-shipping-specs");
-          const weight = specsEl?.dataset.weight;
-          const length = specsEl?.dataset.length;
-          const width = specsEl?.dataset.width;
-          const height = specsEl?.dataset.height;
-
-          // Validate shipping dimensions exist
-          if (!weight || !length || !width || !height) {
-            alert(
-              "⚠️ This product is missing shipping dimensions in the database. Please contact support.",
-            );
-            console.error("Missing shipping dimensions:", {
-              weight,
-              length,
-              width,
-              height,
-            });
-            return;
-          }
-
-          // Validate shipping service is selected
-          if (!selectedShippingId || !selectedShippingAmount) {
-            alert(
-              "⚠️ Please select a shipping method before proceeding to payment.",
-            );
-            return;
-          }
-        }
-
-        if (submitBtn) {
-          submitBtn.textContent = "Processing...";
-          // @ts-ignore
-          submitBtn.disabled = true;
-        }
-
-        // Collect Form Data
-        const formData = new FormData(shippingForm as HTMLFormElement);
-        const shippingData = Object.fromEntries(formData.entries());
-
-        // Get Product Data from the Buy Button
-        const productId = buyBtn?.dataset.productId;
-
-        if (!productId || !productType) {
-          alert("Product ID missing");
-          if (submitBtn) {
-            submitBtn.textContent = originalText;
-            // @ts-ignore
-            submitBtn.disabled = false;
-          }
-          return;
-        }
-
-        try {
-          const session = await authClient.getSession();
-          if (!session.data?.user?.email) {
-            window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-            if (submitBtn) {
-              submitBtn.textContent = originalText || "";
-              // @ts-ignore
-              submitBtn.disabled = false;
-            }
-            return;
-          }
-
-          await initiateCheckout(
-            productId,
-            productType,
-            shippingData as unknown as ShippingData,
-          );
-
-          // Note: initiateCheckout handles the UI transition to Stripe
-          // We just need to close the shipping modal
-          shippingModal.classList.remove("active");
-        } catch (err: any) {
-          console.error("Shipping submission error:", err);
-          alert("Error proceeding to payment: " + err.message);
-          if (submitBtn) {
-            submitBtn.textContent = originalText;
-            // @ts-ignore
-            submitBtn.disabled = false;
-          }
-        }
-      });
-    }
-
-    // Reusable Checkout Function for Stripe
-    async function initiateCheckout(
-      productId: string | undefined,
-      productType: string | undefined,
-      shippingAddress?: ShippingData,
-    ) {
-      console.log("initiateCheckout called", {
-        productId,
-        productType,
-      });
-
-      const button = document.getElementById("buy-btn");
-      if (button) button.textContent = "Redirecting to Checkout...";
-
-      if (!productId) {
-        console.error("No productId provided to initiateCheckout");
-        return;
-      }
-
-      const stripePriceId = button?.dataset.stripePriceId;
-      const priceEur = parseFloat(button?.dataset.priceEur || "0");
-      const pricePln = parseFloat(button?.dataset.pricePln || "0");
-
-      // Use the same currency detection used for UI display
-      const userCurrency = detectUserCurrency();
-      const selectedPrice = userCurrency === "PLN" ? pricePln : priceEur;
-
-      const shippingAmtInput = document.getElementById(
-        "selected-shipping-amount",
-      ) as HTMLInputElement;
-      const selectedShippingId = (
-        document.getElementById("selected-shipping-id") as HTMLInputElement
-      )?.value;
-      const shippingAmount = shippingAmtInput?.value || "0";
-
-      const sizeBtnActive = document.querySelector(
-        ".size-btn.active",
-      ) as HTMLElement | null;
-      const checkoutSelectedSize = sizeBtnActive?.dataset.size;
-
-      try {
-        const response = await fetch("/api/create-checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId,
-            priceId: stripePriceId || undefined,
-            productName:
-              document.querySelector(".detail-product-name")?.textContent ||
-              "Product",
-            productType,
-            price: selectedPrice,
-            currency: userCurrency,
-            shippingAddress: shippingAddress || null,
-            selectedShippingId: selectedShippingId || null,
-            selectedShippingAmount: shippingAmount,
-            selectedSize: checkoutSelectedSize || undefined,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.url) {
-          throw new Error(data.error || "Failed to create checkout session");
-        }
-
-        window.location.href = data.url;
-      } catch (err: any) {
-        console.error("Checkout error:", err);
-        showCheckoutToast(
-          err.message || "Unable to start checkout. Please try again shortly.",
-        );
-        if (button)
-          button.textContent = button.dataset.originalText || "Buy Now";
-      }
-    }
   };
 
   // Run on every page navigation

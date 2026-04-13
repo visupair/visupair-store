@@ -47,6 +47,7 @@ export interface SanityProductCheckoutDoc {
     name: string;
     productType: "physical" | "digital";
     department?: string;
+    isFree?: boolean;
     sizes?: string[];
     price: number;
     pricePLN?: number;
@@ -82,6 +83,7 @@ export async function fetchProductsForCheckout(
       name,
       productType,
       department,
+      isFree,
       sizes,
       price,
       pricePLN,

@@ -77,7 +77,13 @@
                 fill="currentColor"></path>
             </svg>
           </a>
-          <a href="#" class="footer-icon-link" aria-label="Instagram">
+          <a
+            href="https://www.instagram.com/visupair/"
+            class="footer-icon-link"
+            aria-label="Instagram"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <svg
               viewBox="0 0 20 20"
               fill="none"
@@ -89,19 +95,31 @@
                 fill="currentColor"></path>
             </svg>
           </a>
-          <a href="#" class="footer-icon-link" aria-label="Facebook">
+          <a
+            href="https://www.linkedin.com/company/visupair/"
+            class="footer-icon-link"
+            aria-label="LinkedIn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <svg
-              viewBox="0 0 11 19"
+              viewBox="0 0 36 36"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
               <path
-                d="M7.325 0C6.09837 0 4.92199 0.487275 4.05463 1.35463C3.18728 2.22199 2.7 3.39837 2.7 4.625V7.2H0.225C0.101 7.2 0 7.3 0 7.425V10.825C0 10.949 0.0999999 11.05 0.225 11.05H2.7V18.025C2.7 18.149 2.8 18.25 2.925 18.25H6.325C6.449 18.25 6.55 18.15 6.55 18.025V11.05H9.047C9.15 11.05 9.24 10.98 9.265 10.88L10.115 7.48C10.1234 7.44682 10.1241 7.41217 10.117 7.37869C10.11 7.34521 10.0954 7.31377 10.0744 7.28678C10.0533 7.25978 10.0264 7.23793 9.99571 7.22289C9.96497 7.20786 9.93121 7.20003 9.897 7.2H6.55V4.625C6.55 4.52323 6.57005 4.42245 6.60899 4.32842C6.64794 4.23439 6.70503 4.14896 6.77699 4.07699C6.84896 4.00503 6.93439 3.94794 7.02842 3.90899C7.12245 3.87005 7.22323 3.85 7.325 3.85H9.925C10.049 3.85 10.15 3.75 10.15 3.625V0.225C10.15 0.101 10.05 0 9.925 0H7.325Z"
+                d="M30.5 0H5.5C2.468 0 0 2.468 0 5.5V30.5C0 33.532 2.468 36 5.5 36H30.5C33.532 36 36 33.532 36 30.5V5.5C36 2.468 33.532 0 30.5 0ZM12 28C12 28.553 11.553 29 11 29H7.99999C7.447 29 7 28.553 7 28V15C7 14.447 7.447 14 7.99999 14H11C11.553 14 12 14.447 12 15V28ZM9.49999 12C8.11899 12 7 10.881 7 9.49999C7 8.11899 8.11899 7 9.49999 7C10.881 7 12 8.11899 12 9.49999C12 10.881 10.881 12 9.49999 12ZM29 28C29 28.553 28.553 29 28 29H25C24.447 29 24 28.553 24 28V20.5C24 19.121 22.879 18 21.5 18C20.121 18 19 19.121 19 20.5V28C19 28.553 18.553 29 18 29H15C14.447 29 14 28.553 14 28V15C14 14.447 14.447 14 15 14H18C18.553 14 19 14.447 19 15V15.541C20.063 14.586 21.462 14 23 14C26.309 14 29 16.691 29 20V28Z"
                 fill="currentColor"></path>
             </svg>
           </a>
-          <a href="#" class="footer-icon-link" aria-label="YouTube">
+          <a
+            href="https://www.youtube.com/@VisuPair"
+            class="footer-icon-link"
+            aria-label="YouTube"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <svg
               viewBox="0 0 22 16"
               fill="none"
@@ -277,7 +295,8 @@
       border-color 0.3s ease,
       box-shadow 0.3s ease;
     position: relative;
-    overflow: hidden; /* Contains children */
+    /* Avoid clipping grid / columns on tablets (was hiding part of the footer) */
+    overflow: visible;
     opacity: 0;
     animation: footerSlideIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -304,6 +323,7 @@
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr; /* Adjusted for better spacing */
     gap: 48px;
     margin-bottom: 80px;
+    min-width: 0;
   }
 
   /* Brand Column */
@@ -313,6 +333,7 @@
     gap: 24px;
     padding-right: 24px;
     position: relative;
+    min-width: 0;
   }
 
   .footer-logo {
@@ -440,6 +461,10 @@
     stroke: none;
   }
 
+  .footer-col {
+    min-width: 0;
+  }
+
   /* Columns Headers */
   .footer-col h4 {
     font-size: 14px;
@@ -526,65 +551,176 @@
     }
   }
 
+  /* Tablet: 2×2 link grid so four columns don’t drop awkwardly; brand spans full width */
   @media (max-width: 1024px) {
     .site-footer {
-      padding: 40px 32px 32px;
+      padding: 40px 28px 28px;
     }
+
     .footer-grid {
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 40px 24px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px 24px;
+      margin-bottom: 48px;
     }
+
     .footer-brand {
       grid-column: 1 / -1;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
       padding-right: 0;
       border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 40px;
+      padding-bottom: 28px;
+      align-items: flex-start;
+      text-align: left;
     }
-  }
 
-  @media (max-width: 600px) {
-    /* One row on narrow viewports: share width, larger tap targets (capped). */
+    .footer-logo svg {
+      height: 28px;
+    }
+
+    .footer-logo-text {
+      font-size: clamp(22px, 3.2vw, 28px);
+    }
+
+    .footer-desc {
+      font-size: 15px;
+      max-width: 36rem;
+    }
+
     .footer-connect-row {
-      width: 100%;
-      max-width: 320px;
-      gap: clamp(6px, 1.8vw, 10px);
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .footer-icon-link {
-      flex: 1 1 0;
-      min-width: 34px;
-      max-width: 52px;
-      width: auto;
-      aspect-ratio: 1;
-      height: auto;
-      flex-shrink: 1;
+      width: 40px;
+      height: 40px;
     }
 
     .footer-icon-link svg {
-      width: min(24px, 64%);
-      height: min(24px, 64%);
+      width: 18px;
+      height: 18px;
     }
 
+    .footer-col h4 {
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .footer-col ul {
+      gap: 10px;
+    }
+
+    .footer-col a {
+      font-size: 15px;
+    }
+
+    /* Hover slide + chevron can clip the 2×2 grid on tablet */
+    .footer-col a:hover {
+      transform: none;
+    }
+
+    .footer-col a::before {
+      display: none;
+    }
+  }
+
+  /* Phone: centered stack, smaller tap targets than previous flex-grow circles */
+  @media (max-width: 767px) {
     .site-footer {
-      padding: 32px 24px 24px;
-      border-radius: var(--radius-xl);
+      width: calc(100% - 16px);
+      margin: 12px auto;
+      padding: 28px 18px 22px;
     }
+
     .footer-grid {
-      grid-template-columns: 1fr;
-      gap: 40px;
-      margin-bottom: 40px;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-bottom: 32px;
     }
+
+    .footer-brand {
+      align-items: center;
+      text-align: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 24px;
+      margin-bottom: 0;
+    }
+
+    .footer-logo {
+      justify-content: center;
+    }
+
+    .footer-logo svg {
+      height: 26px;
+    }
+
+    .footer-logo-text {
+      font-size: clamp(20px, 5.5vw, 26px);
+    }
+
+    .footer-desc {
+      margin: 0 auto;
+      max-width: 28rem;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .footer-connect-row {
+      justify-content: center;
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+      gap: 8px;
+    }
+
+    .footer-icon-link {
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+    }
+
+    .footer-icon-link svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .footer-col {
+      text-align: center;
+    }
+
+    .footer-col ul {
+      align-items: center;
+    }
+
+    .footer-col a {
+      font-size: 14px;
+      justify-content: center;
+    }
+
+    .footer-col a:hover {
+      transform: none;
+    }
+
+    .footer-col a::before {
+      display: none;
+    }
+
+    .footer-col h4 {
+      margin-bottom: 12px;
+    }
+
     .footer-copy-toast {
-      right: 16px;
-      bottom: 16px;
-      max-width: calc(100vw - 32px);
+      right: 12px;
+      bottom: 12px;
+      max-width: calc(100vw - 24px);
     }
+
     .footer-bottom {
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
       text-align: center;
-      padding-top: 24px;
+      padding-top: 20px;
+      font-size: 13px;
     }
   }
 </style>

@@ -51,8 +51,9 @@ export const GET: APIRoute = async () => {
           : null,
         instructor: course.instructor ? {
           ...course.instructor,
+          // Card footer avatar is ~24 CSS px; 96px covers ~3x without full-res fetch
           avatar: (course.instructor.avatar?.asset)
-            ? urlFor(course.instructor.avatar).width(160).height(160).fit('crop').url()
+            ? urlFor(course.instructor.avatar).width(96).height(96).fit('crop').url()
             : null
         } : null
       };

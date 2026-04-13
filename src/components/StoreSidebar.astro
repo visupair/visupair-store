@@ -7,10 +7,19 @@ interface Props {
     selectedCategoryId: string | null;
     sectionId: string;
     searchProducts: Product[]; // Passed from parent
+    /** Garments + 3D Models: show Free filter in All Products row */
+    showProductFilters?: boolean;
+    filterFree?: boolean;
 }
 
-const { categories, selectedCategoryId, sectionId, searchProducts } =
-    Astro.props;
+const {
+    categories,
+    selectedCategoryId,
+    sectionId,
+    searchProducts,
+    showProductFilters = false,
+    filterFree = false,
+} = Astro.props;
 ---
 
 <aside class="store-sidebar" data-section-id={sectionId}>
@@ -42,13 +51,40 @@ const { categories, selectedCategoryId, sectionId, searchProducts } =
     </div>
 
     <div class="category-tree">
-        {/* "All" Option */}
+        {/* "All" Option + optional Free filter (right) */}
         <div
-            class={`category-item ${selectedCategoryId === null ? "active" : ""}`}
+            class={`category-item category-item--all-row ${selectedCategoryId === null ? "active" : ""}`}
             data-category-id="all"
             data-is-parent="false"
         >
             <span class="category-text">All Products</span>
+            {
+                showProductFilters && (
+                    <label class="sidebar-filter-free">
+                        <input
+                            type="checkbox"
+                            id="filter-free"
+                            class="sidebar-filter-free__input"
+                            checked={filterFree}
+                        />
+                        <span class="sidebar-filter-free__box" aria-hidden="true">
+                            <svg
+                                class="sidebar-filter-free__icon"
+                                viewBox="-0.12 -0.12 12.35 8.82"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    fill="currentColor"
+                                    d="M11.7202 1.70725L5.16025 8.26725C4.97225 8.45525 4.71825 8.56025 4.45325 8.56025C4.18825 8.56025 3.93325 8.45525 3.74625 8.26725L0.29325 4.81425C-0.0977499 4.42325 -0.0977499 3.79125 0.29325 3.40025C0.68425 3.00925 1.31625 3.00925 1.70725 3.40025L4.45325 6.14625L10.3062 0.29325C10.6972 -0.0977499 11.3292 -0.0977499 11.7202 0.29325C12.1112 0.68425 12.1112 1.31625 11.7202 1.70725Z"
+                                />
+                            </svg>
+                        </span>
+                        <span class="sidebar-filter-free__text">Free</span>
+                    </label>
+                )
+            }
         </div>
 
         {/* Recursive Categories */}
@@ -84,6 +120,24 @@ const { categories, selectedCategoryId, sectionId, searchProducts } =
         if (searchInput && currentSearch) {
             searchInput.value = currentSearch;
         }
+
+        const filterFreeEl = document.getElementById("filter-free");
+
+        function applyFreeFilterFromUI() {
+            const url = new URL(window.location.href);
+            const checked =
+                filterFreeEl instanceof HTMLInputElement
+                    ? filterFreeEl.checked
+                    : false;
+            if (checked) {
+                url.searchParams.set("free", "1");
+            } else {
+                url.searchParams.delete("free");
+            }
+            window.location.href = url.toString();
+        }
+
+        filterFreeEl?.addEventListener("change", applyFreeFilterFromUI);
 
         // Auto-expand active category parents
         const activeItem = storeSidebar.querySelector(
@@ -268,6 +322,11 @@ const { categories, selectedCategoryId, sectionId, searchProducts } =
                 return;
             }
 
+            // Free filter: do not navigate to All Products URL
+            if (target.closest(".sidebar-filter-free")) {
+                return;
+            }
+
             // Handle category item clicks
             const categoryItem = target.closest("[data-category-id]");
             if (categoryItem) {
@@ -295,12 +354,13 @@ const { categories, selectedCategoryId, sectionId, searchProducts } =
                     newUrl = `/store/${currentSectionId}/category/${categoryId}`;
                 }
 
-                // Preserve search parameter if it exists
                 const params = new URLSearchParams(window.location.search);
+                const qs = new URLSearchParams();
                 const search = params.get("search");
-                if (search) {
-                    newUrl += `?search=${encodeURIComponent(search)}`;
-                }
+                if (search) qs.set("search", search);
+                if (params.get("free") === "1") qs.set("free", "1");
+                const qstr = qs.toString();
+                if (qstr) newUrl += `?${qstr}`;
 
                 window.location.href = newUrl;
             }
@@ -486,6 +546,112 @@ const { categories, selectedCategoryId, sectionId, searchProducts } =
         display: flex;
         flex-direction: column;
         gap: 4px;
+    }
+
+    .category-item--all-row {
+        gap: 12px;
+    }
+
+    .category-item--all-row .category-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Free checkbox — inside All Products row, right side */
+    .sidebar-filter-free {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 2px 0 2px 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--foreground);
+        user-select: none;
+    }
+
+    .sidebar-filter-free:hover .sidebar-filter-free__box {
+        border-color: rgba(34, 197, 94, 0.72);
+    }
+
+    @supports (border-color: color-mix(in srgb, red, blue)) {
+        .sidebar-filter-free:hover .sidebar-filter-free__box {
+            border-color: color-mix(in srgb, #22c55e 72%, transparent);
+        }
+    }
+
+    /* Visually hidden but focusable for keyboard / screen readers */
+    .sidebar-filter-free__input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+        opacity: 0;
+    }
+
+    .sidebar-filter-free__input:focus-visible + .sidebar-filter-free__box {
+        outline: 1px solid #22c55e;
+        outline-offset: 2px;
+    }
+
+    .sidebar-filter-free__box {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        border-radius: 5px;
+        background: var(--surface);
+        color: #ffffff;
+        transition:
+            border-color 0.15s ease,
+            background 0.15s ease;
+    }
+
+    @supports (background: color-mix(in srgb, red, blue)) {
+        .sidebar-filter-free__box {
+            border: 1px solid color-mix(in srgb, #22c55e 50%, transparent);
+            background: color-mix(in srgb, #22c55e 10%, var(--surface));
+        }
+    }
+
+    .sidebar-filter-free__icon {
+        width: 12px;
+        height: auto;
+        max-height: 9px;
+        flex-shrink: 0;
+        opacity: 0;
+        transform: scale(0.96);
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+    }
+
+    /* Keep label readable when parent .category-item.active tints row purple */
+    .sidebar-filter-free__text {
+        color: var(--foreground);
+        line-height: 1.2;
+    }
+
+    .sidebar-filter-free__input:checked + .sidebar-filter-free__box {
+        background: #22c55e;
+        border: 1px solid #22c55e;
+        color: #ffffff;
+    }
+
+    .sidebar-filter-free__input:checked + .sidebar-filter-free__box .sidebar-filter-free__icon {
+        opacity: 1;
     }
 
     .category-item {

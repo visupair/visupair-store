@@ -1,7 +1,21 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Button from "../components/Button.astro";
+import { Image, getImage } from "astro:assets";
+import gulDark from "../assets/about/Gul-dark.svg";
+import gulLight from "../assets/about/Gul-light.svg";
+import valiDark from "../assets/about/Vali-dark.svg";
+import valiLight from "../assets/about/Vali-light.svg";
+import aboutUs from "../assets/about/aboutus.webp";
+import aboutServices from "../assets/about/aboutservices.webp";
+import aboutCourses from "../assets/about/aboutcourses.webp";
+
 export const prerender = true;
+
+const gulDarkSrc = (await getImage({ src: gulDark })).src;
+const gulLightSrc = (await getImage({ src: gulLight })).src;
+const valiDarkSrc = (await getImage({ src: valiDark })).src;
+const valiLightSrc = (await getImage({ src: valiLight })).src;
 ---
 
 <Layout
@@ -9,7 +23,15 @@ export const prerender = true;
   description="We're two artists selling our own work — fashion, illustrations, 3D models, and more. No middlemen, just art."
 >
   <Fragment slot="head">
-    <script is:inline>
+    <script
+      is:inline
+      define:vars={{
+        gulDarkSrc,
+        gulLightSrc,
+        valiDarkSrc,
+        valiLightSrc,
+      }}
+    >
       (function () {
         try {
           var t = window.visupairGetTheme
@@ -22,8 +44,10 @@ export const prerender = true;
             l.href = href;
             document.head.appendChild(l);
           }
-          preload("/images/hero/Gul-" + t + ".svg");
-          preload("/images/hero/Vali-" + t + ".svg");
+          var gulUrl = t === "dark" ? gulDarkSrc : gulLightSrc;
+          var valiUrl = t === "dark" ? valiDarkSrc : valiLightSrc;
+          preload(gulUrl);
+          preload(valiUrl);
         } catch (e) {}
       })();
     </script>
@@ -37,21 +61,32 @@ export const prerender = true;
 
       <!-- Three-column layout -->
       <div class="about-grid">
-        <!-- Left: Gul character -->
+        <!-- Left: Gul character (theme variants via CSS; no runtime src swap) -->
         <div class="about-char about-char--left">
-          <img
-            id="about-gul"
-            class="about-char__img"
-            src="/images/hero/Gul-dark.svg"
-            alt="Gul — artist and co-founder of Visupair"
-            width="1352"
-            height="1761"
-            loading="eager"
-            fetchpriority="high"
-            decoding="async"
-            draggable="false"
-            ondragstart="return false;"
-          />
+          <div class="about-char__stack">
+            <Image
+              src={gulDark}
+              alt="Gul — artist and co-founder of Visupair"
+              class="about-char__img about-char__theme about-char__theme--dark"
+              width={1352}
+              height={1761}
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+              draggable={false}
+            />
+            <Image
+              src={gulLight}
+              alt="Gul — artist and co-founder of Visupair"
+              class="about-char__img about-char__theme about-char__theme--light"
+              width={1352}
+              height={1761}
+              loading="eager"
+              fetchpriority="low"
+              decoding="async"
+              draggable={false}
+            />
+          </div>
         </div>
 
         <!-- Center: text content -->
@@ -65,9 +100,8 @@ export const prerender = true;
           </h1>
 
           <p class="about-subtitle animate-text above-fold-reveal" style="--anim-delay: 0.2s;">
-            We're Gul and Vali — two artists making things we actually care
-            about. Fashion, illustrations, digital art, 3D models. We sell it
-            all ourselves, directly to you.
+            We are Gul and Vali; Two multidisciplinary designers who have spent years making things they truly care about. 
+            VisuPair is where we decided to stop keeping it to ourselves and collaborate.
           </p>
 
           <div class="about-actions animate-text above-fold-reveal" style="--anim-delay: 0.3s;">
@@ -83,33 +117,31 @@ export const prerender = true;
 
         <!-- Right: Vali character -->
         <div class="about-char about-char--right">
-          <img
-            id="about-vali"
-            class="about-char__img"
-            src="/images/hero/Vali-dark.svg"
-            alt="Vali — artist and co-founder of Visupair"
-            width="1352"
-            height="1815"
-            loading="eager"
-            fetchpriority="high"
-            decoding="async"
-            draggable="false"
-            ondragstart="return false;"
-          />
+          <div class="about-char__stack">
+            <Image
+              src={valiDark}
+              alt="Vali — artist and co-founder of Visupair"
+              class="about-char__img about-char__theme about-char__theme--dark"
+              width={1352}
+              height={1815}
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+              draggable={false}
+            />
+            <Image
+              src={valiLight}
+              alt="Vali — artist and co-founder of Visupair"
+              class="about-char__img about-char__theme about-char__theme--light"
+              width={1352}
+              height={1815}
+              loading="eager"
+              fetchpriority="low"
+              decoding="async"
+              draggable={false}
+            />
+          </div>
         </div>
-        <script is:inline>
-          (function () {
-            try {
-              var t = window.visupairGetTheme
-                ? window.visupairGetTheme()
-                : "dark";
-              var gul = document.getElementById("about-gul");
-              var vali = document.getElementById("about-vali");
-              if (gul) gul.src = "/images/hero/Gul-" + t + ".svg";
-              if (vali) vali.src = "/images/hero/Vali-" + t + ".svg";
-            } catch (e) {}
-          })();
-        </script>
       </div>
     </div>
   </div>
@@ -119,12 +151,12 @@ export const prerender = true;
     <div class="about-dual-layout">
       <div class="about-dual-panel about-dual-panel--media">
         <div class="about-dual-media-frame" data-about-media-spotlight>
-          <img
+          <Image
+            src={aboutUs}
             class="about-dual-media-img"
-            src="/images/hero/aboutus.webp"
             alt="Gul and Vali — Visupair co-founders"
-            width="1200"
-            height="800"
+            width={1200}
+            height={800}
             loading="lazy"
             decoding="async"
           />
@@ -153,38 +185,37 @@ export const prerender = true;
           style="--anim-delay: 0.08s;"
         >
           <p>
-            For over a decade, painting has been woven into our everyday rhythm
-            &mdash; canvases, oils, and long quiet hours of learning to truly
-            see. How light shifts. How texture holds a feeling. How color can
-            say something words can't quite reach. That foundation shaped
-            everything that came after.
+            For years, painting has been part of our everyday life. 
+            Canvases, oils, long quiet hours, learning how light works, 
+            how texture carries feeling, how color can say things that 
+            words simply can not. That foundation never left us. It 
+            shaped everything that came after.
           </p>
           <p>
-            Curiosity kept pulling us forward. Six years ago we stepped into
-            digital creation and found a whole new language &mdash; one built
-            from visual design, technology, and the thrill of making something
-            that didn't exist before. Then fashion arrived. Not as a pivot, but
-            as a natural next step. For us, clothing has never felt separate
-            from art. It's just another surface where shapes, ideas, and
-            stories can take form &mdash; and be worn.
+            Curiosity kept moving us forward. Six years ago we 
+            discovered digital design and fell in love with a whole new 
+            way of creating, combining visuals, technology, and the 
+            excitement of building something that didn't exist before. 
+            Then came fashion. Not as a change of direction, but as a 
+            natural next step. For us, clothing has always been 
+            another form of art, just one you can wear.
           </p>
           <p>
             <strong>Visupair</strong> is where all of it comes together.
           </p>
           <p>
-            We design in 3D, build digital patterns, and bring them to life as
-            real garments and objects. But those same pieces can also live
-            entirely in the digital world &mdash; as 3D models, wearable
-            avatars, digital collectibles &mdash; because we're equally
-            fascinated by how fashion and art exist across both realities. We
-            call this <em>phygital</em> creation: the freedom to move an idea
-            from screen to material, and back again, without losing any of its
-            meaning.
+            We design in 3D, build digital patterns, and turn them into real 
+            garments and objects. But those same pieces can also exist entirely 
+            in the digital world as 3D models, wearable avatars, or digital 
+            collectibles. We are just as excited about both. We call this 
+            phygital creation: the ability to take an idea from screen to 
+            material, and back again, without losing what makes it special.
+            We make our own pieces, garments, accessories, paintings, digital 
+            works. Some of them are available to find a home with you.
           </p>
           <p>
-            We create our own pieces &mdash; garments, accessories, paintings,
-            digital works. Some of them are available to find a home with you,
-            in whichever form feels right.
+            We create our own pieces &dash; garments, accessories, paintings, 
+            digital works. Some of them are available to find a home with you
           </p>
         </div>
 
@@ -209,12 +240,12 @@ export const prerender = true;
     <div class="about-dual-layout about-dual-layout--reverse-desktop">
       <div class="about-dual-panel about-dual-panel--media">
         <div class="about-dual-media-frame" data-about-media-spotlight>
-          <img
+          <Image
+            src={aboutServices}
             class="about-dual-media-img"
-            src="/images/hero/aboutservices.webp"
             alt="Visupair creative services — collaboration with artists and brands"
-            width="1200"
-            height="800"
+            width={1200}
+            height={800}
             loading="lazy"
             decoding="async"
           />
@@ -231,8 +262,12 @@ export const prerender = true;
           id="about-services-heading"
           style="--anim-delay: 0s;"
         >
-          We also work with others &mdash; and this side of what we do comes
-          straight from who we are.
+          We work with artists, designers, and brands.
+          <br />
+          <span class="about-story-heading__accent"
+            >We know what it feels like to be <br />the artist on the other
+            side.</span
+          >
         </h2>
 
         <div
@@ -240,36 +275,31 @@ export const prerender = true;
           style="--anim-delay: 0.08s;"
         >
           <p>
-            We collaborate with artists, independent designers, and brands to
-            build the visual presence their work deserves. This means logos,
-            websites, color palettes, creative direction, lookbooks, and full
-            visual identities &mdash; everything that shapes how the world first
-            experiences what you do.
+            We help artists, independent designers, and brands build a 
+            visual presence that actually reflects their work. That means logos, 
+            websites, color palettes, creative direction, lookbooks, 
+            and full visual identities, everything that shapes how people 
+            experience what you do for the first time.
           </p>
           <p>
-            But what makes us different isn't the list of services. It's where
-            we come from.
+            What makes us different is not the list of things we offer.
+            It's where we come from.We know what it feels like to be the artist 
+            on the other side, to have work that matters deeply and not know how 
+            to show it in a way that feels honest. 
           </p>
           <p>
-            We know what it feels like to be the artist on the other side
-            &mdash; to have work that matters deeply and struggle to show it in
-            a way that feels true. That experience sits at the heart of every
-            project we take on. We don't just design for you. We think with you,
-            understand your creative language, and build something that actually
-            feels like yours.
+            That understanding is at the heart of every project we take on. We don't just 
+            design for you. We listen, we understand how you think creatively, and we build 
+            something that genuinely feels like yours.
+            For artists and independent designers, we get how hard it is to present 
+            your work without it feeling over-produced or disconnected from who you really are. 
+            Whether you need a portfolio, a brand identity, or a full digital home for your 
+            practice, we build it in a way that stays true to your vision.
           </p>
           <p>
-            For artists and independent designers, we understand the particular
-            challenge of presenting creative work without it feeling
-            over-produced or disconnected from who you are. Whether you need a
-            portfolio, a brand identity, or a complete digital home for your
-            practice &mdash; we build it in a way that stays honest to your
-            vision.
-          </p>
-          <p>
-            For brands, we bring an artistic sensibility that goes beyond
-            aesthetics. We think about meaning, consistency, and the kind of
-            visual language that builds genuine recognition over time.
+            For brands, we bring an artistic way of thinking that goes beyond just making 
+            things look good. We think about meaning, consistency, and the kind of visual 
+            language that builds real recognition over time.
           </p>
         </div>
 
@@ -290,16 +320,16 @@ export const prerender = true;
   </div>
 
   <!-- Workshops & courses: image left + story (same layout as first dual section) -->
-  <div class="about-dual-wrapper">
+  <div class="about-dual-wrapper about-dual-wrapper--courses">
     <div class="about-dual-layout">
       <div class="about-dual-panel about-dual-panel--media">
         <div class="about-dual-media-frame" data-about-media-spotlight>
-          <img
+          <Image
+            src={aboutCourses}
             class="about-dual-media-img"
-            src="/images/hero/aboutcourses.webp"
             alt="Visupair workshops and courses — oil painting, digital design, and creative sessions"
-            width="1200"
-            height="800"
+            width={1200}
+            height={800}
             loading="lazy"
             decoding="async"
           />
@@ -316,10 +346,10 @@ export const prerender = true;
           id="about-courses-heading"
           style="--anim-delay: 0s;"
         >
-          We love sharing what we know — and we believe that
+          We trust that knowledge grows when it is shared.
           <br />
           <span class="about-story-heading__accent"
-            >opening up a creative process is just as valuable as the finished work.</span
+            >We learned by doing and now we teach the same way.</span
           >
         </h2>
 
@@ -328,19 +358,18 @@ export const prerender = true;
           style="--anim-delay: 0.08s;"
         >
           <p>
-            We organise workshops and courses in oil painting, digital design,
-            and 3D &amp; phygital creation &mdash; as well as art nights, where
-            creativity happens in a relaxed, open atmosphere. Whether you're a
-            complete beginner or simply curious, there's a place for you here.
+            We love sharing what we know and we believe that opening up a creative 
+            process is just as valuable as the finished work. We organise workshops 
+            and courses in oil painting, digital design, and 3D & phygital creation 
+            as well as art nights, where creativity happens in a relaxed, open atmosphere. 
           </p>
           <p>
-            If you'd like to join us or find out what's coming up, we'd love to
-            hear from you.
+            Whether you're a complete beginner or simply curious, there's a place for you here.
           </p>
         </div>
 
         <div
-          class="about-story-actions animate-text"
+          class="about-story-actions about-story-actions--stacked animate-text"
           style="--anim-delay: 0.16s;"
         >
           <Button href="/courses" variant="primary" label="Explore Courses" />
@@ -369,17 +398,6 @@ export const prerender = true;
 
     const getTheme = (): Theme =>
       document.documentElement.hasAttribute("data-theme") ? "dark" : "light";
-
-    const swapSVGs = (theme: Theme) => {
-      const gul = document.getElementById(
-        "about-gul",
-      ) as HTMLImageElement | null;
-      const vali = document.getElementById(
-        "about-vali",
-      ) as HTMLImageElement | null;
-      if (gul) gul.src = `/images/hero/Gul-${theme}.svg`;
-      if (vali) vali.src = `/images/hero/Vali-${theme}.svg`;
-    };
 
     const loadLamp = async (theme: Theme) => {
       const container = document.getElementById("about-lamp-container");
@@ -429,13 +447,11 @@ export const prerender = true;
     };
 
     const applyTheme = (theme: Theme) => {
-      swapSVGs(theme);
-      loadLamp(theme);
+      void loadLamp(theme);
     };
 
     const onThemeChange = () => {
       const theme = getTheme();
-      swapSVGs(theme);
       void loadLamp(theme);
     };
 
@@ -895,8 +911,14 @@ export const prerender = true;
       grid-template-columns: 1fr auto 1fr;
       align-items: flex-end;
       gap: 0;
-      padding-top: clamp(180px, 28vw, 250px);
+      padding-top: clamp(180px, 28vw, 350px);
       padding-bottom: 0px;
+    }
+
+    @media (min-width: 1960px) {
+      .about-grid {
+        padding-top: clamp(410px, 15vw, 520px);
+      }
     }
 
     /* ── Characters ── */
@@ -913,10 +935,16 @@ export const prerender = true;
       justify-content: flex-end;
     } /* Vali to right wall */
 
+    .about-char__stack {
+      position: relative;
+      width: 100%;
+      max-width: clamp(168px, 26vw, 384px);
+    }
+
     .about-char__img {
       display: block;
       width: 100%;
-      max-width: clamp(168px, 26vw, 384px);
+      max-width: 100%;
       height: auto;
       object-fit: contain;
       object-position: bottom center;
@@ -925,6 +953,22 @@ export const prerender = true;
       -webkit-user-select: none;
       -webkit-user-drag: none;
       user-drag: none;
+    }
+
+    .about-char__theme--dark {
+      display: none;
+    }
+
+    :global([data-theme="dark"]) .about-char__theme--dark {
+      display: block;
+    }
+
+    .about-char__theme--light {
+      display: block;
+    }
+
+    :global([data-theme="dark"]) .about-char__theme--light {
+      display: none;
     }
 
     /* ── Center content ── */
@@ -981,8 +1025,12 @@ export const prerender = true;
 
     /* ── Tablet (750px–1024px): keep grid, shrink chars ── */
     @media (min-width: 750px) and (max-width: 1024px) {
-      .about-char__img {
+      .about-char__stack {
         max-width: clamp(160px, 96vw, 320px);
+      }
+
+      .about-char__img {
+        max-width: 100%;
       }
       .about-title {
         font-size: clamp(32px, 5vw, 52px);
@@ -1000,7 +1048,6 @@ export const prerender = true;
       .about-grid {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto;
-        padding-bottom: clamp(25px, 0vw, 100px);
       }
 
       .about-char--left {
@@ -1022,6 +1069,10 @@ export const prerender = true;
         transform: translateY(0px);
         padding: 40px 24px;
         min-width: unset;
+      }
+
+      .about-char__stack {
+        max-width: 100%;
       }
 
       .about-char__img {
@@ -1111,6 +1162,27 @@ export const prerender = true;
       .about-dual-media-frame:hover .about-dual-media-img,
       .about-dual-media-frame.is-spotlight-active .about-dual-media-img {
         transform: scale(1.045);
+      }
+    }
+
+    /*
+      Explore Courses: shorter copy than other dual blocks → grid row was too short
+      and the image looked squeezed. Desktop only: taller minimum frame so the photo
+      reads clearly without adding body text. Story column is vertically centered so
+      padding feels symmetric when the row is taller than the copy.
+    */
+    @media (min-width: 901px) {
+      .about-dual-wrapper--courses .about-dual-panel--media {
+        min-height: auto;
+      }
+
+      .about-dual-wrapper--courses .about-dual-media-frame {
+        flex: 1 1 auto;
+        min-height: clamp(560px, 74vh, 860px);
+      }
+
+      .about-dual-wrapper--courses .about-dual-panel--story {
+        justify-content: center;
       }
     }
 
@@ -1282,22 +1354,33 @@ export const prerender = true;
         max-width: none;
       }
 
+      /* Same idea as homepage .hero-actions: wrap instead of squeezing two CTAs on one row */
       .about-story-actions {
-        flex-wrap: nowrap;
-        gap: 12px;
+        flex-wrap: wrap;
+        gap: clamp(10px, 1.5vw, 14px);
+        justify-content: center;
+        align-items: center;
+      }
+
+      :global(.about-story-actions .vp-btn) {
+        flex: 0 0 auto;
+        width: auto;
+      }
+
+      .about-story-actions.about-story-actions--stacked {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
         justify-content: center;
       }
 
-      /* Content-sized like desktop — do not flex-grow: primary buttons use an
-         absolutely positioned icon pill; stretching the row breaks padding. */
-      :global(.about-story-actions .vp-btn) {
-        flex: 0 1 auto;
-        min-width: 0;
+      :global(.about-story-actions--stacked .vp-btn) {
+        flex: 0 0 auto;
         width: auto;
       }
     }
 
-    /* Phones only: third section buttons stacked; slightly smaller type on very narrow screens */
+    /* Narrow phones: keep CTAs on one row when they fit (like hero), not a vertical stack */
     @media (max-width: 600px) {
       .about-dual-panel {
         padding: 20px;
@@ -1307,22 +1390,61 @@ export const prerender = true;
         padding: 0;
       }
 
+      .about-story-actions,
       .about-story-actions.about-story-actions--stacked {
-        flex-direction: column;
-        flex-wrap: nowrap;
-        align-items: stretch;
-        gap: 12px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
         justify-content: center;
+        gap: clamp(10px, 1.5vw, 14px);
       }
 
+      :global(.about-story-actions .vp-btn),
       :global(.about-story-actions--stacked .vp-btn) {
         flex: 0 0 auto;
-        width: 100%;
-        min-width: 0;
+        width: auto;
       }
+    }
 
-      :global(.about-story-actions .vp-btn) {
-        font-size: clamp(13px, 1.35vw, 16px);
+    /* Match homepage: centered CTA row up to “large phone” / stacked hero width */
+    @media (max-width: 833px) {
+      .about-actions,
+      .about-story-actions {
+        width: 100%;
+        justify-content: center;
+        gap: clamp(10px, 1.5vw, 14px);
+      }
+    }
+
+    @media (max-width: 767px) {
+      .about-actions :global(.vp-btn),
+      .about-story-actions :global(.vp-btn) {
+        font-size: clamp(12px, 3.2vw, 14px);
+      }
+    }
+
+    /* iPad mini / Air / Pro (portrait & smaller landscape): same band as homepage */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .about-actions :global(.vp-btn),
+      .about-story-actions :global(.vp-btn) {
+        font-size: clamp(12px, 1.35vw, 14px);
+        height: 2.65em;
+      }
+    }
+
+    @media (min-width: 1025px) and (max-width: 1280px) {
+      .about-actions :global(.vp-btn),
+      .about-story-actions :global(.vp-btn) {
+        font-size: 14px;
+        height: 2.8em;
+      }
+    }
+
+    @media (min-width: 1281px) and (max-width: 1536px) {
+      .about-actions :global(.vp-btn),
+      .about-story-actions :global(.vp-btn) {
+        font-size: clamp(14px, 0.95vw, 16px);
+        height: 2.8em;
       }
     }
 

@@ -6,13 +6,14 @@
   <nav class="navbar" id="main-navbar">
     <div class="navbar-left">
       <!-- Branding with Animation -->
-      <a href="/" class="logo" aria-label="Visupair">
+      <a href="/" class="logo" aria-label="Visupair home">
         <svg
           width="67"
           height="33"
           viewBox="0 0 67 33"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
         >
           <path
             d="M32.489 29.283L54.0977 29.8267C54.7934 29.8442 55.3418 29.2398 55.2556 28.5503L54.2167 20.2401C54.1338 19.5775 53.4991 19.1288 52.8454 19.2707L31.9362 23.8126C31.3691 23.9358 30.9857 24.4652 31.0463 25.0415L31.3858 28.266C31.4456 28.8335 31.9176 29.2686 32.489 29.283Z"
@@ -39,18 +40,20 @@
 
     <!-- Desktop Menu (Centered Accent Capsule) -->
     <ul class="navbar-center">
-      <li class="nav-item"><a href="/about" class="nav-link">About</a></li>
       <li class="nav-item">
-        <a href="/portfolio" class="nav-link">Portfolio</a>
+        <a href="/about" class="nav-link" aria-label="About">About</a>
+      </li>
+      <li class="nav-item">
+        <a href="/portfolio" class="nav-link" aria-label="Portfolio">Portfolio</a>
       </li>
       <li class="nav-item" id="desktop-store-nav-item">
-        <a
-          href="#"
+        <button
+          type="button"
           class="nav-link"
           id="desktop-store-link"
-          role="button"
-          aria-haspopup="true"
+          aria-haspopup="menu"
           aria-expanded="false"
+          aria-controls="desktop-store-menu"
         >
           Store
           <svg
@@ -61,12 +64,17 @@
             stroke-width="1.5"
             stroke-linecap="round"
             stroke-linejoin="round"
+            aria-hidden="true"
           >
             <path d="M1 1L5 5L9 1"></path>
           </svg>
-        </a>
-        <div class="store-dropdown">
-          <a href="/store/fashion-design" class="dropdown-link">
+        </button>
+        <div class="store-dropdown" id="desktop-store-menu">
+          <a
+            href="/store/fashion-design"
+            class="dropdown-link"
+            aria-label="Garments"
+          >
             <div class="icon-box-wrapper">
               <svg
                 class="dropdown-icon icon-fashion"
@@ -83,7 +91,11 @@
             </div>
             Garments
           </a>
-          <a href="/store/3d-models" class="dropdown-link">
+          <a
+            href="/store/3d-models"
+            class="dropdown-link"
+            aria-label="3D Models"
+          >
             <div class="icon-box-wrapper">
               <svg
                 class="dropdown-icon icon-box"
@@ -108,7 +120,11 @@
             </div>
             3D Models
           </a>
-          <a href="/store/artworks" class="dropdown-link">
+          <a
+            href="/store/artworks"
+            class="dropdown-link"
+            aria-label="Art Works"
+          >
             <div class="icon-box-wrapper">
               <svg
                 class="dropdown-icon icon-palette"
@@ -135,11 +151,15 @@
           </a>
         </div>
       </li>
-      <li class="nav-item"><a href="/courses" class="nav-link">Courses</a></li>
       <li class="nav-item">
-        <a href="/services" class="nav-link">Services</a>
+        <a href="/courses" class="nav-link" aria-label="Courses">Courses</a>
       </li>
-      <li class="nav-item"><a href="/contact" class="nav-link">Contact</a></li>
+      <li class="nav-item">
+        <a href="/services" class="nav-link" aria-label="Services">Services</a>
+      </li>
+      <li class="nav-item">
+        <a href="/contact" class="nav-link" aria-label="Contact">Contact</a>
+      </li>
     </ul>
 
     <!-- Right Actions -->
@@ -147,6 +167,7 @@
       <!-- CAPSULE TOGGLE SWITCH (Desktop) -->
       <button
         id="theme-toggle-desktop"
+        type="button"
         class="theme-switch desktop-theme-toggle"
         aria-label="Toggle Theme"
       >
@@ -157,6 +178,7 @@
           stroke-linejoin="round"
           fill="none"
           stroke-width="2"
+          aria-hidden="true"
         >
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -175,6 +197,7 @@
           stroke-linejoin="round"
           fill="none"
           stroke-width="2"
+          aria-hidden="true"
         >
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
@@ -187,22 +210,37 @@
         class="icon-button favorites-btn"
         aria-label="Favorites"
       >
-        <svg viewBox="0 0 22 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          viewBox="0 0 22 19"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
           <path d="M16.2411 0.0134513H16.245C18.0116 0.125081 19.6479 0.999001 20.7444 2.41344L20.7434 2.41442C22.6101 4.83522 22.3595 8.38062 20.0895 10.6616L12.7129 18.0285C12.2257 18.5155 11.6058 18.7487 10.9931 18.7449C10.3805 18.7487 9.76058 18.5155 9.27343 18.0285L1.8968 10.6616C-0.373292 8.38061 -0.623868 4.83523 1.24288 2.41442L1.2419 2.41344C2.33836 0.999009 3.97469 0.125067 5.74127 0.0134513H5.74518C7.40844 -0.0978413 9.06029 0.485407 10.3002 1.6219C10.6899 1.98734 11.2964 1.98734 11.6861 1.6219C12.926 0.485418 14.5779 -0.0978554 16.2411 0.0134513Z" fill="currentColor"/>
         </svg>
       </a>
 
       <!-- Cart -->
       <a href="/cart" class="icon-button cart-btn" aria-label="Cart">
-        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          viewBox="0 0 22 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
           <path fill-rule="evenodd" clip-rule="evenodd" d="M10.9931 0C13.6631 0 15.8765 2.03316 16.1664 4.62858C16.1816 4.81653 16.1896 5.10071 16.1939 5.39511C16.1985 5.7138 16.4564 5.97161 16.7751 5.97161H17.936C19.2731 5.97161 20.386 6.97443 20.526 8.30511L21.9725 19.0918C22.0482 19.8231 21.81 20.557 21.317 21.1043C20.8235 21.6515 20.1188 21.9654 19.3824 21.9654H2.60384C1.8675 21.9653 1.16208 21.6521 0.669242 21.1055C0.175875 20.557 -0.0619183 19.8229 0.0138284 19.0918L1.46026 8.30511C1.60026 6.97398 2.71342 5.97186 4.05027 5.97161H5.21174C5.53047 5.97161 5.7883 5.71381 5.79277 5.39511C5.79689 5.10072 5.80466 4.81653 5.81989 4.62858C6.1098 2.03325 8.32334 0.00016274 10.9931 0ZM10.9931 1.73572C9.06591 1.73589 7.52171 3.27988 7.52171 5.20715V5.39304C7.52171 5.71258 7.78074 5.97161 8.10028 5.97161H13.886C14.2055 5.97161 14.4646 5.71258 14.4646 5.39304V5.20715C14.4646 3.27976 12.9205 1.73572 10.9931 1.73572Z" fill="currentColor"/>
         </svg>
         <span class="cart-badge" id="cart-badge" style="display: none;">0</span>
       </a>
 
       <!-- Account (Solid Filled Icon - No Lines) -->
-      <button class="icon-button account-btn" aria-label="Account">
-        <svg viewBox="0 0 18 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <button type="button" class="icon-button account-btn" aria-label="Account">
+        <svg
+          viewBox="0 0 18 22"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
           <path class="account-head" d="M8.71091 -7.62939e-06C5.70409 -7.62939e-06 3.26659 2.43749 3.26659 5.44431C3.26659 8.45112 5.70409 10.8886 8.71091 10.8886C11.7177 10.8886 14.1552 8.45112 14.1552 5.44431C14.1552 2.43749 11.7177 -7.62939e-06 8.71091 -7.62939e-06Z" fill="currentColor"/>
           <path d="M15.2555 13.0664H2.16629C0.971811 13.0664 0 14.0382 0 15.2326V16.0607C0 17.8639 1.02625 19.4231 2.8893 20.4505C4.4393 21.3063 6.50705 21.7773 8.71091 21.7773C12.9063 21.7773 17.4218 19.9883 17.4218 16.0607V15.2326C17.4218 14.0382 16.45 13.0664 15.2555 13.0664Z" fill="currentColor"/>
         </svg>
@@ -210,6 +248,7 @@
 
       <!-- Mobile Hamburger with CSS Morphing Lines -->
       <button
+        type="button"
         class="mobile-menu-btn"
         id="menu-toggle"
         aria-label="Menu"
@@ -225,10 +264,17 @@
     <!-- Mobile Menu (Now Child of Navbar for Island Logic) -->
     <div class="mobile-menu" id="mobile-menu" role="dialog" aria-modal="true">
       <ul class="mobile-nav-list">
-        <li><a href="/about" class="mobile-link">About Us</a></li>
-        <li><a href="/portfolio" class="mobile-link">Portfolio</a></li>
+        <li>
+          <a href="/about" class="mobile-link" aria-label="About us">About Us</a>
+        </li>
+        <li>
+          <a href="/portfolio" class="mobile-link" aria-label="Portfolio">
+            Portfolio
+          </a>
+        </li>
         <li>
           <button
+            type="button"
             class="mobile-link accordion-toggle"
             id="store-accordion"
             aria-expanded="false"
@@ -243,6 +289,7 @@
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
+              aria-hidden="true"
             >
               <path d="M1 1L5 5L9 1"></path>
             </svg>
@@ -250,7 +297,7 @@
           <div class="mobile-accordion-wrapper" id="store-content-wrapper">
             <div class="mobile-accordion-inner">
               <div class="mobile-accordion-content" id="store-content">
-                <a href="/store/fashion-design">
+                <a href="/store/fashion-design" aria-label="Garments">
                   <div class="icon-box-wrapper sm">
                     <svg
                       viewBox="0 0 18 18"
@@ -266,7 +313,7 @@
                   </div>
                   Garments
                 </a>
-                <a href="/store/3d-models">
+                <a href="/store/3d-models" aria-label="3D Models">
                   <div class="icon-box-wrapper sm">
                     <svg
                       viewBox="0 0 19 20"
@@ -290,7 +337,7 @@
                   </div>
                   3D Models
                 </a>
-                <a href="/store/artworks">
+                <a href="/store/artworks" aria-label="Art Works">
                   <div class="icon-box-wrapper sm">
                     <svg
                       viewBox="0 0 18 18"
@@ -318,17 +365,25 @@
             </div>
           </div>
         </li>
-        <li><a href="/courses" class="mobile-link">Courses</a></li>
-        <li><a href="/services" class="mobile-link">Services</a></li>
-        <li><a href="/contact" class="mobile-link">Contact</a></li>
+        <li>
+          <a href="/courses" class="mobile-link" aria-label="Courses">Courses</a>
+        </li>
+        <li>
+          <a href="/services" class="mobile-link" aria-label="Services">
+            Services
+          </a>
+        </li>
+        <li>
+          <a href="/contact" class="mobile-link" aria-label="Contact">Contact</a>
+        </li>
       </ul>
 
       <!-- Mobile Theme Toggle Inside Menu -->
       <div class="mobile-footer">
-        <button id="theme-toggle-mobile" class="mobile-theme-btn">
+        <button id="theme-toggle-mobile" type="button" class="mobile-theme-btn">
           <span>Appearance</span>
           <!-- Mobile Toggle using .theme-switch.mobile class -->
-          <div class="theme-switch mobile">
+          <div class="theme-switch mobile" aria-hidden="true">
             <svg
               class="switch-track-icon icon-sun-track"
               viewBox="0 0 24 24"
@@ -475,7 +530,7 @@
     );
     const desktopStoreLink = document.getElementById(
       "desktop-store-link",
-    ) as HTMLAnchorElement | null;
+    ) as HTMLButtonElement | null;
     const themeToggleDesktop = document.getElementById("theme-toggle-desktop");
     const themeToggleMobile = document.getElementById("theme-toggle-mobile");
 
@@ -756,6 +811,9 @@
     box-shadow: var(--shadow-island);
 
     position: relative;
+    /* Stacking context so .mobile-menu can sit below the island background */
+    isolation: isolate;
+    z-index: 0;
 
     transition:
       background 0.3s ease,
@@ -778,6 +836,7 @@
     text-decoration: none;
     color: var(--foreground);
     gap: 12px;
+    padding-left: 3px;
   }
 
   .logo svg {
@@ -859,6 +918,18 @@
 
   .nav-link:active {
     transform: translateY(0);
+  }
+
+  /* Match link styling when nav item is a <button> (e.g. Store menu) */
+  button.nav-link {
+    font: inherit;
+    font-family: var(--font-family);
+    background: none;
+    border: none;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: inherit;
   }
 
   /* Dropdown Logic */
@@ -1335,7 +1406,7 @@
      =============================== */
   .mobile-menu {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 12px);
     left: 0;
     width: 100%;
 
@@ -1355,7 +1426,8 @@
       transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
       visibility 0.3s;
 
-    z-index: var(--z-menu);
+    /* Below the island background (center strip has no other child); left/right stay z-index 10 */
+    z-index: -1;
   }
 
   .mobile-menu.active {
@@ -1589,6 +1661,82 @@
 
     .logo-text {
       font-size: 25px;
+    }
+  }
+
+  /* Phones only — slimmer top bar (768px+ keeps the tablet / small-laptop strip above) */
+  @media (max-width: 767px) {
+    .navbar-container {
+      top: 8px;
+      margin: 12px auto 12px;
+    }
+
+    .navbar {
+      padding: 7px 12px;
+    }
+
+    .logo {
+      gap: 8px;
+      padding-left: 6px;
+    }
+
+    .logo svg {
+      height: 20px;
+    }
+
+    .logo-text {
+      font-size: 22px;
+    }
+
+    .navbar-right {
+      gap: 0;
+    }
+
+    .icon-button {
+      width: 36px;
+      height: 36px;
+    }
+
+    .icon-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .cart-badge {
+      top: 1px;
+      right: -1px;
+      min-width: 16px;
+      height: 16px;
+      font-size: 10px;
+      border-radius: 8px;
+      padding: 0 3px;
+    }
+
+    .mobile-menu-btn {
+      width: 36px;
+      height: 36px;
+    }
+
+    .hamburger-line {
+      left: 8px;
+      width: 18px;
+    }
+
+    .hamburger-line:nth-child(1) {
+      top: 11px;
+    }
+    .hamburger-line:nth-child(2) {
+      top: 17px;
+    }
+    .hamburger-line:nth-child(3) {
+      top: 23px;
+    }
+
+    .mobile-menu-btn[aria-expanded="true"] .hamburger-line:nth-child(1) {
+      top: 17px;
+    }
+    .mobile-menu-btn[aria-expanded="true"] .hamburger-line:nth-child(3) {
+      top: 17px;
     }
   }
 
