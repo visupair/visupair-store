@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { mergeAuthEnv } from "../../../lib/auth-worker-env";
 import { createAuth } from "../../../lib/auth";
 import { user, favorite } from "../../../lib/auth-schema";
 import { drizzle } from "drizzle-orm/d1";
@@ -11,14 +12,14 @@ export const GET: APIRoute = async (context) => {
     // @ts-ignore
     const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
     let dbBinding = cfEnv?.visupair_store as D1Database;
-    let env = cfEnv as unknown as Record<string, string>;
+    let runtimeEnv: Record<string, unknown> = (cfEnv || {}) as Record<string, unknown>;
 
     try {
         if (!dbBinding && locals.runtime && typeof locals.runtime === 'object') {
             const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, 'env');
             if (descriptor && typeof descriptor.get !== 'function') {
                 dbBinding = (locals.runtime as any).env?.visupair_store as D1Database;
-                env = (locals.runtime as any).env as unknown as Record<string, string>;
+                runtimeEnv = ((locals.runtime as any).env || {}) as Record<string, unknown>;
             }
         }
     } catch (e) { }
@@ -29,7 +30,7 @@ export const GET: APIRoute = async (context) => {
         return new Response(JSON.stringify({ error: "Database binding not found" }), { status: 500 });
     }
 
-    const auth = createAuth(dbBinding, env);
+    const auth = createAuth(dbBinding, mergeAuthEnv(runtimeEnv));
     const db = drizzle(dbBinding, { schema: { user, favorite } });
 
     // Get session

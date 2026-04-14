@@ -7,7 +7,7 @@ export const authClient = createAuthClient({
   // The client appends basePath ("/api/auth") automatically.
   baseURL: typeof window !== "undefined"
     ? window.location.origin
-    : (import.meta.env.BETTER_AUTH_URL || "http://localhost:4321"),
+    : (import.meta.env.BETTER_AUTH_URL || "https://visupair.com"),
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;

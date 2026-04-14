@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { mergeAuthEnv } from "~/lib/auth-worker-env";
 import { createAuth } from "~/lib/auth";
 import {
   assertEmailChangeAllowed,
@@ -45,14 +46,25 @@ export const ALL: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // Merge runtime env with build-time env (import.meta.env) to ensure we have everything
-    const env = {
-      ...import.meta.env,
-      ...runtimeEnv
-    };
+    const env = mergeAuthEnv(runtimeEnv as Record<string, unknown>);
 
-    // Create auth instance with D1 binding and environment variables
-    const auth = createAuth(dbBinding, env);
+    let auth: ReturnType<typeof createAuth>;
+    try {
+      auth = createAuth(dbBinding, env);
+    } catch (configErr) {
+      const message =
+        configErr instanceof Error
+          ? configErr.message
+          : "Auth configuration failed";
+      console.error("[AUTH] createAuth failed:", configErr);
+      return new Response(
+        JSON.stringify({
+          error: "Auth configuration error",
+          message,
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
     const reqUrl = new URL(request.url);
     const pathname = reqUrl.pathname;
@@ -90,8 +102,39 @@ export const ALL: APIRoute = async ({ request, locals }) => {
       }
     }
 
-    // Do not use request.clone() here — on Workers + Vite dev the cloned POST body can be empty.
-    const response = await auth.handler(request);
+    let response: Response;
+    try {
+      response = await auth.handler(request);
+    } catch (handlerErr) {
+      console.error("[AUTH] auth.handler threw:", handlerErr);
+      const message =
+        handlerErr instanceof Error ? handlerErr.message : String(handlerErr);
+      return new Response(
+        JSON.stringify({ error: "Auth request failed", message }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (response.status >= 500) {
+      const bodyText = await response.clone().text();
+      if (!bodyText.trim()) {
+        const baseURL = env.BETTER_AUTH_URL || "(not set)";
+        const hasGoogle = Boolean(env.GOOGLE_CLIENT_ID?.trim() && env.GOOGLE_CLIENT_SECRET?.trim());
+        const diag = [
+          `BETTER_AUTH_URL=${baseURL}`,
+          `hasGoogle=${hasGoogle}`,
+          `path=${pathname}`,
+        ].join(", ");
+        console.error(`[AUTH] Empty 500 body — ${diag}`);
+        return new Response(
+          JSON.stringify({
+            error: "Internal server error",
+            message: `Auth handler returned empty 500. Diagnostics: ${diag}`,
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     if (response.ok && request.method === "POST") {
       const isEmail = pathname.endsWith("/change-email");
@@ -131,9 +174,11 @@ export const ALL: APIRoute = async ({ request, locals }) => {
     return response;
   } catch (error) {
     console.error("❌ Auth handler error:", error);
+    const message =
+      error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Internal server error", message }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 };

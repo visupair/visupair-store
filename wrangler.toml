@@ -1,9 +1,27 @@
 # Deploy: npm run build && npx wrangler deploy (Workers + static assets; see package.json "deploy")
 # Production env: set in the Cloudflare dashboard for this Worker or via `wrangler secret put`.
+#
+# keep_vars: do not delete dashboard "Variables" on deploy when they are not listed here
+# (still set secrets in the dashboard or via `wrangler secret put`).
+keep_vars = true
+
 name = "visupair-store"
 compatibility_date = "2026-01-28"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
+# Match dashboard: versioned *.workers.dev preview URLs (optional; does not affect visupair.com)
+preview_urls = true
+
+# Custom domains (must match Workers → Domains / dashboard or deploy will detach them)
+[[routes]]
+pattern = "visupair.com"
+zone_name = "visupair.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.visupair.com"
+zone_name = "visupair.com"
+custom_domain = true
 
 # Local testing on port 8787
 [env.development]
@@ -24,11 +42,19 @@ binding = "VISUPAIR_KV"
 id = "cd85d1d3d782433bb88735dd46c96d8c"
 preview_id = "192252c621ed4e35ba8c2e6d9c283acf"
 
+# Session KV (Astro / dashboard binding — id must match the namespace in Cloudflare)
+[[kv_namespaces]]
+binding = "SESSION"
+id = "3c6e9706f556417d8d7f4e6ff91ddc62"
+
 # Database bindings (D1 for better-auth)
 [[d1_databases]]
 binding = "visupair_store"
 database_name = "visupair-store"
 database_id = "48b3bd9d-9ddb-41ce-9e15-d1dadc35d0c5"
 
-
+# R2 — private digital downloads via /api/download/* (see src/pages/api/download/[fileKey].ts)
+[[r2_buckets]]
+binding = "VISUPAIR_R2"
+bucket_name = "visupair-uploads"
 

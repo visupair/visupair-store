@@ -1,6 +1,7 @@
 // SSR: currency + Better Auth session. See `unwrapAstroMiddlewareSequence` in astro.config.mjs —
 // Astro wraps this in `sequence()`, which breaks Cloudflare Workers when there is only one handler.
 import type { MiddlewareHandler } from "astro";
+import { mergeAuthEnv } from "./lib/auth-worker-env";
 import { detectCurrencyFromRequest } from "./lib/server-currency";
 import { createAuth } from "./lib/auth";
 
@@ -63,13 +64,17 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
 
     try {
         const cfEnv = await getCloudflareEnv();
-        const dbBinding = cfEnv.visupair_store as D1Database | undefined;
+        let dbBinding = cfEnv.visupair_store as D1Database | undefined;
+
+        if (!dbBinding) {
+            try {
+                const rt = (context.locals as { runtime?: { env?: { visupair_store?: D1Database } } }).runtime;
+                dbBinding = rt?.env?.visupair_store;
+            } catch { /* ignore */ }
+        }
 
         if (dbBinding) {
-            const env = {
-                ...import.meta.env,
-                ...cfEnv,
-            } as Record<string, string>;
+            const env = mergeAuthEnv(cfEnv);
             const auth = createAuth(dbBinding, env);
             const sessionResult = await auth.api.getSession({
                 headers: context.request.headers,
@@ -79,8 +84,8 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
                 context.locals.session = sessionResult.session ?? null;
             }
         }
-    } catch {
-        /* best-effort */
+    } catch (e) {
+        console.error("[middleware] Session resolution failed:", e);
     }
 
     const response = await next();

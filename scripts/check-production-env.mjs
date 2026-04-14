@@ -41,6 +41,14 @@ if (secret && secret.length < 32) {
     failed = true;
 }
 
+const googleId = process.env.GOOGLE_CLIENT_ID?.trim();
+const googleSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+if (!googleId || !googleSecret) {
+    console.log(
+        "Note: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not both set — Google sign-in stays disabled until configured in production.",
+    );
+}
+
 console.log("");
 console.log(
     "Stripe Dashboard: point the webhook to /api/stripe/webhook and subscribe to",

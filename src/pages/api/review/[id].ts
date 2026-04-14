@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { mergeAuthEnv } from "../../../lib/auth-worker-env";
 import { createAuth } from "../../../lib/auth";
 import { drizzle } from "drizzle-orm/d1";
 import { review } from "../../../lib/auth-schema";
@@ -13,14 +14,14 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     // @ts-ignore
     const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
     let dbBinding = cfEnv?.visupair_store;
-    let env = cfEnv || {};
+    let runtimeEnv: Record<string, unknown> = (cfEnv || {}) as Record<string, unknown>;
 
     try {
         if (!dbBinding && locals.runtime && typeof locals.runtime === 'object') {
             const descriptor = Object.getOwnPropertyDescriptor(locals.runtime, 'env');
             if (descriptor && typeof descriptor.get !== 'function') {
                 dbBinding = (locals.runtime as any).env?.visupair_store;
-                env = (locals.runtime as any).env || {};
+                runtimeEnv = ((locals.runtime as any).env || {}) as Record<string, unknown>;
             }
         }
     } catch (e) { }
@@ -29,7 +30,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
         return new Response(JSON.stringify({ error: "Database error" }), { status: 500 });
     }
 
-    const auth = createAuth(dbBinding, env as any);
+    const auth = createAuth(dbBinding, mergeAuthEnv(runtimeEnv));
     const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session || !session.user) {

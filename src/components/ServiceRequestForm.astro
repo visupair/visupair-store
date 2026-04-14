@@ -913,6 +913,9 @@ import 'flatpickr/dist/flatpickr.min.css';
         font-family: var(--font-family);
         box-sizing: border-box;
         min-width: 308px;
+        /* Reduces double-tap zoom on iOS when tapping month/year UI */
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
     }
 
     :global(.flatpickr-calendar.animate.open) {
@@ -976,7 +979,8 @@ import 'flatpickr/dist/flatpickr.min.css';
         box-sizing: border-box;
         color: var(--foreground) !important;
         font-weight: 700;
-        font-size: 13px;
+        /* ≥16px on interactive controls: avoids iOS Safari zooming the page on tap */
+        font-size: 16px;
         cursor: pointer;
         border-radius: var(--radius-lg);
         border: 1px solid var(--border-subtle);
@@ -1023,11 +1027,11 @@ import 'flatpickr/dist/flatpickr.min.css';
     :global(.flatpickr-calendar .flatpickr-current-month input.cur-year) {
         color: var(--foreground) !important;
         font-weight: var(--font-weight-semibold);
-        font-size: 13px;
+        font-size: 16px;
         line-height: 1.25;
         cursor: pointer;
-        width: 3.15rem;
-        min-width: 3.15rem;
+        width: 3.5rem;
+        min-width: 3.5rem;
         padding: 5px 2px;
         margin: 0;
         height: auto;
@@ -1066,6 +1070,7 @@ import 'flatpickr/dist/flatpickr.min.css';
         border-radius: var(--radius-lg);
         padding: 4px 8px;
         cursor: pointer;
+        font-size: 16px !important;
         transition: border-color 0.15s ease, background 0.15s ease;
     }
 
@@ -1323,6 +1328,7 @@ import 'flatpickr/dist/flatpickr.min.css';
         background: var(--surface);
         border-radius: 0 0 var(--radius-xl) var(--radius-xl);
         overflow: visible;
+        touch-action: manipulation;
     }
 
     :global(.visu-fp-overlay[hidden]) {
@@ -1369,7 +1375,7 @@ import 'flatpickr/dist/flatpickr.min.css';
     :global(.visu-fp-panel-title) {
         flex: 1;
         text-align: center;
-        font-size: 13px;
+        font-size: 16px;
         font-weight: var(--font-weight-semibold);
         color: var(--foreground);
         padding: 0 4px;
@@ -1391,7 +1397,7 @@ import 'flatpickr/dist/flatpickr.min.css';
         background: transparent;
         color: var(--foreground);
         font-family: var(--font-family);
-        font-size: 12px;
+        font-size: 16px;
         font-weight: var(--font-weight-medium);
         cursor: pointer;
         transition:
@@ -1474,7 +1480,7 @@ import 'flatpickr/dist/flatpickr.min.css';
         }
 
         .date-field {
-            font-size: 14px;
+            font-size: 16px;
         }
     }
 
@@ -1779,7 +1785,8 @@ import 'flatpickr/dist/flatpickr.min.css';
         border-radius: var(--radius-lg);
         padding: 14px 16px;
         padding-right: 40px;
-        font-size: 15px;
+        /* 16px min: prevents iOS Safari from zooming the page when the field is focused */
+        font-size: 16px;
         color: var(--foreground);
         font-family: var(--font-family);
         transition:
@@ -1789,6 +1796,7 @@ import 'flatpickr/dist/flatpickr.min.css';
         box-sizing: border-box;
         cursor: pointer;
         -webkit-text-fill-color: var(--foreground);
+        touch-action: manipulation;
     }
 
     #service-request-form .date-input-inner input.form-input.date-field:read-only {
@@ -1809,13 +1817,6 @@ import 'flatpickr/dist/flatpickr.min.css';
         color: var(--foreground);
     }
 
-    @media (max-width: 900px) {
-        #service-request-form .date-input-inner input.form-input.date-field {
-            font-size: 14px;
-            padding: 12px 14px;
-            padding-right: 40px;
-        }
-    }
 </style>
 
 <script>

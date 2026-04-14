@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./auth-schema";
 import { buildTrustedOriginsList } from "./trusted-origins";
+import { hashPassword, verifyPassword } from "./password-hash";
 
 /** Served from `public/` — must match a live URL on your deployed host (not localhost for real recipients). */
 const VISUPAIR_EMAIL_LOGO_PATH = "/images/logos/visupair-logo-email.jpg";
@@ -143,7 +144,7 @@ export function createAuth(dbBinding: D1Database, env?: Record<string, string>) 
 
   // Get environment variables (works in both dev and production)
   const secret = env?.BETTER_AUTH_SECRET || process.env.BETTER_AUTH_SECRET;
-  const baseURL = env?.BETTER_AUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:4321";
+  const baseURL = env?.BETTER_AUTH_URL || process.env.BETTER_AUTH_URL || "https://visupair.com";
 
   if (!secret || secret.length < 32) {
     throw new Error(
@@ -151,6 +152,13 @@ export function createAuth(dbBinding: D1Database, env?: Record<string, string>) 
       "Generate one with: openssl rand -base64 32"
     );
   }
+
+  const googleClientId = env?.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret =
+    env?.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+  const hasGoogleOAuth = Boolean(
+    googleClientId?.trim() && googleClientSecret?.trim(),
+  );
 
   const emailLogoUrl = `${resolveEmailPublicOrigin(env)}${VISUPAIR_EMAIL_LOGO_PATH}`;
 
@@ -164,6 +172,10 @@ export function createAuth(dbBinding: D1Database, env?: Record<string, string>) 
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
+      password: {
+        hash: hashPassword,
+        verify: verifyPassword,
+      },
       sendResetPassword: async ({ user, url }) => {
         await sendVisupairTransactionalEmail(env, {
           to: user.email,
@@ -250,19 +262,23 @@ export function createAuth(dbBinding: D1Database, env?: Record<string, string>) 
     plugins: [],
     account: {
       accountLinking: {
-        enabled: true,
-        trustedProviders: ["google"],
+        enabled: hasGoogleOAuth,
+        trustedProviders: hasGoogleOAuth ? ["google"] : [],
         updateUserInfoOnLink: true,
       },
     },
-    socialProviders: {
-      google: {
-        clientId: env?.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID!,
-        clientSecret: env?.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET!,
-        /** After email/password signup, a Google sign-in updates `user.image` (and name) from Google. */
-        overrideUserInfoOnSignIn: true,
-      },
-    },
+    // Google OAuth is omitted unless both ID and secret exist. Otherwise Better Auth
+    // throws at OAuth URL generation time → opaque 500 on /api/auth/sign-in/social.
+    socialProviders: hasGoogleOAuth
+      ? {
+          google: {
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
+            /** After email/password signup, a Google sign-in updates `user.image` (and name) from Google. */
+            overrideUserInfoOnSignIn: true,
+          },
+        }
+      : undefined,
     trustedOrigins: buildTrustedOriginsList(baseURL, env),
     trustHost: true, // Required for Cloudflare Workers
   });

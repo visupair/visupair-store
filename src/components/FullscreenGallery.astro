@@ -130,6 +130,8 @@
         position: relative;
         overflow: hidden;
         cursor: grab;
+        /* Lets us handle double-tap zoom without the browser fighting the gesture */
+        touch-action: none;
     }
 
     .fullscreen-image-container.grabbing {
@@ -408,8 +410,26 @@
     let touchStartY = 0;
     let touchStartDistance = 0;
     let isGesture = false;
+    /** Pinch: midpoint tracking for two-finger pan + focal zoom */
+    let lastPinchMidX = 0;
+    let lastPinchMidY = 0;
+    let pinchHasMoved = false;
     const BASE_PAN_OFFSET = 300; // Базовое ограничение
     let fullscreenLoadToken = 0;
+
+    /** Anchor for “how far did this finger move?” (unlike touchStartX/Y, not updated while panning) */
+    let gestureAnchorX = 0;
+    let gestureAnchorY = 0;
+    let gestureMaxMovement = 0;
+
+    /** Double-tap zoom (mobile) */
+    let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
+    const DOUBLE_TAP_MS = 320;
+    const DOUBLE_TAP_MAX_DIST = 48;
+    const TAP_MOVE_SLOP = 24;
+    const DOUBLE_TAP_ZOOM = 1.85;
 
     function showFsLoader() {
         fsLoader?.removeAttribute("hidden");
@@ -620,15 +640,21 @@
                 // Single touch - swipe or drag
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
+                gestureAnchorX = touchStartX;
+                gestureAnchorY = touchStartY;
+                gestureMaxMovement = 0;
                 isGesture = false;
             } else if (e.touches.length === 2) {
-                // Two fingers - pinch zoom
+                // Two fingers — pinch zoom + two-finger pan (midpoint)
                 isGesture = true;
-                const dx =
-                    e.touches[0].clientX - e.touches[1].clientX;
-                const dy =
-                    e.touches[0].clientY - e.touches[1].clientY;
+                const t0 = e.touches[0];
+                const t1 = e.touches[1];
+                const dx = t0.clientX - t1.clientX;
+                const dy = t0.clientY - t1.clientY;
                 touchStartDistance = Math.sqrt(dx * dx + dy * dy);
+                lastPinchMidX = (t0.clientX + t1.clientX) / 2;
+                lastPinchMidY = (t0.clientY + t1.clientY) / 2;
+                pinchHasMoved = false;
             }
         },
         { passive: true },
@@ -640,34 +666,66 @@
             if (fullscreenOverlay?.style.display !== "flex") return;
 
             if (e.touches.length === 1 && !isGesture) {
+                const tx = e.touches[0].clientX;
+                const ty = e.touches[0].clientY;
+                gestureMaxMovement = Math.max(
+                    gestureMaxMovement,
+                    Math.hypot(tx - gestureAnchorX, ty - gestureAnchorY),
+                );
                 // Single touch - allow drag if zoomed
                 if (scale > 1) {
-                    const deltaX = e.touches[0].clientX - touchStartX;
-                    const deltaY = e.touches[0].clientY - touchStartY;
+                    const deltaX = tx - touchStartX;
+                    const deltaY = ty - touchStartY;
                     // Добавляем дельту к текущему положению, а не заменяем его
                     translateX += deltaX;
                     translateY += deltaY;
                     clampPan();
                     // Обновляем стартовую позицию для следующего движения
-                    touchStartX = e.touches[0].clientX;
-                    touchStartY = e.touches[0].clientY;
+                    touchStartX = tx;
+                    touchStartY = ty;
                     updateImageTransform();
                 }
             } else if (e.touches.length === 2) {
-                // Two finger - pinch zoom
+                // Two fingers: pinch zoom (focal at midpoint) + pan by moving midpoint
                 isGesture = true;
-                const dx =
-                    e.touches[0].clientX - e.touches[1].clientX;
-                const dy =
-                    e.touches[0].clientY - e.touches[1].clientY;
+                const t0 = e.touches[0];
+                const t1 = e.touches[1];
+                const dx = t0.clientX - t1.clientX;
+                const dy = t0.clientY - t1.clientY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                const ratio = distance / (touchStartDistance || 1);
+                const midX = (t0.clientX + t1.clientX) / 2;
+                const midY = (t0.clientY + t1.clientY) / 2;
 
-                scale = Math.max(
-                    1,
-                    Math.min(3, scale * ratio),
-                );
+                if (!fullscreenContainer) return;
+
+                const rect = fullscreenContainer.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                // Two-finger pan (same as dragging the image with both fingers)
+                if (pinchHasMoved) {
+                    translateX += midX - lastPinchMidX;
+                    translateY += midY - lastPinchMidY;
+                }
+                lastPinchMidX = midX;
+                lastPinchMidY = midY;
+                pinchHasMoved = true;
+
+                const prevDist = touchStartDistance || distance;
+                const ratio = distance / prevDist;
+                const oldScale = scale;
+                const newScale = Math.max(1, Math.min(3, oldScale * ratio));
+
+                // Zoom toward pinch midpoint (screen coords relative to viewer center)
+                const focalXRel = midX - centerX;
+                const focalYRel = midY - centerY;
+                const scaleFactor = newScale / oldScale;
+                translateX = focalXRel - (focalXRel - translateX) * scaleFactor;
+                translateY = focalYRel - (focalYRel - translateY) * scaleFactor;
+                scale = newScale;
+
                 touchStartDistance = distance;
+                clampPan();
                 updateImageTransform();
                 e.preventDefault();
             }
@@ -680,36 +738,93 @@
         (e) => {
             if (fullscreenOverlay?.style.display !== "flex") return;
 
-            if (e.touches.length === 0 && !isGesture) {
-                // Single touch ended - check for swipe
-                const touchEndX =
-                    e.changedTouches[0]?.clientX || touchStartX;
-                const touchEndY =
-                    e.changedTouches[0]?.clientY || touchStartY;
+            const pinchSession = isGesture;
+            const t0 = e.changedTouches[0];
+            const touchEndX = t0?.clientX ?? touchStartX;
+            const touchEndY = t0?.clientY ?? touchStartY;
 
-                const deltaX = touchEndX - touchStartX;
-                const deltaY = touchEndY - touchStartY;
-                const absDeltaX = Math.abs(deltaX);
-                const absDeltaY = Math.abs(deltaY);
+            // After pinch: one finger left — sync anchors so one-finger pan keeps working
+            if (e.touches.length === 1) {
+                const r = e.touches[0];
+                touchStartX = r.clientX;
+                touchStartY = r.clientY;
+                gestureAnchorX = r.clientX;
+                gestureAnchorY = r.clientY;
+                gestureMaxMovement = 0;
+                pinchHasMoved = false;
+            }
 
-                // Swipe detection (horizontal movement > 50px)
-                if (absDeltaX > 50 && absDeltaX > absDeltaY) {
-                    if (deltaX > 0) {
-                        // Swipe right - previous image
-                        changeImage(currentFullscreenIndex - 1);
-                    } else {
-                        // Swipe left - next image
-                        changeImage(currentFullscreenIndex + 1);
+            if (e.touches.length === 0) {
+                if (!pinchSession && gestureMaxMovement < TAP_MOVE_SLOP) {
+                    const now = performance.now();
+                    if (
+                        now - lastTapTime < DOUBLE_TAP_MS &&
+                        Math.hypot(
+                            touchEndX - lastTapX,
+                            touchEndY - lastTapY,
+                        ) < DOUBLE_TAP_MAX_DIST
+                    ) {
+                        lastTapTime = 0;
+                        if (scale > 1.02) {
+                            resetZoomPan();
+                        } else {
+                            scale = DOUBLE_TAP_ZOOM;
+                            translateX = 0;
+                            translateY = 0;
+                            clampPan();
+                            updateImageTransform();
+                        }
+                        isGesture = false;
+                        gestureMaxMovement = 0;
+                        return;
+                    }
+                    lastTapTime = now;
+                    lastTapX = touchEndX;
+                    lastTapY = touchEndY;
+                }
+
+                if (!pinchSession) {
+                    const deltaX = touchEndX - touchStartX;
+                    const deltaY = touchEndY - touchStartY;
+                    const absDeltaX = Math.abs(deltaX);
+                    const absDeltaY = Math.abs(deltaY);
+
+                    if (
+                        scale <= 1.02 &&
+                        absDeltaX > 50 &&
+                        absDeltaX > absDeltaY
+                    ) {
+                        if (deltaX > 0) {
+                            changeImage(currentFullscreenIndex - 1);
+                        } else {
+                            changeImage(currentFullscreenIndex + 1);
+                        }
                     }
                 }
             }
 
-            // Reset gesture
             if (scale === 1) {
                 resetZoomPan();
             }
             isGesture = false;
+            gestureMaxMovement = 0;
+            pinchHasMoved = false;
         },
         { passive: true },
     );
+
+    /** Desktop: double-click image to toggle zoom */
+    fullscreenImg?.addEventListener("dblclick", (e) => {
+        if (fullscreenOverlay?.style.display !== "flex") return;
+        e.preventDefault();
+        if (scale > 1.02) {
+            resetZoomPan();
+        } else {
+            scale = DOUBLE_TAP_ZOOM;
+            translateX = 0;
+            translateY = 0;
+            clampPan();
+            updateImageTransform();
+        }
+    });
 </script>

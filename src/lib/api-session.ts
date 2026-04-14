@@ -1,4 +1,5 @@
 import type { APIContext } from "astro";
+import { mergeAuthEnv } from "./auth-worker-env";
 import { createAuth } from "./auth";
 
 export type ApiSessionUser = {
@@ -69,10 +70,7 @@ export async function requireApiSession(
     }
 
     const { dbBinding, runtimeEnv } = resolved;
-    const env = {
-        ...import.meta.env,
-        ...runtimeEnv,
-    } as Record<string, string>;
+    const env = mergeAuthEnv(runtimeEnv as Record<string, unknown>);
 
     let auth: ReturnType<typeof createAuth>;
     try {
@@ -122,10 +120,7 @@ export async function getApiSessionUserIfPresent(
     }
 
     const { dbBinding, runtimeEnv } = resolved;
-    const env = {
-        ...import.meta.env,
-        ...runtimeEnv,
-    } as Record<string, string>;
+    const env = mergeAuthEnv(runtimeEnv as Record<string, unknown>);
 
     let auth: ReturnType<typeof createAuth>;
     try {

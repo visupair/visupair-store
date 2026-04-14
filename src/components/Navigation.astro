@@ -1179,10 +1179,17 @@
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
-  .theme-switch:hover {
-    box-shadow:
-      inset 0 2px 8px rgba(81, 79, 158, 0.367),
-      0 0 12px rgba(132, 128, 255, 0.15);
+  @media (hover: hover) and (pointer: fine) {
+    .theme-switch:hover {
+      box-shadow:
+        inset 0 2px 8px rgba(81, 79, 158, 0.367),
+        0 0 12px rgba(132, 128, 255, 0.15);
+    }
+
+    .theme-switch:hover .switch-knob {
+      background-color: var(--brand-violet);
+      box-shadow: 0 2px 12px rgba(132, 128, 255, 0.4);
+    }
   }
 
   .switch-track-icon {
@@ -1220,11 +1227,6 @@
       right 0.2s,
       box-shadow 0.3s ease;
     z-index: 2;
-  }
-
-  .theme-switch:hover .switch-knob {
-    background-color: var(--brand-violet);
-    box-shadow: 0 2px 12px rgba(132, 128, 255, 0.4);
   }
 
   /* Mobile Switch Variant */
@@ -1611,9 +1613,11 @@
     transition: all 0.2s ease;
   }
 
-  .mobile-theme-btn:hover {
-    background: var(--surface-muted);
-    color: var(--brand-violet);
+  @media (hover: hover) and (pointer: fine) {
+    .mobile-theme-btn:hover {
+      background: var(--surface-muted);
+      color: var(--brand-violet);
+    }
   }
 
   .mobile-theme-btn .theme-status {

@@ -9,34 +9,13 @@ import {
 } from "../../lib/profile-account-info";
 import { getSecurityChangeQuota } from "../../lib/user-security-change-quota";
 import { getUserProfilePhotoUrl } from "../../lib/user-avatar-url";
+import { getPageSession } from "../../lib/page-session";
 
-// Check if user is logged in
-let userSession = null;
-
-try {
-  const sessionResponse = await fetch(
-    `${Astro.url.origin}/api/auth/get-session`,
-    {
-      headers: {
-        cookie: Astro.request.headers.get("cookie") || "",
-      },
-    },
-  );
-
-  if (sessionResponse.ok) {
-    const sessionData = await sessionResponse.json();
-    if (sessionData && sessionData.user) {
-      userSession = sessionData;
-    }
-  }
-} catch (error) {
-  console.error("Failed to fetch session:", error);
-}
-
-// Redirect to login if not authenticated
-if (!userSession) {
+const pageSession = await getPageSession(Astro);
+if (!pageSession) {
   return Astro.redirect("/login");
 }
+const userSession = { user: pageSession.user, session: pageSession.session };
 
 // Parse name into firstName and lastName for the form
 const nameParts = userSession.user.name?.split(" ") || ["", ""];

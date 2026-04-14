@@ -31,7 +31,7 @@ export default defineConfig({
     presentationTool({
       // origin — корневой URL твоего сайта
       previewUrl: {
-        origin: 'http://localhost:4321',
+        origin: 'https://visupair.com',
       },
       // resolve.locations — маршрутизация документов на страницы сайта
       resolve: {

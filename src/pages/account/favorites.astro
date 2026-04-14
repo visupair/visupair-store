@@ -3,40 +3,21 @@ import Layout from "../../layouts/Layout.astro";
 import ProductGrid from "../../components/ProductGrid.astro";
 import { getProducts } from "../../lib/sanity";
 import { mockProducts } from "../../lib/store-data";
-import { createAuth } from "../../lib/auth";
 import { user, favorite } from "../../lib/auth-schema";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
+import { getPageSession } from "../../lib/page-session";
 
-// Check if user is logged in
-let userSession = null;
+const pageSession = await getPageSession(Astro);
+if (!pageSession) {
+    return Astro.redirect("/login");
+}
+const userSession = { user: pageSession.user, session: pageSession.session };
+
 let favoriteProducts: any[] = [];
 let favoriteProductIds: string[] = [];
 
 try {
-    // 1. Get Session
-    const sessionResponse = await fetch(
-        `${Astro.url.origin}/api/auth/get-session`,
-        {
-            headers: {
-                cookie: Astro.request.headers.get("cookie") || "",
-            },
-        },
-    );
-
-    if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json();
-        if (sessionData && sessionData.user) {
-            userSession = sessionData;
-        }
-    }
-
-    // Redirect if not authenticated
-    if (!userSession) {
-        return Astro.redirect("/login");
-    }
-
-    // 2. Fetch Favorites from DB
     // @ts-ignore
     const { env: cfEnv } = await import("cloudflare:workers").catch(() => ({ env: {} }));
     const dbBinding = (cfEnv as any)?.visupair_store as D1Database | undefined;
@@ -50,13 +31,8 @@ try {
         favoriteProductIds = favs.map((f) => f.productId);
     }
 
-    // 3. Fetch Products and Filter
     if (favoriteProductIds.length > 0) {
-        // Fetch from Sanity
         const sanityProducts = await getProducts();
-        // Combine with mock products (ensure no duplicates if any)
-        // Note: In production ideally we only use Sanity, but for now we mix.
-        // We use Map to dedup by ID just in case
         const allProductsMap = new Map();
         [...mockProducts, ...sanityProducts].forEach((p) =>
             allProductsMap.set(p.id, p),
@@ -68,11 +44,6 @@ try {
     }
 } catch (error) {
     console.error("Failed to fetch favorites data:", error);
-}
-
-// Redirect to login if not authenticated (double check)
-if (!userSession) {
-    return Astro.redirect("/login");
 }
 ---
 

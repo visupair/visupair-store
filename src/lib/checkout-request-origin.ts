@@ -11,7 +11,7 @@ export function buildCheckoutOriginAllowlist(
     const baseURL =
         env.BETTER_AUTH_URL ||
         process.env.BETTER_AUTH_URL ||
-        "http://localhost:4321";
+        "https://visupair.com";
     return buildTrustedOriginAllowlistSet(baseURL, env);
 }
 

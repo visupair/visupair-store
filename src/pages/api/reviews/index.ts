@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { createClient } from "@sanity/client";
+import { mergeAuthEnv } from "~/lib/auth-worker-env";
 import { createAuth } from "~/lib/auth";
 import { review } from "~/lib/auth-schema";
 import { randomUUID } from "node:crypto";
@@ -48,11 +49,10 @@ export const POST: APIRoute = async (context) => {
             return new Response(JSON.stringify({ error: "Database not configured" }), { status: 500 });
         }
 
-        const env = {
-            BETTER_AUTH_SECRET: envData?.BETTER_AUTH_SECRET,
-            BETTER_AUTH_URL: envData?.BETTER_AUTH_URL,
-        };
-        const auth = createAuth(dbBinding, env as Record<string, string>);
+        const auth = createAuth(
+            dbBinding,
+            mergeAuthEnv(envData as Record<string, unknown>),
+        );
         const session = await auth.api.getSession({ headers: request.headers });
 
         if (!session?.user?.email?.trim()) {
