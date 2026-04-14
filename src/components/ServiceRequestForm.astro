@@ -62,7 +62,7 @@ import 'flatpickr/dist/flatpickr.min.css';
                 </ul>
             </div>
 
-            <div class="form-intro-mobile">
+            <div class="form-intro-mobile proposal-form-preface">
                 <p>
                     You're requesting the <span id="form-plan-name-inline" class="plan-name-inline">Standard</span> Package.
                 </p>
@@ -74,7 +74,7 @@ import 'flatpickr/dist/flatpickr.min.css';
 
         <!-- Right Column: The Form -->
         <div class="form-right-col">
-            <div class="form-header-mobile-hidden">
+            <div class="form-header-mobile-hidden proposal-form-preface">
                 <h3>Request Proposal</h3>
                 <p class="form-intro-paragraph">
                     You're requesting the <span id="form-plan-name-inline-desktop" class="plan-name-inline">Standard</span> Package (<span id="form-plan-intro-price">€700</span>).
@@ -325,15 +325,17 @@ import 'flatpickr/dist/flatpickr.min.css';
                 class="success-state"
                 style="display: none;"
             >
-                <div class="success-icon">
+                <div class="success-icon" aria-hidden="true">
                     <svg
-                        viewBox="0 0 24 24"
+                        class="success-icon-heart"
+                        viewBox="0 0 22 19"
                         fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
+                        xmlns="http://www.w3.org/2000/svg"
                     >
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        <path
+                            d="M16.2411 0.0134513H16.245C18.0116 0.125081 19.6479 0.999001 20.7444 2.41344L20.7434 2.41442C22.6101 4.83522 22.3595 8.38062 20.0895 10.6616L12.7129 18.0285C12.2257 18.5155 11.6058 18.7487 10.9931 18.7449C10.3805 18.7487 9.76058 18.5155 9.27343 18.0285L1.8968 10.6616C-0.373292 8.38061 -0.623868 4.83523 1.24288 2.41442L1.2419 2.41344C2.33836 0.999009 3.97469 0.125067 5.74127 0.0134513H5.74518C7.40844 -0.0978413 9.06029 0.485407 10.3002 1.6219C10.6899 1.98734 11.2964 1.98734 11.6861 1.6219C12.926 0.485418 14.5779 -0.0978554 16.2411 0.0134513Z"
+                            fill="currentColor"
+                        ></path>
                     </svg>
                 </div>
                 <h3>Thank you for your request</h3>
@@ -521,7 +523,7 @@ import 'flatpickr/dist/flatpickr.min.css';
         font-size: 16px;
         line-height: 1.5;
         opacity: 0.9;
-        align-items: flex-start;
+        align-items: center;
         color: var(--foreground);
     }
 
@@ -692,8 +694,8 @@ import 'flatpickr/dist/flatpickr.min.css';
         padding: 0;
         border: none;
         border-radius: var(--radius-md);
-        background: rgba(239, 68, 68, 0.08);
-        color: #ef4444;
+        background: color-mix(in srgb, var(--brand-violet), transparent 90%);
+        color: var(--brand-violet);
         opacity: 1;
         cursor: pointer;
         transition:
@@ -702,12 +704,12 @@ import 'flatpickr/dist/flatpickr.min.css';
     }
 
     .date-field-clear:hover:not(:disabled) {
-        background: rgba(239, 68, 68, 0.14);
-        color: #ef4444;
+        background: color-mix(in srgb, var(--brand-violet), transparent 82%);
+        color: var(--brand-violet);
     }
 
     .date-field-clear:focus-visible {
-        outline: 2px solid #ef4444;
+        outline: 2px solid var(--brand-violet);
         outline-offset: 2px;
     }
 
@@ -816,15 +818,26 @@ import 'flatpickr/dist/flatpickr.min.css';
     }
 
     .success-icon {
-        width: 64px;
-        height: 64px;
-        background: var(--brand-lime);
-        color: var(--brand-dark-navy);
-        border-radius: 50%;
+        width: 76px;
+        height: 76px;
+        border-radius: var(--radius-xl);
+        background: color-mix(in srgb, var(--brand-violet) 20%, var(--surface));
+        border: 1px solid color-mix(in srgb, var(--brand-violet), transparent 68%);
+        color: var(--brand-violet);
         display: flex;
         align-items: center;
         justify-content: center;
         margin: 0 auto 24px;
+        box-shadow:
+            0 1px 0 color-mix(in srgb, var(--foreground), transparent 92%),
+            0 10px 32px color-mix(in srgb, var(--brand-violet), transparent 78%);
+    }
+
+    .success-icon-heart {
+        width: 32px;
+        height: auto;
+        display: block;
+        opacity: 0.95;
     }
 
     .btn-outline {
@@ -857,6 +870,22 @@ import 'flatpickr/dist/flatpickr.min.css';
 
     .form-intro-mobile p:last-child {
         margin-bottom: 0;
+    }
+
+    /* Hide intro copy when thank-you state is shown (see ServicePage: data-proposal-success) */
+    .request-form-container[data-proposal-success="true"] .proposal-form-preface {
+        display: none !important;
+    }
+
+    /* Vertically center thank-you content inside the form card */
+    .request-form-container[data-proposal-success="true"] .form-right-col {
+        justify-content: center;
+        min-height: min(72vh, 720px);
+    }
+
+    .request-form-container[data-proposal-success="true"] .success-state {
+        padding: 24px 0;
+        width: 100%;
     }
 
     /*
@@ -1470,6 +1499,10 @@ import 'flatpickr/dist/flatpickr.min.css';
             width: 100%;
         }
 
+        .request-form-container[data-proposal-success="true"] .form-right-col {
+            min-height: min(62vh, 520px);
+        }
+
         .selected-plan-card {
             position: relative;
             top: 0;
@@ -1589,6 +1622,10 @@ import 'flatpickr/dist/flatpickr.min.css';
     }
 
     @media (max-width: 768px) {
+        .plan-header{
+            padding-top: 10px;
+        }
+        
         .request-form-container {
             padding: 0;
         }

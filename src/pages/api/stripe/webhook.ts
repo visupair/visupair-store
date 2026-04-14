@@ -143,6 +143,8 @@ export const POST: APIRoute = async (context) => {
                     break;
                 }
 
+                const checkoutCurrency = (session.currency || "pln").toUpperCase();
+
                 const sanityOrder: any = {
                     _type: "order",
                     createdAt: new Date().toISOString(),
@@ -159,6 +161,7 @@ export const POST: APIRoute = async (context) => {
                     customerName,
                     items: orderItems,
                     totalAmount: (session.amount_total || 0) / 100,
+                    currency: checkoutCurrency,
                     stripePaymentIntentId: paymentId,
                 };
 

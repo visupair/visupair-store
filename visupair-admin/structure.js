@@ -1,4 +1,13 @@
-import { BasketIcon, FolderIcon, PackageIcon, ImageIcon, CubeIcon, ComposeIcon, BillIcon } from '@sanity/icons'
+import {
+    BasketIcon,
+    FolderIcon,
+    PackageIcon,
+    ImageIcon,
+    CubeIcon,
+    ComposeIcon,
+    BillIcon,
+    TagIcon,
+} from '@sanity/icons'
 
 export const structure = (S) =>
     S.list()
@@ -57,12 +66,24 @@ export const structure = (S) =>
                                         .filter('_type == "order" && status == "processing"')
                                 ),
                             S.listItem()
+                                .title('Free Orders')
+                                .icon(TagIcon)
+                                .child(
+                                    S.documentList()
+                                        .title('Free Orders')
+                                        .filter(
+                                            '_type == "order" && status == "paid" && stripePaymentIntentId match "free_claim*"'
+                                        )
+                                ),
+                            S.listItem()
                                 .title('Paid Orders')
                                 .icon(BillIcon)
                                 .child(
                                     S.documentList()
                                         .title('Paid Orders')
-                                        .filter('_type == "order" && status == "paid"')
+                                        .filter(
+                                            '_type == "order" && status == "paid" && !(stripePaymentIntentId match "free_claim*")'
+                                        )
                                 ),
                             S.listItem()
                                 .title('Shipped / Delivered')

@@ -5,7 +5,12 @@ export default {
     fieldsets: [
         { name: 'customer', title: '👤 Customer', options: { collapsible: true, collapsed: false } },
         { name: 'items', title: '📦 Items', options: { collapsible: true, collapsed: false } },
-        { name: 'shipping', title: '🚚 Shipping & Tracking', options: { collapsible: true, collapsed: true } },
+        {
+            name: 'shipping',
+            title: '🚚 Shipping & Tracking',
+            options: { collapsible: true, collapsed: true },
+            hidden: ({ document }) => document?.orderType === 'digital',
+        },
         { name: 'admin', title: '⚙️ Admin', options: { collapsible: true, collapsed: true } },
     ],
     fields: [
@@ -58,6 +63,13 @@ export default {
             type: 'number',
             readOnly: true,
             description: 'Amount paid by customer (set automatically from Stripe)',
+        },
+        {
+            name: 'currency',
+            title: 'Checkout currency',
+            type: 'string',
+            readOnly: true,
+            description: 'ISO code from Stripe (e.g. PLN, EUR). Used for tax export.',
         },
 
         // ── Customer ──
@@ -219,14 +231,23 @@ export default {
     ],
     preview: {
         select: {
-            title: 'orderNumber',
+            orderNumber: 'orderNumber',
+            stripePaymentIntentId: 'stripePaymentIntentId',
             subtitle: 'customerEmail',
             status: 'status',
             timeline: 'shippingTimelineStage',
             date: 'createdAt',
             total: 'totalAmount',
         },
-        prepare({ title, subtitle, status, timeline, date, total }) {
+        prepare({
+            orderNumber,
+            stripePaymentIntentId,
+            subtitle,
+            status,
+            timeline,
+            date,
+            total,
+        }) {
             let emoji = '❓';
             if (status === 'cancelled') emoji = '❌';
             else if (status === 'refunded') emoji = '↩️';
@@ -244,8 +265,21 @@ export default {
             }
 
             const d = date ? new Date(date).toLocaleDateString() : '';
+            const pid = stripePaymentIntentId || orderNumber || '';
+            const isFreeClaim = typeof pid === 'string' && pid.startsWith('free_claim_');
+
+            // Free-claim orderNumber is free_claim_<productId>_<emailSlug>; slice(-8) looked like "#mail_com".
+            let title;
+            if (isFreeClaim) {
+                const tail = (orderNumber || pid).replace(/^free_claim_/, '');
+                const shortRef = tail.length > 14 ? `${tail.slice(0, 12)}…` : tail;
+                title = `${emoji} Free · ${shortRef || 'order'}`;
+            } else {
+                title = `${emoji} #${(orderNumber || '').slice(-8)} — €${total ?? 0}`;
+            }
+
             return {
-                title: `${emoji} #${(title || '').slice(-8)} — €${total || 0}`,
+                title,
                 subtitle: `${subtitle || ''} · ${d}`,
             };
         },

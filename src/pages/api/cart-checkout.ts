@@ -23,6 +23,7 @@ import {
     mergeCheckoutEnvFromContext,
     resolveCheckoutOrigin,
 } from "../../lib/checkout-request-origin";
+import { isAllowedShippingCountry } from "../../lib/shipping-allowed-countries";
 
 function aggregatePhysicalCartQuantities(
     items: CartCheckoutItem[],
@@ -186,6 +187,17 @@ export const POST: APIRoute = async (context) => {
                     status: 400,
                     headers: { "Content-Type": "application/json" },
                 });
+            }
+            if (!isAllowedShippingCountry(shippingAddress.country)) {
+                return new Response(
+                    JSON.stringify({
+                        error: "We do not ship to this country. Please choose a supported destination.",
+                    }),
+                    {
+                        status: 400,
+                        headers: { "Content-Type": "application/json" },
+                    },
+                );
             }
             if (!selectedShippingId || !String(selectedShippingId).trim()) {
                 return new Response(JSON.stringify({ error: "Shipping method required." }), {

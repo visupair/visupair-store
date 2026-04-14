@@ -183,6 +183,7 @@ export const POST: APIRoute = async (context) => {
             },
         ],
         totalAmount: 0,
+        currency: "PLN",
         stripePaymentIntentId,
     };
 

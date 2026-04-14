@@ -28,10 +28,7 @@ try {
             {
                 courses.length === 0 ? (
                     <div class="empty-state">
-                        <h2>No courses available yet</h2>
-                        <p>
-                            Create your first course in the Sanity admin panel!
-                        </p>
+                        <p>No courses available yet</p>
                     </div>
                 ) : (
                     <CourseGrid courses={courses} serverCurrency={serverCurrency} />
@@ -75,15 +72,13 @@ try {
         gap: 12px;
     }
 
-    .empty-state h2 {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--foreground);
-    }
-
     .empty-state p {
-        font-size: 16px;
-        opacity: 0.7;
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.5;
+        font-weight: 400;
+        color: var(--foreground);
+        opacity: 0.5;
     }
 
     @media (max-width: 900px) {

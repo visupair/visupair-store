@@ -397,10 +397,17 @@ const pricingLabels: Record<string, string> = {
 
             <!-- Success State -->
             <div class="reg-success" id="reg-success" style="display:none;">
-                <div class="success-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                <div class="success-icon" aria-hidden="true">
+                    <svg
+                        class="success-icon-heart"
+                        viewBox="0 0 22 19"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                            d="M16.2411 0.0134513H16.245C18.0116 0.125081 19.6479 0.999001 20.7444 2.41344L20.7434 2.41442C22.6101 4.83522 22.3595 8.38062 20.0895 10.6616L12.7129 18.0285C12.2257 18.5155 11.6058 18.7487 10.9931 18.7449C10.3805 18.7487 9.76058 18.5155 9.27343 18.0285L1.8968 10.6616C-0.373292 8.38061 -0.623868 4.83523 1.24288 2.41442L1.2419 2.41344C2.33836 0.999009 3.97469 0.125067 5.74127 0.0134513H5.74518C7.40844 -0.0978413 9.06029 0.485407 10.3002 1.6219C10.6899 1.98734 11.2964 1.98734 11.6861 1.6219C12.926 0.485418 14.5779 -0.0978554 16.2411 0.0134513Z"
+                            fill="currentColor"
+                        ></path>
                     </svg>
                 </div>
                 <h3 class="success-title">You're Registered!</h3>
@@ -1189,14 +1196,26 @@ const pricingLabels: Record<string, string> = {
     }
 
     .success-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: color-mix(in srgb, #22c55e, transparent 85%);
+        width: 76px;
+        height: 76px;
+        border-radius: var(--radius-xl);
+        background: color-mix(in srgb, var(--brand-violet) 20%, var(--surface));
+        border: 1px solid color-mix(in srgb, var(--brand-violet), transparent 68%);
+        color: var(--brand-violet);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #22c55e;
+        flex-shrink: 0;
+        box-shadow:
+            0 1px 0 color-mix(in srgb, var(--foreground), transparent 92%),
+            0 10px 32px color-mix(in srgb, var(--brand-violet), transparent 78%);
+    }
+
+    .success-icon-heart {
+        width: 32px;
+        height: auto;
+        display: block;
+        opacity: 0.95;
     }
 
     .success-title {
@@ -1423,8 +1442,12 @@ const pricingLabels: Record<string, string> = {
         }
 
         .success-icon {
-            width: 64px;
-            height: 64px;
+            width: 68px;
+            height: 68px;
+        }
+
+        .success-icon-heart {
+            width: 28px;
         }
 
         .success-title {
@@ -1502,8 +1525,12 @@ const pricingLabels: Record<string, string> = {
         }
 
         .success-icon {
-            width: 56px;
-            height: 56px;
+            width: 60px;
+            height: 60px;
+        }
+
+        .success-icon-heart {
+            width: 26px;
         }
     }
 </style>

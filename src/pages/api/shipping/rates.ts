@@ -15,6 +15,7 @@ import {
 } from "../../../lib/rate-limit-kv";
 import type { RateParams, ShippingRate } from "../../../lib/shipping/types";
 import { getFurgonetkaRates } from "../../../lib/shipping/furgonetka";
+import { isAllowedShippingCountry } from "../../../lib/shipping-allowed-countries";
 
 /** Upper bounds for client-supplied parcel dimensions (abuse / bad data guard). */
 const MAX_PARCEL_KG = 500;
@@ -89,6 +90,15 @@ export const POST: APIRoute = async (context) => {
       return new Response(JSON.stringify({ error: "Missing address fields" }), {
         status: 400,
       });
+    }
+
+    if (!isAllowedShippingCountry(country)) {
+      return new Response(
+        JSON.stringify({
+          error: "Shipping is not available to this country.",
+        }),
+        { status: 400 },
+      );
     }
 
     let parcelParams: RateParams["parcel"];

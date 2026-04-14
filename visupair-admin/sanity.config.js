@@ -2,8 +2,10 @@ import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
 import { presentationTool, defineLocations } from 'sanity/presentation'
 import { visionTool } from '@sanity/vision'
+import { DownloadIcon } from '@sanity/icons'
 import { schemaTypes } from './schemaTypes'
 import { structure } from './structure'
+import { TaxExportTool } from './tools/TaxExportTool'
 
 export default defineConfig({
   name: 'default',
@@ -11,6 +13,16 @@ export default defineConfig({
 
   projectId: 'sovnyov1',
   dataset: 'production',
+
+  tools: (prev) => [
+    ...prev,
+    {
+      name: 'tax-export',
+      title: 'Sales export',
+      icon: DownloadIcon,
+      component: TaxExportTool,
+    },
+  ],
 
   plugins: [
     structureTool({

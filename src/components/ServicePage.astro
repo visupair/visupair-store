@@ -352,6 +352,12 @@ const initialDisplayCurrency: Currency =
                 if (inputServiceId) inputServiceId.value = serviceId;
                 if (inputPlanName) inputPlanName.value = name;
 
+                formContainer.removeAttribute("data-proposal-success");
+                const resetSuccessMsg = document.getElementById("success-message");
+                const resetProposalForm = document.getElementById("proposal-form");
+                if (resetSuccessMsg) resetSuccessMsg.style.display = "none";
+                if (resetProposalForm) resetProposalForm.style.display = "block";
+
                 // Toggle View
                 contentView.style.display = "none";
                 formContainer.style.display = "block";
@@ -372,6 +378,7 @@ const initialDisplayCurrency: Currency =
                 // Reset form success state if needed
                 const successMsg = document.getElementById("success-message");
                 const formEl = document.getElementById("proposal-form");
+                formContainer.removeAttribute("data-proposal-success");
                 if (successMsg) successMsg.style.display = "none";
                 if (formEl) formEl.style.display = "block";
             });
@@ -432,6 +439,14 @@ const initialDisplayCurrency: Currency =
                         proposalForm.style.display = "none";
                         if (successMessage)
                             successMessage.style.display = "block";
+                        const formShell = document.getElementById(
+                            "service-request-form",
+                        );
+                        if (formShell)
+                            formShell.setAttribute(
+                                "data-proposal-success",
+                                "true",
+                            );
                         window.scrollTo({ top: 0, behavior: "smooth" });
                     } else {
                         const errorData = await response.json();
