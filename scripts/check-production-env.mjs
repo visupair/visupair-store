@@ -48,9 +48,20 @@ console.log(
 console.log("  • checkout.session.completed");
 console.log("  • checkout.session.expired");
 console.log("");
+console.log("Deploy (Astro + @astrojs/cloudflare uses Workers, not Pages on dist root):");
+console.log("  • npm run build && npx wrangler deploy");
+console.log("  • Or: npm run deploy (same as above)");
+console.log(
+    "  • Set production env vars / secrets in the Cloudflare dashboard for this Worker,",
+);
+console.log("    or use `wrangler secret put NAME` (they are not read from GitHub).");
+console.log("");
 console.log("Production reminders (not env vars):");
 console.log(
     "  • wrangler.toml: VISUPAIR_KV binding must exist for public API rate limits",
+);
+console.log(
+    "  • Astro may inject a SESSION KV binding; if deploy fails, add [[kv_namespaces]] binding = \"SESSION\" with a real KV id from the dashboard or `wrangler kv namespace create`",
 );
 console.log(
     "  • RESEND_API_KEY + ADMIN_EMAIL: contact / support / restock forms send mail",

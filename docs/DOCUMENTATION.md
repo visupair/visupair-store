@@ -29,10 +29,14 @@ npm run preview
 
 ### Деплой на Cloudflare
 
+Современный Astro 6 + `@astrojs/cloudflare` собирает Worker и статику в `dist/`; деплой — через **Workers** (`wrangler deploy`), а не `pages deploy dist`.
+
 ```bash
 npm run build
-npx wrangler pages deploy dist
+npx wrangler deploy
 ```
+
+Либо одной командой: `npm run deploy`. Переменные окружения для продакшена задайте в дашборде Cloudflare для этого Worker или через `wrangler secret put`.
 
 ---
 

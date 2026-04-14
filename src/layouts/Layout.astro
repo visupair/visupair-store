@@ -9,7 +9,6 @@ import Footer from "../components/Footer.astro";
 import AccountSidebar from "../components/AccountSidebar.astro";
 import FullscreenGallery from "../components/FullscreenGallery.astro";
 import CookieConsent from "../components/CookieConsent.astro";
-
 import { ClientRouter } from "astro:transitions";
 
 interface Props {
@@ -149,9 +148,15 @@ function getUserInitials(name: string): string {
     <!-- Page-specific head injections (preload hints, etc.) -->
     <slot name="head" />
   </head>
-  <ClientRouter />
 
   <body>
+    <!--
+      Enables soft navigation + dispatches `astro:page-load` on first paint (window `load`).
+      Without this, `document.addEventListener("astro:page-load", …)` in page scripts never
+      runs on full loads — breaking Lottie, `.animate-text` reveals, portfolio image fade-in,
+      service plan buttons, etc.
+    -->
+    <ClientRouter />
     <script is:inline>
       try {
         const cookieRaw = localStorage.getItem("visupair_cookie_v1");
@@ -211,9 +216,17 @@ function getUserInitials(name: string): string {
         user ? (
           <AccountSidebar
             userName={user.name || "User"}
-            userEmail={user.email}
+            userEmail={
+              typeof user.email === "string"
+                ? user.email
+                : user.email != null
+                  ? String(user.email)
+                  : ""
+            }
             userInitials={getUserInitials(user.name || "User")}
-            userImageUrl={user.image ?? null}
+            userImageUrl={
+              typeof user.image === "string" ? user.image : null
+            }
           />
         ) : (
           <AccountSidebar userName="User" userEmail="" userInitials="U" />

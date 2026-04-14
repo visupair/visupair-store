@@ -4,6 +4,36 @@ import react from '@astrojs/react';
 import cloudflare from '@astrojs/cloudflare';
 import sanity from '@sanity/astro';
 
+/**
+ * Astro emits `export const onRequest = sequence(userHandler)` for `src/middleware.ts`.
+ * With a single handler, that breaks HTML responses on Cloudflare Workers (body is `[object Object]`).
+ * Unwrap to `export const onRequest = userHandler` when `sequence` has exactly one argument.
+ */
+function unwrapAstroMiddlewareSequence() {
+  return {
+    name: 'unwrap-astro-middleware-sequence',
+    enforce: 'post',
+    /** @param {string} code @param {string} id */
+    transform(code, id) {
+      if (!id.includes('virtual:astro:middleware')) {
+        return null;
+      }
+      const re =
+        /export const onRequest = sequence\(\s*([A-Za-z_$][\w$]*)\s*\)/;
+      const m = code.match(re);
+      if (!m) {
+        return null;
+      }
+      let out = code.replace(re, `export const onRequest = ${m[1]}`);
+      out = out.replace(
+        /\nimport\s*\{[^}]*\bsequence\b[^}]*\}\s*from\s*['"]astro:middleware['"];?\s*/g,
+        '\n',
+      );
+      return out;
+    },
+  };
+}
+
 // https://astro.build/config
 export default defineConfig({
   // Used for canonical URLs, sitemap, and import.meta.env.SITE (override in production via PUBLIC_SITE_URL)
@@ -25,10 +55,14 @@ export default defineConfig({
   ],
   output: 'server', // SSR by default, pages with prerender: true will be static
   adapter: cloudflare({
-    imageService: 'cloudflare', // Use Cloudflare Image Resizing
+    // `cloudflare` uses /cdn-cgi/image/ (Image Resizing). That breaks many assets on
+    // Workers — especially SVG — and often on *.workers.dev. Compile + passthrough
+    // pre-optimizes at build and serves real files under /_astro/ via ASSETS.
+    imageService: { build: 'compile', runtime: 'passthrough' },
   }),
-  vite: {
+   vite: {
     plugins: [
+      unwrapAstroMiddlewareSequence(),
       // ── DEV-ONLY: intercept miniflare/workerd "fetch failed" ──────────
       //
       // Root cause: workerd's scryptAsync (password hashing) allocates

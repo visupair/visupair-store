@@ -1,3 +1,5 @@
+# Deploy: npm run build && npx wrangler deploy (Workers + static assets; see package.json "deploy")
+# Production env: set in the Cloudflare dashboard for this Worker or via `wrangler secret put`.
 name = "visupair-store"
 compatibility_date = "2026-01-28"
 compatibility_flags = ["nodejs_compat"]

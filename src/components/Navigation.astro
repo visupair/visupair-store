@@ -920,16 +920,23 @@
     transform: translateY(0);
   }
 
-  /* Match link styling when nav item is a <button> (e.g. Store menu) */
+  /*
+   * Store uses <button.nav-link>; `font: inherit` was overriding `.nav-link`’s
+   * font-size/weight (higher specificity) and pulling ~16px from <li> — looked
+   * larger/bolder than <a class="nav-link">. Match anchor typography explicitly.
+   */
   button.nav-link {
-    font: inherit;
     font-family: var(--font-family);
+    font-size: 14px;
+    font-weight: var(--font-weight-medium);
+    font-style: normal;
+    line-height: 1.25;
+    letter-spacing: normal;
     background: none;
     border: none;
     margin: 0;
     appearance: none;
     -webkit-appearance: none;
-    text-align: inherit;
   }
 
   /* Dropdown Logic */
@@ -1627,7 +1634,7 @@
       gap: 1px;
     }
 
-    .nav-link {
+    .navbar-center .nav-link {
       padding: 8px 14px;
       font-size: 13px;
     }

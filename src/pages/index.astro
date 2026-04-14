@@ -66,6 +66,8 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
           fetchpriority="high"
           decoding="async"
           draggable={false}
+          quality={88}
+          sizes="(max-width: 380px) 0px, (max-width: 833px) 85vw, (max-width: 1024px) 52vw, 48vw"
         />
         <Image
           src={bgLight}
@@ -75,6 +77,8 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
           fetchpriority="low"
           decoding="async"
           draggable={false}
+          quality={88}
+          sizes="(max-width: 380px) 0px, (max-width: 833px) 85vw, (max-width: 1024px) 52vw, 48vw"
         />
         <Image
           src={preloaderDark}
@@ -84,6 +88,8 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
           fetchpriority="high"
           decoding="async"
           draggable={false}
+          quality={88}
+          sizes="(max-width: 380px) 100vw, 0px"
         />
         <Image
           src={preloaderLight}
@@ -93,6 +99,8 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
           fetchpriority="low"
           decoding="async"
           draggable={false}
+          quality={88}
+          sizes="(max-width: 380px) 100vw, 0px"
         />
         <div id="hero-lottie-container" aria-hidden="true"></div>
       </div>
@@ -289,8 +297,10 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
             loading="lazy"
             decoding="async"
             draggable={false}
-            width={1080}
-            height={1080}
+            width={1200}
+            height={896}
+            quality={92}
+            sizes="(max-width: 749px) 92vw, (max-width: 1200px) 45vw, 560px"
           />
           <Image
             src={coursesLight}
@@ -299,8 +309,10 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
             loading="lazy"
             decoding="async"
             draggable={false}
-            width={1080}
-            height={1080}
+            width={1200}
+            height={896}
+            quality={92}
+            sizes="(max-width: 749px) 92vw, (max-width: 1200px) 45vw, 560px"
           />
         </div>
       </div>
@@ -1536,14 +1548,22 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
       color: var(--brand-violet);
     }
 
-    /* ── Title ── */
+    /* ── Title — modestly smaller than the original max (64px) ── */
     .courses-title {
-      font-size: clamp(28px, 4.5vw, 64px);
+      font-size: clamp(26px, 4vw, 56px);
       font-weight: 700;
       line-height: 1.1;
       letter-spacing: -0.03em;
       color: var(--foreground);
       margin: 0;
+    }
+
+    /* Second line (“Now we teach…”) — slightly smaller than the first line */
+    .courses-title .courses-accent {
+      display: block;
+      font-size: 0.88em;
+      line-height: 1.15;
+      margin-top: 0.06em;
     }
 
     :global([data-theme="dark"]) .courses-title {
@@ -1616,22 +1636,28 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
       flex-wrap: wrap;
     }
 
-    /* ── Right visual pane — flex-start removed so island stays stretch ── */
+    /* ── Right visual — nearly full column width for the illustration ── */
     .courses-visual {
       flex: 1;
       min-width: 0;
       z-index: 1;
       overflow: hidden;
-      /* Center the square image within the full-height pane */
       display: flex;
       align-items: center;
       justify-content: center;
+      box-sizing: border-box;
     }
 
+    /* Match source art (3000×2240) — a square box + square Image() dims were padding the raster with black bars */
     .courses-img-stack {
       position: relative;
-      width: 100%;
-      aspect-ratio: 1 / 1;
+      width: 98%;
+      max-width: 100%;
+      margin-inline: auto;
+      aspect-ratio: 3000 / 2240;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: transparent;
     }
 
     /* Image — natural block flow, full width, 1:1 ratio preserved */
@@ -1651,6 +1677,7 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
       width: 100%;
       height: 100%;
       object-fit: contain;
+      object-position: center;
     }
 
     .courses-img--dark {
@@ -1683,7 +1710,7 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
     /* Medium desktop */
     @media (min-width: 1025px) and (max-width: 1280px) {
       .courses-title {
-        font-size: clamp(28px, 3.8vw, 48px);
+        font-size: clamp(24px, 3.5vw, 48px);
       }
       .courses-content {
         padding: clamp(40px, 5vw, 64px) clamp(28px, 4vw, 48px);
@@ -1701,7 +1728,7 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
         gap: 20px;
       }
       .courses-title {
-        font-size: clamp(24px, 3.5vw, 40px);
+        font-size: clamp(22px, 3.4vw, 40px);
       }
       .courses-subtitle {
         font-size: 14px;
@@ -1717,12 +1744,10 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
 
       .courses-visual {
         order: -1;
-        /* natural height: sized by the image (1:1 square = full width) */
         width: 100%;
         overflow: hidden;
       }
 
-      /* Theme layers stay stacked; wrapper keeps square aspect ratio */
       .courses-img {
         display: block;
         width: 100%;
@@ -1735,6 +1760,7 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
         width: 100%;
         height: 100%;
         object-fit: contain;
+        object-position: center;
       }
 
       .courses-content {
@@ -1766,11 +1792,14 @@ const heroImagePreloadScript = `(function(){try{var t=window.visupairGetTheme?wi
 
     @media (max-width: 480px) {
       .courses-title {
-        font-size: clamp(24px, 7vw, 34px);
+        font-size: clamp(22px, 6.5vw, 32px);
       }
       .courses-content {
         padding: 24px 20px 32px;
         gap: 18px;
+      }
+      .courses-img-stack {
+        width: 100%;
       }
     }
 

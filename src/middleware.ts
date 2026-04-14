@@ -1,88 +1,75 @@
-// Astro middleware: currency detection + session resolution + preview mode
-// NOTE: This only runs for SSR pages, not for prerendered static pages
-import { defineMiddleware } from 'astro:middleware';
-import { detectCurrencyFromRequest } from './lib/server-currency';
-import { createAuth } from './lib/auth';
+// SSR: currency + Better Auth session. See `unwrapAstroMiddlewareSequence` in astro.config.mjs —
+// Astro wraps this in `sequence()`, which breaks Cloudflare Workers when there is only one handler.
+import type { MiddlewareHandler } from "astro";
+import { detectCurrencyFromRequest } from "./lib/server-currency";
+import { createAuth } from "./lib/auth";
 
-// ── Cache cloudflare env import at module level (resolves once, reused across requests) ──
-let _cfEnvCache: Record<string, any> | null = null;
-let _cfEnvPromise: Promise<Record<string, any>> | null = null;
-
-async function getCfEnv(): Promise<Record<string, any>> {
-    if (_cfEnvCache) return _cfEnvCache;
-    if (_cfEnvPromise) return _cfEnvPromise;
-
-    _cfEnvPromise = Promise.race([
-        // @ts-ignore - cloudflare:workers module
-        import("cloudflare:workers")
-            .then((mod: any) => mod.env ?? {})
-            .catch(() => ({})),
-        // Timeout: don't let the import hang the request
-        new Promise<Record<string, any>>((resolve) => setTimeout(() => resolve({}), 3000)),
-    ]).then((env) => {
-        _cfEnvCache = env;
-        _cfEnvPromise = null;
-        return env;
-    });
-
-    return _cfEnvPromise;
+async function getCloudflareEnv(): Promise<Record<string, unknown>> {
+    // @ts-ignore — virtual module in the Workers bundle
+    const { env } = await import("cloudflare:workers").catch(() => ({
+        env: {} as Record<string, unknown>,
+    }));
+    return env ?? {};
 }
 
-export const onRequest = defineMiddleware(async (context, next) => {
-    // Initialize locals with safe defaults
+function isResponseLike(value: unknown): value is Response {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "headers" in value &&
+        typeof (value as Response).status === "number"
+    );
+}
+
+function withCurrencyHeader(
+    response: Response,
+    currency: string | undefined,
+): Response {
+    if (!currency) return response;
+    const headers = new Headers(response.headers);
+    headers.set("X-Detected-Currency", currency);
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+    });
+}
+
+export const onRequest: MiddlewareHandler = async (context, next) => {
     context.locals.currency = undefined;
     context.locals.user = null;
     context.locals.session = null;
 
-    // Skip processing for static assets and prerendered pages
     const pathname = new URL(context.request.url).pathname;
 
-    // List of paths that should be static (skip middleware)
-    const staticPaths = ['/', '/about'];
-    const isStaticPath = staticPaths.some(path => pathname === path || pathname.startsWith(path + '/'));
+    const staticPaths = ["/", "/about"];
+    const isStaticPath = staticPaths.some(
+        (path) => pathname === path || pathname.startsWith(`${path}/`),
+    );
 
     if (isStaticPath) {
-        // For static pages, just continue without processing
         return next();
     }
 
-    // Skip auth API routes — no session check needed, and prevents circular
-    // internal fetches inside Miniflare when a sign-in/sign-up request is made.
-    const isAuthApiRoute = pathname.startsWith('/api/auth');
-    if (isAuthApiRoute) {
+    if (pathname.startsWith("/api/auth")) {
         return next();
     }
 
-    // ── 1. Currency detection (Cloudflare CF-IPCountry header) ──────────
     try {
-        const currency = detectCurrencyFromRequest(context.request);
-        context.locals.currency = currency;
+        context.locals.currency = detectCurrencyFromRequest(context.request);
     } catch {
-        // Failed to detect currency (might be prerendered), use default
         context.locals.currency = undefined;
     }
 
-    // ── 2. Session resolution via Better Auth ────────────────────────────
     try {
-        const cfEnv = await getCfEnv();
-        let dbBinding = cfEnv?.visupair_store;
-        let runtimeEnv = cfEnv || {};
-
-        try {
-            if (!dbBinding && context.locals.runtime && typeof context.locals.runtime === 'object') {
-                const descriptor = Object.getOwnPropertyDescriptor(context.locals.runtime, 'env');
-                if (descriptor && typeof descriptor.get !== 'function') {
-                    dbBinding = (context.locals.runtime as any).env?.visupair_store;
-                    runtimeEnv = (context.locals.runtime as any).env || {};
-                }
-            }
-        } catch (e) { }
+        const cfEnv = await getCloudflareEnv();
+        const dbBinding = cfEnv.visupair_store as D1Database | undefined;
 
         if (dbBinding) {
             const env = {
                 ...import.meta.env,
-                ...runtimeEnv,
-            };
+                ...cfEnv,
+            } as Record<string, string>;
             const auth = createAuth(dbBinding, env);
             const sessionResult = await auth.api.getSession({
                 headers: context.request.headers,
@@ -93,15 +80,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
             }
         }
     } catch {
-        // Session check failure is non-fatal
+        /* best-effort */
     }
 
-    // ── 3. Continue to page ──────────────────────────────────────────────
     const response = await next();
 
-    if (context.locals.currency) {
-        response.headers.set('X-Detected-Currency', context.locals.currency);
+    if (!isResponseLike(response)) {
+        return response;
     }
 
-    return response;
-});
+    return withCurrencyHeader(response, context.locals.currency);
+};

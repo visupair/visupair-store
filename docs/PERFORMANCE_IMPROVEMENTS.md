@@ -211,7 +211,7 @@ npm run dev
 ### 4. Deploy на Cloudflare:
 ```bash
 npm run build
-npx wrangler pages deploy dist
+npx wrangler deploy
 ```
 
 ---

@@ -18,7 +18,9 @@
     "db:query:remote": "wrangler d1 execute visupair-store --remote",
     "test:auth": "bash test-auth.sh",
     "check:env": "node scripts/check-production-env.mjs",
-    "check:stripe-sanity-prices": "node scripts/check-stripe-sanity-price-drift.mjs"
+    "check:stripe-sanity-prices": "node scripts/check-stripe-sanity-price-drift.mjs",
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:dry-run": "npm run build && wrangler deploy --dry-run"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",
@@ -53,6 +55,6 @@
     "eslint-plugin-astro": "^1.5.0",
     "prettier": "3.8.1",
     "prettier-plugin-astro": "0.14.1",
-    "wrangler": "^4.61.1"
+    "wrangler": "^4.82.2"
   }
 }
